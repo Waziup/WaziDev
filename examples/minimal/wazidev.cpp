@@ -119,6 +119,16 @@ void WaziDev::send(char sensor_id[], float val)
              
 }
 
+int WaziDev::getSensorValue(int pin) {
+
+  //read the raw sensor value
+  int value = analogRead(pin);
+
+  writeSerial("Reading %s", value);
+
+  return value;
+}
+
 // Power down the WaziDev for "duration" seconds
 void WaziDev::powerDown(const int duration) {
 
@@ -127,9 +137,10 @@ void WaziDev::powerDown(const int duration) {
       LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
                               
       writeSerial(".");
-      Serial.flush();
       delay(1);                        
   }    
+  writeSerial("\n");
+  Serial.flush();
 
 }
 

@@ -16,6 +16,9 @@ class WaziDev
     //setup the WaziDev
     void setup();
    
+    //read a sensor
+    int getSensorValue(int pin);
+
     //Send a LoRa message
     void send(char sensor_id[], float val);
 

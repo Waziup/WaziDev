@@ -10,7 +10,7 @@ void setup(){
   Serial.begin(38400); // initialize the serial port
   pinMode(TRIG_PIN, OUTPUT);
   digitalWrite(TRIG_PIN, LOW);
-  pinMode(ECHO_PIN, INTPUT);
+  pinMode(ECHO_PIN, INPUT);
 }
 
 // Define a new function that reads and converts the raw reading to distance (cm)

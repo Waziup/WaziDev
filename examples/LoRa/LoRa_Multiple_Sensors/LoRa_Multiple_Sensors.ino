@@ -126,24 +126,6 @@ char *ftoa(char *a, double f, int precision){
    return ret;
 }
 
-void loop(void){
-    float temp = 13.00; //SENSOR VALUE 1, DESCRIPTION TC
-    float hum = 11.00;  //SENSOR VALUE 2, DESCRIPTION HM
-    
-      //ADD MORE ELSE IF TO INCREASE LIST OF SENSORS TO POST//
-      ///////////////////////////
-      if(a){
-        a = false;
-        b = true;
-        postValues("\\!TC/%s", temp);
-      }else if(b){
-        a = true;
-        b = false;
-        postValues("\\!HM/%s", hum);
-      }
-      ///////////////////////////
-}
-
 void postValues(char* sensorDes, float sensorVal){
       uint8_t r_size;
       char float_str[20];
@@ -194,3 +176,22 @@ void postValues(char* sensorDes, float sensorVal){
      nextTransmissionTime=millis()+10000;
   }
 }
+
+void loop(void){
+    float temp = 13.00; //SENSOR VALUE 1, DESCRIPTION TC
+    float hum = 11.00;  //SENSOR VALUE 2, DESCRIPTION HM
+    
+      //ADD MORE ELSE IF TO INCREASE LIST OF SENSORS TO POST//
+      ///////////////////////////
+      if(a){
+        a = false;
+        b = true;
+        postValues("\\!TC/%s", temp);
+      }else if(b){
+        a = true;
+        b = false;
+        postValues("\\!HM/%s", hum);
+      }
+      ///////////////////////////
+}
+

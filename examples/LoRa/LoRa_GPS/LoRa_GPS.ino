@@ -111,16 +111,7 @@ unsigned int idlePeriodInMin = 20;
 
 #define GPS_FIX_ATTEMPT_TIME_IN_MS 35000
 
-///////////////////////////////////////////////////////////////////
-// CHANGE HERE THE GPS SERIAL PORT
-
-//Arduino Pro Mini, Uno, Nano, Arduino Mini/Nexus, Arduino M0/Zero
-#if defined ARDUINO_AVR_PRO || defined ARDUINO_AVR_UNO || defined ARDUINO_AVR_NANO || defined ARDUINO_AVR_MINI || defined __SAMD21G18A__
-  #define gps_serial Serial
-  // Arduino Mega, Due, Teensy3.1/3.2,
-#elif defined ARDUINO_AVR_MEGA2560 || defined ARDUINO_SAM_DUE || defined __MK20DX256__
-  #define gps_serial Serial3
-#endif
+#define gps_serial Serial
 
 ///////////////////////////////////////////////
 // CHANGE HERE THE POWER PIN FOR THE GPS MODULE

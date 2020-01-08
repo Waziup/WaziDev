@@ -45,14 +45,8 @@ void loop(void)
   //we use a 0.95 factor when powering with less than 3.3v, e.g. 3.1v in the average for instance
   //this setting is for 2 AA batteries
   double temp = ((value*0.95*TEMP_SCALE/1024.0)-500)/10;
-
-  // on the Heltec, use the 3.3v pin and a TMP36 sensor
-  //temp = ((value*TEMP_SCALE/1024.0)-500)/10;
   
-  //set a defined value for testing
-  //temp = 22.5;
-  
-  Serial.print(F("(Temp is "));
+  Serial.print(F("Temp is "));
   Serial.println(temp);
 
   //Send temperature as sensor "TC"

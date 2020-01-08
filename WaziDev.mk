@@ -6,11 +6,11 @@ USER_LIB_PATH    = /home/cdupont/Documents/Waziup/WaziDev/libraries
 BOARD_TAG        = pro
 BOARD_SUB        = 8MHzatmega328 
 MONITOR_PORT     = /dev/ttyUSB0
-ARDUINO_LIBS     = SPI SX1272 LowPower EEPROM U8g2 Wire TinyGPSPlus OneWire DHT Dallas-Temperature WaziDev
+ARDUINO_LIBS     = SPI SX1272 LowPower EEPROM U8g2 Wire TinyGPSPlus OneWire DHT Dallas-Temperature WaziDev LiquidCrystal
 MONITOR_BAUDRATE = 38400 
 
 include /usr/share/arduino/Arduino.mk
 
 monitor:
-	stty -F /dev/ttyUSB0 raw 38400
-	cat /dev/ttyUSB0
+	stty -F $(MONITOR_PORT) raw $(MONITOR_BAUDRATE)
+	cat $(MONITOR_PORT)

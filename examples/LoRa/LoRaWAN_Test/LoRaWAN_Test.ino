@@ -86,38 +86,29 @@ void loop(void)
 {
   long startSend;
   long endSend;
-  uint8_t app_key_offset=0;
   int e;
   uint8_t r_size;
 
-  // the recommended format if now \!TC/22.5
-  r_size=sprintf((char*)message+app_key_offset,"TEST");
+  r_size = sprintf((char*)message,"TEST");
   
   PRINT_CSTSTR("%s","Sending ");
-  PRINT_STR("%s",(char*)(message+app_key_offset));
+  PRINT_STR("%s",(char*)(message));
   PRINTLN;
   
   PRINT_CSTSTR("%s","Real payload size is ");
   PRINT_VALUE("%d", r_size);
   PRINTLN;
   
-  int pl=r_size+app_key_offset;
-
-  uint8_t p_type=PKT_TYPE_DATA;
+  sx1272.setPacketType(PKT_TYPE_DATA);      
   
-  sx1272.setPacketType(p_type);      
+  int pl = local_aes_lorawan_create_pkt(message, r_size, 0, true);
   
-  pl=local_aes_lorawan_create_pkt(message, pl, app_key_offset, true);
-  
-  startSend=millis();
+  startSend = millis();
   
   e = sx1272.sendPacketTimeout(destAddr, message, pl);
   
-  endSend=millis();
+  endSend = millis();
 
-  // switch back to normal behavior
-  sx1272._rawFormat=false;
-      
   PRINT_CSTSTR("%s","LoRa pkt size ");
   PRINT_VALUE("%d", pl);
   PRINTLN;

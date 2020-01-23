@@ -33,7 +33,7 @@ int local_lorawan_init(uint8_t SF) {
   int e;
 
   e = sx1272.setBW(BW_125);
-  PRINT_CSTSTR("%s","Set BW to 125kHz: state"); 
+  PRINT_CSTSTR("%s","Set BW to 125kHz: state "); 
   PRINT_VALUE("%d", e);
   PRINTLN; 
   

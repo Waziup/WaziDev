@@ -4,11 +4,11 @@
 #include "local_lorawan.h"
 
 const uint8_t  maxDBM = 14;
-const uint32_t channel = CH_10_868;
+const uint32_t channel = CH_18_868; // 868.1MHz for LoRaWAN test
 const int      destAddr = 1;
 const int      loraMode = 1;
 const uint8_t  node_addr = 6;
-const int      SF = 12;
+const int      SF = 7;
 
 //ENTER HERE your App Session Key from the TTN device info (same order, i.e. msb)
 unsigned char AppSkey[16] = {0x4E, 0xF6, 0x45, 0x76, 0x16, 0x0F, 0xAD, 0x7F, 0x09, 0x3F, 0x7B, 0xE6, 0x21, 0xE4, 0x33, 0xB4};
@@ -129,6 +129,6 @@ void loop(void)
   PRINT_VALUE("%d", e);
   PRINTLN;
 
-  delay(3000); 
+  delay(7000); 
 
 }

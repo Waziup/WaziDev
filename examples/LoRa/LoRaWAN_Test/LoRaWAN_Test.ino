@@ -2,7 +2,7 @@
 #include <SPI.h> 
 #include "SX1272.h"
 #include "local_lorawan.h"
-#include <Utils.cpp>
+#include <WaziDevUtils.h>
 
 const uint8_t  maxDBM = 14;
 const int      destAddr = 1;
@@ -41,11 +41,11 @@ void setup()
   sx1272._needPABOOST=true;
 
   e = sx1272.setPowerDBM(maxDBM);
-  serialPrintf("Setting Power to %d DBM\n", maxDBM);
+  serialPrintf("Setting Power to %d DBM. state: %d\n", e, maxDBM);
   
   // Set the node address and print the result
   e = sx1272.setNodeAddress(node_addr);
-  serialPrintf("Setting node addr to %d\n", node_addr);
+  serialPrintf("Setting node addr to %d. state: %d\n", e, node_addr);
   
   // Print a success message
   serialPrintf("SX1272 successfully configured\n");

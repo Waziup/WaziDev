@@ -2,7 +2,7 @@
 #include <SPI.h> 
 #include "SX1272.h"
 #include "local_lorawan.h"
-#include <Utils.cpp>
+#include <WaziDevUtils.h>
 
 const uint8_t  maxDBM = 14;
 const int      SF = 12;
@@ -39,7 +39,7 @@ void setup()
   sx1272._needPABOOST=true;
 
   e = sx1272.setPowerDBM(maxDBM);
-  serialPrintf("Setting Power to %d DBM\n", maxDBM);
+  serialPrintf("Setting Power to %d DBM. state: %d\n", e, maxDBM);
   
   // Print a success message
   serialPrintf("SX1272 successfully configured\n");

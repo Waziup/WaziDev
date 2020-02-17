@@ -5,8 +5,6 @@
 #include <Utils.cpp>
 
 const uint8_t  maxDBM = 14;
-const int      destAddr = 1;
-const uint8_t  node_addr = 6;
 const int      SF = 12;
 
 //ENTER HERE your App Session Key from the TTN device info (same order, i.e. msb)
@@ -43,10 +41,6 @@ void setup()
   e = sx1272.setPowerDBM(maxDBM);
   serialPrintf("Setting Power to %d DBM\n", maxDBM);
   
-  // Set the node address and print the result
-  e = sx1272.setNodeAddress(node_addr);
-  serialPrintf("Setting node addr to %d\n", node_addr);
-  
   // Print a success message
   serialPrintf("SX1272 successfully configured\n");
 
@@ -73,7 +67,7 @@ void loop(void)
   
   startSend = millis();
   
-  e = sx1272.sendPacketTimeout(destAddr, message, pl);
+  e = sx1272.sendPacketTimeout(0, message, pl);
   
   endSend = millis();
 
@@ -82,6 +76,6 @@ void loop(void)
   serialPrintf("LoRa Sent in %ld\n", endSend-startSend);
   serialPrintf("LoRa Sent w/CAD in %ld\n", endSend-sx1272._startDoCad);
 
-  delay(100000); 
+  delay(10000); 
 
 }

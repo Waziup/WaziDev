@@ -2,7 +2,7 @@
 #include <SPI.h> 
 #include "SX1272.h"
 #include "local_lorawan.h"
-#include <WaziDevUtils.h>
+#include <WaziDev.h>
 
 const uint8_t  maxDBM = 14;
 const int      SF = 12;

@@ -22,6 +22,7 @@ void setup()
 
 void loop(void)
 {
+  wazidev.send("\\!UID/MyDevice/GPS/{\"BC\":2230,\"LAT\":-1.34683,\"LGT\":36.70799,\"FXT\":6,\"P\":\"N\"}");
   Serial.print(F("Sending numerical value...\n"));
   wazidev.send("\\!UID/MyDevice/NUM/15");
   delay(1000);
@@ -29,7 +30,7 @@ void loop(void)
   wazidev.send("\\!UID/MyDevice/STR/\"test\"");
   delay(1000);
   Serial.print(F("Sending object value...\n"));
-  wazidev.send("\\!UID/MyDevice/OBJ/{\"FLD1\":\"15\", \"FLD2\":\"16\"}");
+  wazidev.send("\\!UID/MyDevice/OBJ/{\"FLD1\":\"str\", \"FLD2\":16}");
   delay(1000);
   Serial.print(F("Sending array value...\n"));
   wazidev.send("\\!UID/MyDevice/ARR/[1, 2, 3]");

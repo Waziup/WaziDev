@@ -1,6 +1,6 @@
 /********************
- * Program: Demo temp 
- * Description: sends temperature values to WaziGate
+ * Program: test
+ * Description: sends test values to WaziGate
  ********************/
  
 #include <WaziDev.h>

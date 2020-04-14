@@ -4,7 +4,6 @@
  ********************/
  
 #include <WaziDev.h>
-#include <Utils.cpp>
 
 #define TEMP_PIN_READ  A0
 #define TEMP_SCALE  3300.0

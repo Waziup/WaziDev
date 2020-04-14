@@ -4,7 +4,6 @@
  ********************/
  
 #include <WaziDev.h>
-#include <Utils.cpp>
 
 // new WaziDev with node address = 8 
 WaziDev wazidev("MyDevice", 8);

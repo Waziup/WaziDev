@@ -1,3 +1,11 @@
+// LMIC + LPP Example
+// In Arduino IDE, click on Tools -> Manage Libraries
+// and add: LMIC and CayenneLPP
+// as LMIC is heavy, you need to remove support for Pings and Beacons:
+// in the lmic file "config.h", uncomment the two macros:
+// #define DISABLE_PING
+// #define DISABLE_BEACONS
+
 #include <lmic.h>
 #include <hal/hal.h>
 #include <SPI.h>
@@ -15,7 +23,7 @@ void os_getDevEui (u1_t* buf) { }
 void os_getDevKey (u1_t* buf) { }
 
 
-static uint8_t mydata[] = "test";
+static uint8_t mydata[50];
 static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty

@@ -2,7 +2,7 @@
 // In Arduino IDE, click on Tools -> Manage Libraries
 // and add: LMIC and CayenneLPP
 // as LMIC is heavy, you need to remove support for Pings and Beacons:
-// in the lmic file "config.h", uncomment the two macros:
+// in the lmic file "config.h", UNCOMMENT the two macros:
 // #define DISABLE_PING
 // #define DISABLE_BEACONS
 
@@ -28,7 +28,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 60;
+const unsigned TX_INTERVAL = 30;
 
 // Pin mapping
 const lmic_pinmap lmic_pins = {
@@ -39,6 +39,26 @@ const lmic_pinmap lmic_pins = {
 };
 
 CayenneLPP lpp(10);
+
+// Define the single channel and data rate (SF) to use
+int channel = 0;
+int dr = DR_SF12;
+
+// Disables all channels, except for the one defined above, and sets the
+// data rate (SF). This only affects uplinks; for downlinks the default
+// channels or the configuration from the OTAA Join Accept are used.
+//
+// Not LoRaWAN compliant; FOR TESTING ONLY!
+//
+void forceTxSingleChannelDr() {
+    for(int i=0; i<9; i++) { // For EU; for US use i<71
+        if(i != channel) {
+            LMIC_disableChannel(i);
+        }
+    }
+    // Set data rate (SF) and transmit power for uplink
+    LMIC_setDrTxpow(dr, 14);
+}
 
 void do_send(osjob_t* j){
 
@@ -133,6 +153,8 @@ void setup() {
     // Reset the MAC state. Session and pending data transfers will be discarded.
     LMIC_reset();
 
+    LMIC_setClockError(MAX_CLOCK_ERROR * 10 / 100);
+
     // Set static session parameters. Instead of dynamically establishing a session
     uint8_t appskey[sizeof(APPSKEY)];
     uint8_t nwkskey[sizeof(NWKSKEY)];
@@ -140,7 +162,7 @@ void setup() {
     memcpy_P(nwkskey, NWKSKEY, sizeof(NWKSKEY));
     LMIC_setSession (0x1, DEVADDR, nwkskey, appskey);
 
-    LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+    LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF12),  BAND_CENTI);      // g-band
     //LMIC_setupChannel(1, 868300000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
     //LMIC_setupChannel(2, 868500000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
     //LMIC_setupChannel(3, 867100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
@@ -154,11 +176,11 @@ void setup() {
     LMIC_setLinkCheckMode(0);
 
     // TTN uses SF9 for its RX2 window.
-    LMIC.dn2Dr = DR_SF9;
+    //LMIC.dn2Dr = DR_SF12;
 
     // Set data rate and transmit power for uplink (note: txpow seems to be ignored by the library)
-    LMIC_setDrTxpow(DR_SF12,14);
-
+    //LMIC_setDrTxpow(DR_SF12,14);
+    forceTxSingleChannelDr();
     // Start job
     do_send(&sendjob);
 }

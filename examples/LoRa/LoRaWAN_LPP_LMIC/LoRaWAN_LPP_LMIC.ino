@@ -11,8 +11,11 @@
 #include <SPI.h>
 #include <CayenneLPP.h>
 
+// Enter here the Network session Key in Hex format. Example: 196AE5DFE9EBC9AB61F1EFCEA8E6D337
 static const PROGMEM u1_t NWKSKEY[16] = { 0x19, 0x6A, 0xE5, 0xDF, 0xE9, 0xEB, 0xC9, 0xAB, 0x61, 0xF1, 0xEF, 0xCE, 0xA8, 0xE6, 0xD3, 0x37};
+// Enter here the Network session Key in Hex format. Example: 93B9F0269BFB05610740EFEB8303D1E2
 static const u1_t PROGMEM APPSKEY[16] = { 0x93, 0xB9, 0xF0, 0x26, 0x9B, 0xFB, 0x05, 0x61, 0x07, 0x40, 0xEF, 0xEB, 0x83, 0x03, 0xD1, 0xE2 };
+// Enter here the Device address in Hex format. Example: 2601143F
 static const u4_t DEVADDR = 0x2601143F ; // <-- Change this address for every node!
 
 // These callbacks are only used in over-the-air activation, so they are
@@ -162,7 +165,7 @@ void setup() {
     memcpy_P(nwkskey, NWKSKEY, sizeof(NWKSKEY));
     LMIC_setSession (0x1, DEVADDR, nwkskey, appskey);
 
-    LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF12),  BAND_CENTI);      // g-band
+    LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
     //LMIC_setupChannel(1, 868300000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
     //LMIC_setupChannel(2, 868500000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
     //LMIC_setupChannel(3, 867100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
@@ -176,10 +179,8 @@ void setup() {
     LMIC_setLinkCheckMode(0);
 
     // TTN uses SF9 for its RX2 window.
-    //LMIC.dn2Dr = DR_SF12;
+    LMIC.dn2Dr = DR_SF9;
 
-    // Set data rate and transmit power for uplink (note: txpow seems to be ignored by the library)
-    //LMIC_setDrTxpow(DR_SF12,14);
     forceTxSingleChannelDr();
     // Start job
     do_send(&sendjob);

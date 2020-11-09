@@ -9,14 +9,14 @@
 const uint8_t  maxDBM = 14;
 const int      SF = 12;
 
-//ENTER HERE your App Session Key from the TTN device info (same order, i.e. msb)
+//ENTER HERE your App Session Key from the TTN device info (same order, i.e. msb). Example for 23158D3BBC31E6AF670D195B5AED5525
 unsigned char AppSkey[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF, 0x67, 0x0D, 0x19, 0x5B, 0x5A, 0xED, 0x55, 0x25};
 
-//ENTER HERE your Network Session Key from the TTN device info (same order, i.e. msb)
+//ENTER HERE your Network Session Key from the TTN device info (same order, i.e. msb). Example for D83CB057CEBD2C43E21F4CDE01C19AE1
 unsigned char NwkSkey[16] = {0xD8, 0x3C, 0xB0, 0x57, 0xCE, 0xBD, 0x2C, 0x43, 0xE2, 0x1F, 0x4C, 0xDE, 0x01, 0xC1, 0x9A, 0xE1};
 
-//ENTER HERE your Device Address from the TTN device info (same order, i.e. msb). Example for 0x12345678
-unsigned char DevAddr[4] = {0x26, 0x01, 0x1D, 0x87};
+//ENTER HERE your Device Address from the TTN device info (same order, i.e. msb). Example for 26011D87
+unsigned char DevAddr[4] = {0x27, 0x01, 0x1D, 0x80};
 
 uint8_t message[80];
 CayenneLPP lpp(51);

@@ -4,7 +4,7 @@
 include ../../../WaziDev.mk 
 
 MONITOR_PORT     = /dev/ttyUSB0
-ARDUINO_LIBS     = SPI CayenneLPP arduino-lmic ArduinoJson
+ARDUINO_LIBS     = SPI CayenneLPP arduino-lmic ArduinoJson Base64
 MONITOR_BAUDRATE = 115200 
 OPTIMIZATION_LEVEL = 1
 

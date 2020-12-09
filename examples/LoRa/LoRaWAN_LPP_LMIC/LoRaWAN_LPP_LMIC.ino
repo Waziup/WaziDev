@@ -1,10 +1,13 @@
 // LMIC + LPP Example
+
+// ******* IMPORTANT ********
 // In Arduino IDE, click on Tools -> Manage Libraries
-// and add: LMIC and CayenneLPP
-// as LMIC is heavy, you need to remove support for Pings and Beacons:
-// in the lmic file "config.h", UNCOMMENT the two macros:
+// and add: LMIC, CayenneLPP
+// as LMIC is heavy, you need to remove support for Pings, Beacons and Joins:
+// in the lmic file "config.h", UNCOMMENT the three macros:
 // #define DISABLE_PING
 // #define DISABLE_BEACONS
+// #define DISABLE_JOIN
 
 #include <lmic.h>
 #include <hal/hal.h>
@@ -18,20 +21,10 @@ static const PROGMEM u1_t NWKSKEY[16] = { 0x19, 0x6A, 0xE5, 0xDF, 0xE9, 0xEB, 0x
 // Enter here the Application session Key in Hex format. Example: 93B9F0269BFB05610740EFEB8303D1E2
 static const u1_t PROGMEM APPSKEY[16] = { 0x93, 0xB9, 0xF0, 0x26, 0x9B, 0xFB, 0x05, 0x61, 0x07, 0x40, 0xEF, 0xEB, 0x83, 0x03, 0xD1, 0xE2 };
 
-
-// These callbacks are only used in over-the-air activation, so they are
-// left empty here (we cannot leave them out completely unless
-// DISABLE_JOIN is set in config.h, otherwise the linker will complain).
-void os_getArtEui (u1_t* buf) { }
-void os_getDevEui (u1_t* buf) { }
-void os_getDevKey (u1_t* buf) { }
-
-
 static uint8_t mydata[50];
 static osjob_t sendjob;
 
-// Schedule TX every this many seconds (might become longer due to duty
-// cycle limitations).
+// Schedule TX every this many seconds (might become longer due to duty cycle limitations).
 const unsigned TX_INTERVAL = 0;
 
 // Pin mapping
@@ -51,9 +44,7 @@ int dr = DR_SF9; //12
 // Disables all channels, except for the one defined above, and sets the
 // data rate (SF). This only affects uplinks; for downlinks the default
 // channels or the configuration from the OTAA Join Accept are used.
-//
 // Not LoRaWAN compliant; FOR TESTING ONLY!
-//
 void forceTxSingleChannelDr() {
     for(int i=0; i<9; i++) { // For EU; for US use i<71
         if(i != channel) {

@@ -3,10 +3,11 @@
 
 include ../../../WaziDev.mk 
 
-MONITOR_PORT     = /dev/ttyUSB0
-ARDUINO_LIBS     = SPI CayenneLPP arduino-lmic ArduinoJson Base64
-MONITOR_BAUDRATE = 115200 
+MONITOR_PORT       = /dev/ttyUSB0
+ARDUINO_LIBS       = SPI CayenneLPP arduino-lmic ArduinoJson Base64
+MONITOR_BAUDRATE   = 115200 
 OPTIMIZATION_LEVEL = 1
+CPPFLAGS           = -DDISABLE_JOIN -DDISABLE_PING -DDISABLE_BEACONS
 
 include /usr/share/arduino/Arduino.mk
 

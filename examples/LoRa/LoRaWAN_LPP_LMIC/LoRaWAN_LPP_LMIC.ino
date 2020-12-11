@@ -21,8 +21,10 @@ static const PROGMEM u1_t NWKSKEY[16] = { 0x19, 0x6A, 0xE5, 0xDF, 0xE9, 0xEB, 0x
 // Enter here the Application session Key in Hex format. Example: 93B9F0269BFB05610740EFEB8303D1E2
 static const u1_t PROGMEM APPSKEY[16] = { 0x93, 0xB9, 0xF0, 0x26, 0x9B, 0xFB, 0x05, 0x61, 0x07, 0x40, 0xEF, 0xEB, 0x83, 0x03, 0xD1, 0xE2 };
 
-static uint8_t mydata[50];
-static osjob_t sendjob;
+// Define the single channel and data rate (SF) to use
+const int channel = 0;
+const int dr = DR_SF9; //12
+const int power = 14;
 
 // Schedule TX every this many seconds (might become longer due to duty cycle limitations).
 const unsigned TX_INTERVAL = 0;
@@ -35,11 +37,6 @@ const lmic_pinmap lmic_pins = {
     .dio = {2, 3, LMIC_UNUSED_PIN},
 };
 
-CayenneLPP lpp(10);
-
-// Define the single channel and data rate (SF) to use
-int channel = 0;
-int dr = DR_SF9; //12
 
 // Disables all channels, except for the one defined above, and sets the
 // data rate (SF). This only affects uplinks; for downlinks the default
@@ -52,13 +49,17 @@ void forceTxSingleChannelDr() {
         }
     }
     // Set data rate (SF) and transmit power for uplink
-    LMIC_setDrTxpow(dr, 7); //12
+    LMIC_setDrTxpow(dr, power);
 }
+
+static uint8_t mydata[50];
+static osjob_t sendjob;
+CayenneLPP lpp(10);
 
 void do_send(osjob_t* j){
     //Create payload
     lpp.reset();
-    lpp.addTemperature(1, 29.0);
+    lpp.addTemperature(1, 33.0);
     memcpy((char*)mydata, lpp.getBuffer(), lpp.getSize());
 
     // Check if there is not a current TX/RX job running

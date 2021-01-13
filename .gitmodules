@@ -1,0 +1,7 @@
+[submodule "libraries/xlpp"]
+	path = libraries/xlpp
+	url = https://github.com/Waziup/arduino-xlpp
+[submodule "libraries/WaziDev"]
+	path = libraries/WaziDev
+	url = https://github.com/Waziup/wazidev-lib
+	branch = v2

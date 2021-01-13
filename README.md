@@ -5,6 +5,13 @@ This repository contains everything you need to use [WaziDev](http://www.waziup.
 
 It can be loaded as a sketchbook in Arduino IDE.
 
+
+Arduino Sketches
+=======
+
+➡️ Check out the [wazidev library examples](https://github.com/Waziup/wazidev-lib/tree/v2/examples) at the [waziup/wazidev-lib](https://github.com/Waziup/wazidev-lib) repository.
+
+
 Develop
 =======
 

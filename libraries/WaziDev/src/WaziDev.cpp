@@ -19,8 +19,13 @@ struct EEPROMConfig
 
 uint8_t WaziDev::setupLoRaWAN(const uint8_t *devAddr, const uint8_t *key)
 {
-    memcpy(AppSkey, key, 16);
-    memcpy(NwkSkey, key, 16);
+    return setupLoRaWAN(devAddr, key, key);
+}
+
+uint8_t WaziDev::setupLoRaWAN(const uint8_t *devAddr, const uint8_t *appSkey, const uint8_t *nwkSkey)
+{
+    memcpy(AppSkey, appSkey, 16);
+    memcpy(NwkSkey, nwkSkey, 16);
     return setupLoRa();
 }
 

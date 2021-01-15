@@ -42,6 +42,7 @@ public:
 
     // Initialize the LoRa hardware radio chip and store the key and the devAddr.
     uint8_t setupLoRaWAN(const uint8_t *devAddr, const uint8_t *key);
+    uint8_t setupLoRaWAN(const uint8_t *devAddr, const uint8_t *appSkey, const uint8_t *nwkSkey);
 
     // Initialize the LoRa hardware radio chip. 
     uint8_t setupLoRa();

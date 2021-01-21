@@ -65,9 +65,11 @@ public:
 
     // Send a decrypted LoRaWAN message on air.
     uint8_t sendLoRaWAN(void *pl, uint8_t len);
+    uint8_t sendLoRaWAN(void *pl, uint8_t len, bool invert);
 
     // Send a raw LoRa message on air.
     uint8_t sendLoRa(void *pl, uint8_t len);
+    uint8_t sendLoRa(void *pl, uint8_t len, bool invert);
 
     // Receives raw LoRa data on air.
     // Returns an error (if any):
@@ -75,10 +77,12 @@ public:
     // 1: There has been an error while executing the command.
     // 2: No data received within the timeout period.
     uint8_t receiveLoRa(void *pl, uint8_t *len, uint16_t timeout);
+    uint8_t receiveLoRa(void *pl, uint8_t *len, uint16_t timeout, bool invert);
 
     // Receives LoRaWAN data on air and decrypts the message.
     // Returns an error != 0 (if any): ERR_LORA_CRC, ERR_LORA_TIMEOUT
     uint8_t receiveLoRaWAN(void *pl, uint8_t *offs, uint8_t *len, uint16_t timeout);
+    uint8_t receiveLoRaWAN(void *pl, uint8_t *offs, uint8_t *len, uint16_t timeout, bool invert);
 
     // LoRa SNR (signal-to-noise ratio) value in dB. Higher means better.
     // It will be -20dB (below noise floor) to +10dB (above noise floor).

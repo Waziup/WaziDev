@@ -2,6 +2,7 @@
 #include <xlpp.h>
 #include <DHT.h>
 
+
 // RGB-LED analog PWM pins: red, gree, blue
 #define LED_RED_PIN 3
 #define LED_GREEN_PIN 5
@@ -9,7 +10,6 @@
 
 // DHT analog pin
 #define DHT_PIN 2
-
 
 
 // LoRaWANKey is used as both NwkSKey (Network Session Key) and Appkey (AppKey) for secure LoRaWAN transmission.
@@ -35,15 +35,22 @@ DHT dht(DHT_PIN, DHT11);
 
 void setup()
 {
-    Serial.begin(38400);
-    wazidev.setupLoRaWAN(DevAddr, LoRaWANKey);
+  Serial.begin(38400);
+  wazidev.setupLoRaWAN(DevAddr, LoRaWANKey);
+
+  pinMode(LED_RED_PIN, OUTPUT);
+  pinMode(LED_GREEN_PIN, OUTPUT);
+  pinMode(LED_BLUE_PIN, OUTPUT);
+
+  dht.begin(); // start DHT sensor
+  delay(2000);
 }
 
 XLPP xlpp(120);
 
-void loop(void)
+uint8_t uplink()
 {
-  delay(2000);
+  uint8_t e;
 
   // 1.
   // Read sensor values.
@@ -56,36 +63,37 @@ void loop(void)
   xlpp.addRelativeHumidity(0, humidity);
   xlpp.addTemperature(0, temperature);
 
-  // 2.
-  // Send paload uplink with LoRaWAN.
+  // 3.
+  // Send payload uplink with LoRaWAN.
   serialPrintf("LoRaWAN send ... ");
-  uint8_t e = wazidev.sendLoRaWAN(xlpp.buf, xlpp.len);
+  e = wazidev.sendLoRaWAN(xlpp.buf, xlpp.len);
   if (e != 0)
   {
     serialPrintf("Err %d\n", e);
-    delay(60000);
-    return;
+    return e;
   }
   serialPrintf("OK\n");
-  
-  // 3.
-  // Receive LoRaWAN downlink message (waiting for 6 seconds only).
+  return 0;
+}
+
+uint8_t downlink(uint16_t timeout)
+{
+  uint8_t e;
+
+  // 1.
+  // Receive LoRaWAN downlink message.
   serialPrintf("LoRa receive ... ");
   uint8_t offs = 0;
   long startSend = millis();
-  e = wazidev.receiveLoRaWAN(xlpp.buf, &xlpp.offset, &xlpp.len, 6000);
+  e = wazidev.receiveLoRaWAN(xlpp.buf, &xlpp.offset, &xlpp.len, timeout);
   long endSend = millis();
-  if (e != 0)
+  if (e)
   {
-    if (e == ERR_LORA_TIMEOUT){
+    if (e == ERR_LORA_TIMEOUT)
       serialPrintf("nothing received\n");
-    }
-    else
-    {
+    else 
       serialPrintf("Err %d\n", e);
-    }
-    delay(60000);
-    return;
+    return e;
   }
   serialPrintf("OK\n");
   
@@ -95,23 +103,28 @@ void loop(void)
   serialPrintf("LoRaWAN frame size: %d\n", xlpp.offset+xlpp.len);
   serialPrintf("LoRaWAN payload len: %d\n", xlpp.len);
   serialPrintf("Payload: ");
+  if (xlpp.len == 0)
+  {
+    serialPrintf("(no payload received)\n");
+    return 1;
+  }
   printBase64(xlpp.getBuffer(), xlpp.len);
   serialPrintf("\n");
 
-  // 4.
-  // Read xlpp downlink message.
-  // You must use the following pattern to properly parse xlpp payload.
+  // 2.
+  // Read xlpp payload from downlink message.
+  // You must use the following pattern to properly parse xlpp payload!
   int end = xlpp.len + xlpp.offset;
   while (xlpp.offset < end)
   {
-    // Always read the channel first ...
+    // [1] Always read the channel first ...
     uint8_t chan = xlpp.getChannel();
     serialPrintf("Chan %2d: ", chan);
 
-    // ... then the type ...
+    // [2] ... then the type ...
     uint8_t type = xlpp.getType();
 
-    // ... then the value!
+    // [3] ... then the value!
     switch (type) {
       case LPP_COLOUR:
       {
@@ -125,10 +138,25 @@ void loop(void)
       default:
         // For all the other types, see https://github.com/Waziup/arduino-xlpp/blob/main/test/simple/main.cpp#L147
         serialPrintf("Other unknown type.\n");
-        delay(60000);
-        return;
+        return 1;
     }
   }
-  
+}
+
+void loop(void)
+{
+  // error indicator
+  uint8_t e;
+
+  // 1. LoRaWAN Uplink
+  e = uplink();
+  // if no error...
+  if (!e) {
+    // 2. LoRaWAN Downlink
+    // waiting for 6 seconds only!
+    downlink(6000);
+  }
+
+  serialPrintf("Waiting 1min ...\n");
   delay(60000);
 }

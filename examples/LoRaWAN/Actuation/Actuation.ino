@@ -21,8 +21,8 @@ WaziDev wazidev;
 
 void setup()
 {
-    Serial.begin(38400);
-    wazidev.setupLoRaWAN(DevAddr, LoRaWANKey);
+  Serial.begin(38400);
+  wazidev.setupLoRaWAN(DevAddr, LoRaWANKey);
 }
 
 XLPP xlpp(120);

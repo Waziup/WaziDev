@@ -77,6 +77,20 @@ uint8_t WaziDev::setupLoRa()
 #define REG_INVERT_IQ 0x33
 #define REG_INVERT_IQ2 0x3B
 
+void setLoRaInversion(bool inv)
+{
+    if (inv)
+    {
+        sx1272.writeRegister(REG_INVERT_IQ, 0x66);
+        sx1272.writeRegister(REG_INVERT_IQ2, 0x19);
+    }
+    else
+    {
+        sx1272.writeRegister(REG_INVERT_IQ, 0x27);
+        sx1272.writeRegister(REG_INVERT_IQ2, 0x1D);
+    }
+}
+
 uint8_t WaziDev::setLoRaFreq(uint32_t freq)
 {
     uint32_t chan = (uint64_t (freq)) << 19 / 32000000;
@@ -98,26 +112,39 @@ uint8_t WaziDev::setLoRaSF(uint8_t sf)
     return sx1272.setSF(sf);
 }
 
-uint8_t WaziDev::sendLoRa(void *pl, uint8_t len)
+uint8_t WaziDev::sendLoRa(void *pl, uint8_t len, bool invert)
 {
     sx1272._payloadlength = len;
-    sx1272.writeRegister(REG_INVERT_IQ, 0x27);
-    sx1272.writeRegister(REG_INVERT_IQ2, 0x1D);
+    setLoRaInversion(invert);
     uint8_t e = sx1272.setPacket(0, (char *) pl);
     if (e != 0) return e;
     return sx1272.sendWithTimeout();
 }
 
+uint8_t WaziDev::sendLoRa(void *pl, uint8_t len)
+{
+    return sendLoRa(pl, len, false);
+}
+
 uint8_t WaziDev::sendLoRaWAN(void *pl, uint8_t len)
 {
+    return sendLoRaWAN(pl, len, false);
+}
+
+uint8_t WaziDev::sendLoRaWAN(void *pl, uint8_t len, bool invert)
+{
     len = local_aes_lorawan_create_pkt((uint8_t *) pl, len, 0);
-    return sendLoRa(pl, len);
+    return sendLoRa(pl, len, invert);
 }
 
 uint8_t WaziDev::receiveLoRa(void *pl, uint8_t* len, uint16_t timeout)
 {
-    sx1272.writeRegister(REG_INVERT_IQ, 0x66);
-    sx1272.writeRegister(REG_INVERT_IQ2, 0x19);
+    return receiveLoRa(pl, len, timeout, true);
+}
+
+uint8_t WaziDev::receiveLoRa(void *pl, uint8_t* len, uint16_t timeout, bool invert)
+{
+    setLoRaInversion(invert);
     int e = sx1272.receiveAll(timeout);
     if (e == 0)
     {
@@ -131,9 +158,9 @@ uint8_t WaziDev::receiveLoRa(void *pl, uint8_t* len, uint16_t timeout)
     return e;
 }
 
-uint8_t WaziDev::receiveLoRaWAN(void *pl, uint8_t* offs, uint8_t* len, uint16_t timeout)
+uint8_t WaziDev::receiveLoRaWAN(void *pl, uint8_t* offs, uint8_t* len, uint16_t timeout, bool invert)
 {
-    int e = receiveLoRa(pl, len, timeout);
+    int e = receiveLoRa(pl, len, timeout, invert);
     if (e == 0)
     {
         e = local_lorawan_decode_pkt((uint8_t*) pl, *len);
@@ -146,6 +173,11 @@ uint8_t WaziDev::receiveLoRaWAN(void *pl, uint8_t* offs, uint8_t* len, uint16_t 
         }
     }
     return e;
+}
+
+uint8_t WaziDev::receiveLoRaWAN(void *pl, uint8_t* offs, uint8_t* len, uint16_t timeout)
+{
+    return receiveLoRaWAN(pl, offs, len, timeout, true);
 }
 
 

@@ -153,13 +153,15 @@ int printSingleValue(XLPP &xlpp)
 	switch (type) {
 	case LPP_DIGITAL_INPUT:
 	{
-		uint8_t v = xlpp.getDigitalOutput();
+		//uint8_t v = xlpp.getDigitalOutput(); // Sven, 3.2.21: should be Input instead of Output
+		uint8_t v = xlpp.getDigitalInput(); // line inserted by Sven 3.2.21
 		printf("Digital Input: %hu (0x%02x)\n", v, v);
 		break;
 	}
 	case LPP_DIGITAL_OUTPUT:
 	{
-		uint8_t v = xlpp.getDigitalInput();
+		// uint8_t v = xlpp.getDigitalInput(); //Sven, 3.2.21: should be Output instead of Input
+		uint8_t v = xlpp.getDigitalOutput(); // line inserted by Sven 3.2.21
 		printf("Digital Output: %hu (0x%02x)\n", v, v);
 		break;
 	}

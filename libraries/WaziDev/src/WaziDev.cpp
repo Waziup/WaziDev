@@ -8,6 +8,7 @@
 
 WaziDev::WaziDev() {}
 
+unsigned char DevAddr[4];
 unsigned char AppSkey[16];
 unsigned char NwkSkey[16];
 
@@ -26,6 +27,7 @@ uint8_t WaziDev::setupLoRaWAN(const uint8_t *devAddr, const uint8_t *appSkey, co
 {
     memcpy(AppSkey, appSkey, 16);
     memcpy(NwkSkey, nwkSkey, 16);
+    memcpy(DevAddr, devAddr, 4);
     return setupLoRa();
 }
 

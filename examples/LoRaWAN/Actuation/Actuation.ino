@@ -1,13 +1,17 @@
 #include <WaziDev.h>
 #include <xlpp.h>
 
-// LoRaWANKey is used as both NwkSKey (Network Session Key) and Appkey (AppKey) for secure LoRaWAN transmission.
-// Copy'n'paste the key to your Wazigate: 23158D3BBC31E6AF670D195B5AED5525
-unsigned char LoRaWANKey[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF, 0x67, 0x0D, 0x19, 0x5B, 0x5A, 0xED, 0x55, 0x25};
-// Copy'n'paste the DevAddr (Device Address): 26011D88
-unsigned char DevAddr[4] = {0x26, 0x01, 0x1D, 0x88};
-// You can change the Key and DevAddr as you want.
+// NwkSKey (Network Session Key) and Appkey (AppKey) are used for securing LoRaWAN transmissions.
+// You need to copy them from/to your LoRaWAN server or gateway.
+// You need to configure also the devAddr. DevAddr need to be different for each devices!!
+// Copy'n'paste the DevAddr (Device Address): 26011D00
+unsigned char devAddr[4] = {0x26, 0x01, 0x1D, 0x00};
 
+// Copy'n'paste the key to your Wazigate: 23158D3BBC31E6AF670D195B5AED5525
+unsigned char appSkey[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF, 0x67, 0x0D, 0x19, 0x5B, 0x5A, 0xED, 0x55, 0x25};
+
+// Copy'n'paste the key to your Wazigate: 23158D3BBC31E6AF670D195B5AED5525
+unsigned char nwkSkey[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF, 0x67, 0x0D, 0x19, 0x5B, 0x5A, 0xED, 0x55, 0x25};
 
 // A valid payload for the downlink for this sketch has been generated like this:
 // > xlpp -e '{"colour0":"#ffaa00","switch1":true}'
@@ -22,7 +26,7 @@ WaziDev wazidev;
 void setup()
 {
   Serial.begin(38400);
-  wazidev.setupLoRaWAN(DevAddr, LoRaWANKey);
+  wazidev.setupLoRaWAN(devAddr, appSkey, nwkSkey);
 }
 
 XLPP xlpp(120);

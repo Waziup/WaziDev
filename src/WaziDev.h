@@ -3,6 +3,7 @@
 #define wazidev_h
 
 #include <SX1272.h>
+#include "Utils.h"
 
 
 class WaziDev

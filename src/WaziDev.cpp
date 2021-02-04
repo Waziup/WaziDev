@@ -1,275 +1,194 @@
 #include "WaziDev.h"
-#include <SPI.h> 
+// #include <SPI.h>
 #include <EEPROM.h>
 #include <LowPower.h>
+#include <Base64.h>
+#include "local_lorawan.h"
 
-//setup WaziDev
-WaziDev::WaziDev(String deviceId, int nodeAddr) {
 
-  this->deviceId = deviceId;
-  this->nodeAddr = nodeAddr;
-}
-    
-WaziDev::WaziDev(String deviceId, int nodeAddr, int destAddr, int loraMode, int channel, int maxDBm) {
+WaziDev::WaziDev() {}
 
-  this->deviceId = deviceId;
-  this->nodeAddr = nodeAddr;
-  this->destAddr = destAddr;
-  this->loraMode = loraMode;
-  this->channel = channel;
-  this->maxDBm = maxDBm;
+unsigned char DevAddr[4];
+unsigned char AppSkey[16];
+unsigned char NwkSkey[16];
 
+struct EEPROMConfig
+{
+    uint16_t head;
+    uint8_t packetNumber;
 };
 
-void WaziDev::setup()
+uint8_t WaziDev::setupLoRaWAN(const uint8_t *devAddr, const uint8_t *key)
 {
-  Serial.begin(38400);  
-
-  // Print a start message
-  writeSerial("WaziDev starting...\n");
-
-  // Power ON the module
-  sx1272.ON();
-
-  // get config from EEPROM
-  EEPROM.get(0, config);
-
-  // found a valid config?
-  if (config.flag1==0x12 && config.flag2==0x34) {
-    writeSerial("Getting back previous sx1272 config...\n");
-
-    // set sequence number for SX1272 library
-    sx1272._packetNumber=config.seq;
-    writeSerial("Using packet sequence number of %d\n", sx1272._packetNumber);
-  }
-  else {
-    // otherwise, write config and start over
-    config.flag1=0x12;
-    config.flag2=0x34;
-    config.seq=sx1272._packetNumber;
-  }
-  
-  // Set transmission mode and print the result
-  int modeRes = sx1272.setMode(loraMode);
-  writeSerial("Setting Mode: state %d\n", modeRes);
-    
-  int chanRes = sx1272.setChannel(channel);  
-  writeSerial("Setting Channel: state %d\n", chanRes);
-
-  // enable carrier sense
-  sx1272._enableCarrierSense=true;
-  // TODO: with low power, when setting the radio module in sleep mode
-  // there seem to be some issue with RSSI reading
-  sx1272._RSSIonSend=false;
-
-  sx1272._needPABOOST=true; 
-
-  int dbmRes = sx1272.setPowerDBM(maxDBm);
-  writeSerial("Setting Power: state %d\n", dbmRes);
-  
-  // Set the node address and print the result
-  int nodeAddrRes = sx1272.setNodeAddress(nodeAddr);
-  writeSerial("Setting node addr: state %d\n", nodeAddrRes);
-  
-  // Print a success message
-  writeSerial("WaziDev successfully configured\n");
-  Serial.flush();
-
+    return setupLoRaWAN(devAddr, key, key);
 }
 
-void WaziDev::sendSensorValue(String sensorId, float val)
+uint8_t WaziDev::setupLoRaWAN(const uint8_t *devAddr, const uint8_t *appSkey, const uint8_t *nwkSkey)
 {
-  SensorVal fields[1] = {{sensorId, val}};
-  sendSensorValues(fields, 1);
+    memcpy(AppSkey, appSkey, 16);
+    memcpy(NwkSkey, nwkSkey, 16);
+    memcpy(DevAddr, devAddr, 4);
+    return setupLoRa();
 }
 
-String WaziDev::getPayload(const SensorVal vals[], int nbValues) {
-  String message = "\\!";
-  if(deviceId != NULL) {
-    message += "UID/" + deviceId + "/";
-  }
-  for(int i = 0; i<nbValues; i++) {
-    message += vals[i].sensorId + "/" + String(vals[i].value);
-    if(i != nbValues -1) {
-      message += "/";
+uint8_t WaziDev::setupLoRa()
+{
+    // Power ON the module
+    int e = sx1272.ON();
+    if (e != 0) return e;
+
+    // get config from EEPROM
+    EEPROMConfig c;
+    EEPROM.get(0, c);
+
+    // found a valid config?
+    if (c.head == 0x1234)
+    {
+        // set sequence number for SX1272 library
+        sx1272._packetNumber = c.packetNumber;
     }
-  }
-  
-  return message;
-}
 
-void WaziDev::sendSensorValues(const SensorVal vals[], int nb_values) {
+    sx1272.setLORA();
+    sx1272.setCR(CR_5);   // CR = 4/5
+    sx1272.setSF(SF_12);  // SF = 12
+    sx1272.setBW(BW_125); // BW = 125 KHz
 
-  String message = getPayload(vals, nb_values);
- 
-  int r_size = message.length() + 1;
-  writeSerial("Sending " + message + "\n");
-  writeSerial("Real payload size is %d\n", r_size);
+    // set frequencie 868.1 MHz
+    sx1272.setChannel(CH_18_868);
 
-  send(message);
-}
+    // set the sync word to the LoRaWAN sync word which is 0x34
+    sx1272.setSyncWord(0x34);
 
-int WaziDev::send(String message) {
+    // enable carrier sense
+    sx1272._enableCarrierSense = true;
 
-  int r_size = message.length() + 1;
-      
-  sx1272.CarrierSense();
- 
-  // just a simple data packet
-  sx1272.setPacketType(PKT_TYPE_DATA);
-  
-  long startSend = millis();
+    // TODO: with low power, when setting the radio module in sleep mode
+    // there seem to be some issue with RSSI reading
+    sx1272._RSSIonSend = false;
 
-  int sendRes = sx1272.sendPacketTimeoutACK(destAddr, message.c_str());
+    sx1272._needPABOOST = true;
 
-  long endSend = millis();
-    
-  // save packet number for next packet in case of reboot
-  config.seq=sx1272._packetNumber;     
-  EEPROM.put(0, config);
+    sx1272.setPowerDBM(14);
 
-  writeSerial("LoRa pkt size %d\nLoRa pkt seq %d\nLoRa Sent in %ld\nLoRa Sent w/CAD in %ld\nPacket sent, state %d\nRemaining ToA is %d\n",
-              r_size,
-              sx1272.packet_sent.packnum,
-              endSend-startSend,
-              endSend-sx1272._startDoCad,
-              sendRes, sx1272.getRemainingToA());
+    sx1272._rawFormat = true;
 
-  writeSerial("Switch to power saving mode\n");
-  int resSleep = sx1272.setSleepMode();
-
-  if (!resSleep)
-    writeSerial("Successfully switch LoRa module in sleep mode\n");
-  else  
-    writeSerial("Could not switch LoRa module in sleep mode\n");
-    
-  Serial.flush();
-
-  return sendRes;
-
-}
-
-int WaziDev::receiveActuatorValue(String actuatorId, int wait, String &act) {
-
-  char uidVal[55] = "";
-  char actId[55] = "";
-  char actVal[55] = "";
- 
-  //Get the data from LoRa
-  String res;
-  this->receive(res, wait);
-
-  //Parse the data
-  sscanf(res.c_str(), "\\!UID/%[^/]/%[^/]/%s", uidVal, actId, actVal);
-  writeSerial("\nReceived: uid = %s, actuator Id = %s, value = %s\n", uidVal, actId, actVal);
-  Serial.flush();
-  
-  if(String(uidVal).compareTo(deviceId) == 0 &&
-     String(actId).compareTo(actuatorId) == 0) {
-    
-    //Return the actuator value.
-    act = String(actVal);
+    delay(500);
     return 0;
-
-  } else {
-
-    return -1;
-  }
 }
 
-int WaziDev::receive(String &out, int wait) {
+#define REG_INVERT_IQ 0x33
+#define REG_INVERT_IQ2 0x3B
 
-  writeSerial("Listening LoRa...\n");
-  int resRec = sx1272.receiveAll(wait);
-
-  if (resRec != 0 && resRec != 3) {
-     writeSerial("Receive error %d\n", resRec);
-
-     if (resRec == 2) {
-         // Power OFF the module
-         sx1272.OFF();
-         writeSerial("Resetting radio module\n");
-         int resON = sx1272.ON();
-         writeSerial("Setting power ON: state %d\n", resON);
-     }
-     Serial.flush();
-     return -1;
-
-  } else {
-      
-    sx1272.getSNR();
-    sx1272.getRSSIpacket();
-    char* data = (char*)malloc(sx1272._payloadlength * sizeof(char) + 1);  //TODO is it correct to malloc each time? Who will free?
-    memcpy(data, sx1272.packet_received.data, sx1272._payloadlength);
-    data[sx1272._payloadlength] = '\0';
-
-    writeSerial("Received from LoRa:\n  data = %s\n", data);
-    writeSerial("  dst = %d, type = 0x%02X, src = %d, seq = %d\n",
-                sx1272.packet_received.dst,
-                sx1272.packet_received.type,
-                sx1272.packet_received.src,
-                sx1272.packet_received.packnum);
-    writeSerial("  len = %d, SNR = %d, RSSIpkt = %d, BW = %d, CR = 4/%d, SF = %d\n",
-                sx1272._payloadlength,
-                sx1272._SNR,
-                sx1272._RSSIpacket,
-                (sx1272._bandwidth==BW_125) ? 125 : ((sx1272._bandwidth==BW_250) ? 250 : 500),
-                sx1272._codingRate+4,
-                sx1272._spreadingFactor);
-
-    Serial.flush();
-
-
-    out = String(data);
-    free(data);
-    return 0;
-  }
-}
-
-
-float WaziDev::getSensorValue(int pin) {
-
-  //read the raw sensor value
-  float value = analogRead(pin);
-
-  writeSerial("Reading %f\n", value);
-
-  return value;
-}
-
-void WaziDev::putActuatorValue(int pin, float val) {
-
-  writeSerial("Writing on pin %d with value %d\n", pin, val);
-  analogWrite(pin, val);
-
-}
-
-// Power down the WaziDev for "duration" seconds
-void WaziDev::powerDown(const int duration) {
-
-  for (uint8_t i=0; i<duration; i++) {  
-      LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
-      writeSerial(".");
-      delay(1);                        
-  }    
-  writeSerial("\n");
-  Serial.flush();
-
-}
-
-void WaziDev::writeSerial(String message)
+void setLoRaInversion(bool inv)
 {
-   writeSerial(message.c_str());
+    if (inv)
+    {
+        sx1272.writeRegister(REG_INVERT_IQ, 0x66);
+        sx1272.writeRegister(REG_INVERT_IQ2, 0x19);
+    }
+    else
+    {
+        sx1272.writeRegister(REG_INVERT_IQ, 0x27);
+        sx1272.writeRegister(REG_INVERT_IQ2, 0x1D);
+    }
 }
 
-void WaziDev::writeSerial(const char *format, ...)
+uint8_t WaziDev::setLoRaFreq(uint32_t freq)
 {
-   char       msg[100];
-   va_list    args;
+    uint32_t chan = (uint64_t (freq)) << 19 / 32000000;
+    return sx1272.setChannel(chan);
+}
 
-   va_start(args, format);
-   vsnprintf(msg, sizeof(msg), format, args);
-   va_end(args);
+uint8_t WaziDev::setLoRaCR(uint8_t cr)
+{
+    return sx1272.setCR(cr);
+}
 
-   Serial.print(msg);
+uint8_t WaziDev::setLoRaBW(uint16_t bw)
+{
+    return sx1272.setBW(bw);
+}
+
+uint8_t WaziDev::setLoRaSF(uint8_t sf)
+{
+    return sx1272.setSF(sf);
+}
+
+uint8_t WaziDev::sendLoRa(void *pl, uint8_t len, bool invert)
+{
+    sx1272._payloadlength = len;
+    setLoRaInversion(invert);
+    uint8_t e = sx1272.setPacket(0, (char *) pl);
+    if (e != 0) return e;
+    return sx1272.sendWithTimeout();
+}
+
+uint8_t WaziDev::sendLoRa(void *pl, uint8_t len)
+{
+    return sendLoRa(pl, len, false);
+}
+
+uint8_t WaziDev::sendLoRaWAN(void *pl, uint8_t len)
+{
+    return sendLoRaWAN(pl, len, false);
+}
+
+uint8_t WaziDev::sendLoRaWAN(void *pl, uint8_t len, bool invert)
+{
+    len = local_aes_lorawan_create_pkt((uint8_t *) pl, len, 0);
+    return sendLoRa(pl, len, invert);
+}
+
+uint8_t WaziDev::receiveLoRa(void *pl, uint8_t* len, uint16_t timeout)
+{
+    return receiveLoRa(pl, len, timeout, true);
+}
+
+uint8_t WaziDev::receiveLoRa(void *pl, uint8_t* len, uint16_t timeout, bool invert)
+{
+    setLoRaInversion(invert);
+    int e = sx1272.receiveAll(timeout);
+    if (e == 0)
+    {
+        *len = sx1272._payloadlength;
+        memcpy(pl, sx1272.packet_received.data, sx1272._payloadlength);
+        sx1272.getSNR();
+        loRaSNR = sx1272._SNR;
+        sx1272.getRSSI();
+        loRaRSSI = sx1272._RSSI;
+    }
+    return e;
+}
+
+uint8_t WaziDev::receiveLoRaWAN(void *pl, uint8_t* offs, uint8_t* len, uint16_t timeout, bool invert)
+{
+    int e = receiveLoRa(pl, len, timeout, invert);
+    if (e == 0)
+    {
+        e = local_lorawan_decode_pkt((uint8_t*) pl, *len);
+        if (e >= 0) {
+            *len -= 4; // remove 4 byte MIC
+            ((char*) pl)[*len] = 0; // null terminate
+            *offs = e;
+            *len -= e; // skip offset
+            e = 0;
+        }
+    }
+    return e;
+}
+
+uint8_t WaziDev::receiveLoRaWAN(void *pl, uint8_t* offs, uint8_t* len, uint16_t timeout)
+{
+    return receiveLoRaWAN(pl, offs, len, timeout, true);
+}
+
+
+int printBase64(const void *buf, int len)
+{
+    int encLen = base64_enc_len(len);
+    char* h = (char*) malloc(encLen);
+    base64_encode(h, buf, len); 
+    Serial.print(h);
+    free(h);
+    return encLen;
 }

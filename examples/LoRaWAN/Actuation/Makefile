@@ -7,7 +7,7 @@ MONITOR_PORT     = /dev/ttyUSB0
 ARDUINO_LIBS     = SPI LowPower EEPROM Wire WaziDev Base64 SoftwareSerial ArduinoJson xlpp AES-128_V10
 MONITOR_BAUDRATE = 38400
 
-include ../../.env
+include ../../../.env
 include /usr/share/arduino/Arduino.mk
 
 monitor:

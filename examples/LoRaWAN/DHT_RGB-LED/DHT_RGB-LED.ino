@@ -60,8 +60,16 @@ uint8_t uplink()
   // 2.
   // Create xlpp payload for uplink.
   xlpp.reset();
+  
+  // Add sensor payload
   xlpp.addRelativeHumidity(0, humidity);
   xlpp.addTemperature(0, temperature);
+  
+  // Declare the actuator to the Gateway (optional) so that it will appear on the Dashboard
+  // and you don't need to configure it yourself.
+  xlpp.addActuators(1,
+    LPP_COLOUR
+  );
 
   // 3.
   // Send payload uplink with LoRaWAN.

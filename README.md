@@ -9,7 +9,7 @@ It can be loaded as a sketchbook in Arduino IDE.
 Arduino Sketches
 =======
 
-➡️ Check out the [wazidev library examples](https://github.com/Waziup/wazidev/tree/master/examples)
+➡️ Check out the [wazidev examples](https://github.com/Waziup/wazidev/tree/master/examples)
 
 
 

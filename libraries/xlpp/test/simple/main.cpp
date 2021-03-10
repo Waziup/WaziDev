@@ -139,6 +139,34 @@ int main() {
 	xlpp.addDigitalInput(33);
 	xlpp.endArray();
 
+	// This xlpp can hold 250 bytes, so we print the buffer now
+	// and reset it.
+	e = printXLPP(xlpp);
+	if (e != 0) return e;
+	xlpp.reset();
+
+	// the following values are historical values,
+	// delayed by 10h30s
+	xlpp.addDelay(10, 0, 30);
+	// additional 5s
+	xlpp.addDelay(0, 0, 5);
+	// additional 15min
+	xlpp.addDelay(0, 15, 0);
+
+	// declare some actuators
+	xlpp.addActuators(3,
+		LPP_COLOUR,
+		LPP_ANALOG_OUTPUT,
+		LPP_PERCENTAGE
+	);
+
+	// declare some actuators with channel
+	xlpp.addActuatorsWithChannel(3,
+		5, LPP_VOLTAGE,
+		6, LPP_CURRENT,
+		7, LPP_ACCELEROMETER
+	);
+
 	e = printXLPP(xlpp);
 	return e;
 }
@@ -392,7 +420,6 @@ int printSingleValue(XLPP &xlpp)
 
 int printXLPP(XLPP &xlpp)
 {
-	int e = 0;
 	printf("HEX ");
 	for (int i = xlpp.offset; i < xlpp.len; i++)
 	{
@@ -403,10 +430,41 @@ int printXLPP(XLPP &xlpp)
 	while (xlpp.offset < xlpp.len)
 	{
 		uint8_t chan = xlpp.getChannel();
-		printf("Chan %2d: ", chan);
 
-		e = printSingleValue(xlpp);
-		if (e != 0) return e;
+		switch (chan)
+		{
+		case CHAN_DELAY:
+		{
+			Delay d = xlpp.getDelay();
+			printf("Delay: %dh %dm %ds\n", d.h, d.m, d.s);
+			printf(">> the following values are historical values >>\n");
+			break;
+		}
+		case CHAN_ACTUATORS:
+		{
+			uint8_t a[20];
+			uint8_t n = xlpp.getActuators(a);
+			printf("Actuators (by ID):\n");
+			for(int i=0; i<n; i++)
+				printf("  #%02X\n", a[i]);
+			break;
+		}
+		case CHAN_ACTUATORS_WITH_CHAN:
+		{
+			uint8_t a[20];
+			uint8_t n = xlpp.getActuatorsWithChannel(a);
+			printf("Actuators with Channel (by ID):\n");
+			for(int i=0; i<n; i++)
+				printf("  Chan %2d: #%02X\n", a[i*2], a[i*2+1]);
+			break;
+		}
+		default:
+		{
+			printf("Chan %2d: ", chan);
+			int e = printSingleValue(xlpp);
+			if (e != 0) return e;
+		}
+		}
 	}
 	return 0;
 }

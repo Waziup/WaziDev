@@ -49,6 +49,10 @@
 #define XLPP_BINARY 57 // n-byte (variable, variant length prefixed)
 #define XLPP_NULL 58 // 0 byte, no data
 
+#define CHAN_DELAY 253
+#define CHAN_ACTUATORS 252
+#define CHAN_ACTUATORS_WITH_CHAN 251
+
 #define XLPP_MAX_CAP 255
 
 struct Accelerometer
@@ -77,6 +81,13 @@ struct Colour
     uint8_t r;
     uint8_t g;
     uint8_t b;
+};
+
+struct Delay
+{
+    uint8_t h;
+    uint8_t m;
+    uint8_t s;
 };
 
 class XLPP
@@ -241,6 +252,20 @@ public:
     // void getFlags(bool *flags, int l);
     size_t getBinary(void* data);
     void getNull();
+
+    //
+
+    void addDelay(uint8_t h, uint8_t m, uint8_t s);
+    Delay getDelay();
+
+    void addActuators(uint8_t num, ...);
+    uint8_t getActuators(uint8_t* list);
+
+    void addActuatorsWithChannel(uint8_t num, ...);
+    uint8_t getActuatorsWithChannel(uint8_t* list);
+
+    //
+    
 
     uint8_t *buf;
     uint8_t len;

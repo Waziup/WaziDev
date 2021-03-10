@@ -1,5 +1,6 @@
 #include "xlpp.h"
 #include <stdio.h>
+#include <stdarg.h> 
 
 XLPP::XLPP(uint8_t cap) : cap(len)
 {
@@ -463,4 +464,63 @@ void XLPP::addNull()
 void XLPP::getNull()
 {
     // NOP
+}
+
+//
+
+void XLPP::addDelay(uint8_t h, uint8_t m, uint8_t s)
+{
+    WRITE_uint8_t(CHAN_DELAY);
+    uint24_t t = uint24_t(h)*3600+uint24_t(m)*60+uint24_t(s);
+    WRITE_uint24_t(t);
+}
+
+Delay XLPP::getDelay()
+{
+    uint24_t t = READ_uint24_t;
+    uint24_t s = t%60;
+    uint24_t m = ((t-s)/60)%60;
+    uint24_t h = (t-m*60-s)/3600;
+    return Delay{uint8_t(h), uint8_t(m), uint8_t(s)};
+}
+
+void XLPP::addActuators(uint8_t num, ...)
+{
+    va_list valist;
+    WRITE_uint8_t(CHAN_ACTUATORS);
+    WRITE_uint8_t(num);
+    va_start(valist, num); 
+    for (int i = 0; i < num; i++)
+        WRITE_uint8_t(va_arg(valist, int));
+    va_end(valist); 
+}
+
+uint8_t XLPP::getActuators(uint8_t* list)
+{
+    uint8_t num = READ_uint8_t;
+    for (int i = 0; i < num; i++)
+        list[i] = READ_uint8_t;
+    return num;
+}
+
+void XLPP::addActuatorsWithChannel(uint8_t num, ...)
+{
+    va_list valist;
+    WRITE_uint8_t(CHAN_ACTUATORS_WITH_CHAN);
+    WRITE_uint8_t(num);
+    va_start(valist, num*2); 
+    for (int i = 0; i < num*2; i++)
+    {
+        WRITE_uint8_t(va_arg(valist, int));
+        WRITE_uint8_t(va_arg(valist, int));
+    }
+    va_end(valist); 
+}
+
+uint8_t XLPP::getActuatorsWithChannel(uint8_t* list)
+{
+    uint8_t num = READ_uint8_t;
+    for (int i = 0; i < num*2; i++)
+        list[i] = READ_uint8_t;
+    return num;
 }

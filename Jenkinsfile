@@ -11,7 +11,7 @@ pipeline {
   stages {
     stage('Prepare') {
       steps {
-        withEnv([PATH = "$PATH:/home/linuxbrew/.linuxbrew/bin/"]) {
+        withEnv(["PATH=$PATH:/home/linuxbrew/.linuxbrew/bin/"]) {
           sh 'sudo brew update'
           sh 'sudo brew install arduino-cli'
         }

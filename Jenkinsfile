@@ -5,6 +5,8 @@ pipeline {
   stages {
     stage('Build examples') {
       steps {
+        sh 'sudo apt-get update'
+        sh 'sudo apt-get install make'
         sh 'sudo apt-get install arduino-mk'
         sh './make_all.sh'
       }

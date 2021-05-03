@@ -3,7 +3,7 @@ PORT=/dev/ttyUSB0
 #LoRAWAN device address
 DEVADDR="26011D00"
 #temperature value to send via LoRaWAN
-VAL="61"
+VAL="62"
 
 #Compilation and upload
 make

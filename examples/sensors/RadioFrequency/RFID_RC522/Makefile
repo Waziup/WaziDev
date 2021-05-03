@@ -4,7 +4,7 @@
 BOARD_TAG        = pro
 BOARD_SUB        = 8MHzatmega328
 MONITOR_PORT     = /dev/ttyUSB0
-ARDUINO_LIBS     = DHT_sensor_library Adafruit_Unified_Sensor
+ARDUINO_LIBS     = SPI MFRC522 
 MONITOR_BAUDRATE = 38400
 
 include ../../../../.env

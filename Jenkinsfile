@@ -9,6 +9,7 @@ pipeline {
   stages {
     stage('Prepare') {
       steps {
+        sh 'arduino-cli core update-index'
         sh 'arduino-cli core install arduino:avr'
         sh 'arduino-cli compile -p /dev/ttyUSB0 --fqbn arduino:avr:pro examples/LoRaWAN/Actuation/Actuation.ino'
       }

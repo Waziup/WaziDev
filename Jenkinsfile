@@ -6,7 +6,7 @@ pipeline {
   stages {
     stage('Build examples') {
       steps {
-        sh 'tree'
+        sh 'ls'
         sh './make_all.sh'
       }
     }

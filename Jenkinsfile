@@ -4,7 +4,6 @@ pipeline {
     stage('Build examples') {
       steps {
         sh './make_all.sh'
-        }
       }
     }
   }

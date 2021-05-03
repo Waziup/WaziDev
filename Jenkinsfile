@@ -1,11 +1,12 @@
 pipeline {
   agent { dockerfile true } 
   environment {
-    USER_LIB_PATH="${HOME}/WaziDev/libraries"
+    USER_LIB_PATH="${WORKSPACE}/libraries"
   }
   stages {
     stage('Build examples') {
       steps {
+        sh 'tree'
         sh './make_all.sh'
       }
     }

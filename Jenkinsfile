@@ -1,7 +1,7 @@
 pipeline {
   agent { dockerfile true } 
   environment {
-    USER_LIB_PATH=$HOME/WaziDev/libraries2
+    USER_LIB_PATH="${HOME}/WaziDev/libraries"
   }
   stages {
     stage('Build examples') {

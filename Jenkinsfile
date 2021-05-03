@@ -12,8 +12,8 @@ pipeline {
     stage('Prepare') {
       steps {
         withEnv(["PATH=$PATH:/home/linuxbrew/.linuxbrew/bin/"]) {
-          sh 'sudo brew update'
-          sh 'sudo brew install arduino-cli'
+          sh 'sudo /home/linuxbrew/.linuxbrew/bin/brew update'
+          sh 'sudo /home/linuxbrew/.linuxbrew/bin/brew install arduino-cli'
         }
         sh 'arduino-cli core update-index'
         sh 'arduino-cli core install arduino:avr'

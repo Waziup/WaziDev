@@ -1,7 +1,8 @@
 pipeline {
-  agent { 
-    docker {image 'arduino/arduino-cli' } 
-  }
+  //agent { 
+  //  docker {image 'arduino/arduino-cli' } 
+  //}
+  agent { dockerfile true }
   environment {
     ARDUINO_DIRECTORIES_USER = "$WORKSPACE"
   }

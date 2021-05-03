@@ -1,13 +1,8 @@
 pipeline {
-  agent {
-    docker { image 'ubuntu:latest' }
-  }
+  agent { dockerfile true } 
   stages {
     stage('Build examples') {
       steps {
-        sh 'apt-get update'
-        sh 'apt-get install make'
-        sh 'apt-get install arduino-mk'
         sh './make_all.sh'
       }
     }

@@ -12,7 +12,7 @@ source ./s2ju.sh
 for f in $INOS
 do
         echo Compiling $f ...
-        juLog arduino-cli compile -p /dev/ttyUSB0 --fqbn arduino:avr:pro $f 2>&1 > /dev/null
+        juLog -name=$f arduino-cli compile -p /dev/ttyUSB0 --fqbn arduino:avr:pro $f 2>&1 > /dev/null
         #RES=$?
         #echo "$f, $RES, $ERR" >> test_results.csv
 done

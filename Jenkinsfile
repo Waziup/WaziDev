@@ -22,7 +22,7 @@ pipeline {
   }
   post {
     always {
-      junit 'tests/report.xml'
+      junit 'results/TEST-make_all.xml'
     }
     success {
       echo 'Success!'

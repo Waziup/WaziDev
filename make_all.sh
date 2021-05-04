@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #Compile all examples and generate a result file
 INOS=`find ./examples -name "*.ino"`
 BASE=$PWD

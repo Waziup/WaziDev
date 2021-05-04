@@ -14,7 +14,8 @@ pipeline {
         withEnv(["PATH=$PATH:/home/linuxbrew/.linuxbrew/bin/"]) {
           sh 'arduino-cli core update-index'
           sh 'arduino-cli core install arduino:avr'
-          sh 'arduino-cli compile -p /dev/ttyUSB0 --fqbn arduino:avr:pro examples/LoRaWAN/Actuation/Actuation.ino'
+          sh './make_all.sh'
+          //sh 'arduino-cli compile -p /dev/ttyUSB0 --fqbn arduino:avr:pro examples/LoRaWAN/Actuation/Actuation.ino'
         }
       }
     }

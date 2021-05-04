@@ -5,6 +5,8 @@ ARDUINO_DIRECTORIES_USER=$PWD
 
 set +e #avoid that a single failure stops the script
 
+source ./s2ju.sh
+
 for f in $INOS
 do
         echo Compiling $f ...

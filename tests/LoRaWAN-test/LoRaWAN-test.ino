@@ -15,7 +15,7 @@ void revBytes(unsigned char*, size_t);
 void setup()
 {
   Serial.begin(38400);
-  Serial.setTimeout(10000);
+  Serial.setTimeout(1000000000);
   Serial.println("Ready");
 
   Serial.println("Enter the DevAddr: ");

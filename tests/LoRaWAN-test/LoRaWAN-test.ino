@@ -2,7 +2,7 @@
 #include <xlpp.h>
 #include <Base64.h>
 
-unsigned char devAddr[4];
+unsigned char devAddr[4] = {0x26, 0x01, 0x1D, 0x22};
 unsigned char appSkey[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF, 0x67, 0x0D, 0x19, 0x5B, 0x5A, 0xED, 0x55, 0x25};
 unsigned char nwkSkey[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF, 0x67, 0x0D, 0x19, 0x5B, 0x5A, 0xED, 0x55, 0x25};
 
@@ -18,18 +18,18 @@ void setup()
   Serial.setTimeout(1000000000);
   Serial.println("Ready");
 
-  Serial.println("Enter the DevAddr: ");
-  String in = Serial.readStringUntil('\n');
-  Serial.println(in);
+  //Serial.println("Enter the DevAddr: ");
+  //String in = Serial.readStringUntil('\n');
+  //Serial.println(in);
 
-  //Convert string to integer
-  long value = strtoul(in.c_str(), '\0', 16);
-  memcpy(devAddr, (uint8_t*)&value, 4);
-  //LoRaWAN is big endian, Arduino is little endian so we need reverse the bytes before sending
-  revBytes(devAddr, 4);
+  ////Convert string to integer
+  //long value = strtoul(in.c_str(), '\0', 16);
+  //memcpy(devAddr, (uint8_t*)&value, 4);
+  ////LoRaWAN is big endian, Arduino is little endian so we need reverse the bytes before sending
+  //revBytes(devAddr, 4);
 
   Serial.println("Enter the temperature: ");
-  in = Serial.readStringUntil('\n');
+  String in = Serial.readStringUntil('\n');
   Serial.println(in);
   temp = atoi(in.c_str());
 

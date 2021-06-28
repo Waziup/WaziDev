@@ -17,6 +17,12 @@ SI7021 si7021;
 #include "WaziDev.h"
 WaziDev wazidev;
 
+/*-------*/
+
+// The solar input is attached to pin A2 with a voltage divider
+// We need to calibrate it based on our solar panel
+// Be careful: Do not connect a high voltage solar panel to the board i.e. Max: 6V
+#define SolarLevelPin A2
 
 /*-----------------------------*/
 
@@ -89,9 +95,16 @@ void loop(void)
 
     /*----------*/
 
+    static float solarLevel = analogRead(SolarLevelPin);
+    serialPrintf("Solar Level: \t %d\n", solarLevel);
+
+    /*----------*/
+    
     xlpp.reset();
     xlpp.addRelativeHumidity(2, humidity);
     xlpp.addTemperature(1, temperature);
+
+    xlpp.addAnalogInput(3, solarLevel);
     
 
     serialPrintf("LoRaWAN send ... ");

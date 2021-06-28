@@ -700,7 +700,8 @@ uint8_t SX1272::setFSK()
 }
 
 /*
- Function: Gets the bandwidth, coding rate and spreading factor of the LoRa modulation.
+ Function: 
+ Gets the bandwidth, coding rate and spreading factor of the LoRa modulation.
  Returns: Integer that determines if there has been any error
    state = 2  --> The command has not been executed
    state = 1  --> There has been an error while executing the command

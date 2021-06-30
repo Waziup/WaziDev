@@ -149,12 +149,13 @@ void loop(void)
   /*----------*/
 
   xlpp.reset();
-  xlpp.addRelativeHumidity(2, humidity);
   xlpp.addTemperature(1, temperature);
+  xlpp.addRelativeHumidity(2, humidity);
 
   xlpp.addAnalogInput(3, solarLevel);
   xlpp.addAnalogInput(4, moistureLevel);
 
+  // serialPrintf("\nLoRaWAN Buffer: %x", xlpp.getBuffer());
   serialPrintf("\nLoRaWAN send ... ");
   int e = wazidev.sendLoRaWAN(xlpp.getBuffer(), xlpp.getSize());
   if (e == 0)

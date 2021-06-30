@@ -28,3 +28,5 @@ LoRa SNR: 0
 LoRa RSSI: 0
 
 ```
+
+Note: with each blink printed on the serial, the LED on the board must blink as well.

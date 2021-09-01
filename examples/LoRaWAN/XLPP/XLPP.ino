@@ -19,7 +19,7 @@ void loop(void)
 {
     xlpp.reset();
     xlpp.addTemperature(1, 20.3); // °C
-    xlpp.addVoltage(2, 12.5); // V
+    xlpp.addVoltage(2, 12.5);     // V
     xlpp.addString(3, "Hello :D");
 
     serialPrintf("LoRaWAN send ... ");

@@ -17,6 +17,7 @@ pipeline {
 		  sh 'arduino-cli lib install MFRC522'
 		  sh 'arduino-cli lib install OneWire'
 		  sh 'arduino-cli lib install DallasTemperature'
+		  sh 'arduino-cli lib install TinyGPSPlus'
           sh './make_all.sh'
         }
       }

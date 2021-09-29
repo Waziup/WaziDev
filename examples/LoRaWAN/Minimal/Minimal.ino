@@ -16,6 +16,7 @@ char payload[255];
 
 void loop(void)
 {
+    // A minimal example. For communication with WaziGate use XLPP payload format, like shown in examples > LoRaWAN > XLPP.
     strcpy(payload, "\\!TC1/21.4");
     uint8_t len = strlen(payload);
 

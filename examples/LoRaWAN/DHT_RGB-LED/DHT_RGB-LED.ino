@@ -1,5 +1,6 @@
 #include <WaziDev.h>
 #include <xlpp.h>
+// you have to install the "DHT sensor library" and it's dependencies from Tools > Library Manager
 #include <DHT.h>
 
 

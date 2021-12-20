@@ -7,7 +7,9 @@
  * NEO 6M TX -> D4
  * NEO 6M RX -> D3
  ********************/
-#include <TinyGPS++.h>
+ 
+// you have to install the "TinyGPSPlus" library published by Mikal Hart from Tools > Library Manager
+#include <TinyGPSPlus.h>
 #include <SoftwareSerial.h>
 
 static const int RXPin = 4, TXPin = 3;

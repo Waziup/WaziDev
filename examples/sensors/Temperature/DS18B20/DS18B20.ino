@@ -4,7 +4,9 @@
  ********************/
 
 // First we include the libraries
+// you have to install the "OneWire" library published by Paul Stoffregen from Tools > Library Manager
 #include <OneWire.h>
+// you have to install the "DallasTemperature" library published by Miles Burton from Tools > Library Manager
 #include <DallasTemperature.h>
  
 // Data wire is plugged into pin 2 on the Arduino 

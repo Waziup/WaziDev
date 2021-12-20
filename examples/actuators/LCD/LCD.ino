@@ -20,8 +20,14 @@
  * K -> GND
  ***********************/
 
-#include <LiquidCrystal.h>
-LiquidCrystal lcd(12, 11, 2, 3, 4, 5);
+/*#include <LiquidCrystal.h>
+LiquidCrystal lcd(12, 11, 2, 3, 4, 5);*/
+
+// you have to install the "hd44780" library published by Bill Perry from Tools > Library Manager
+#include <hd44780.h>
+#include <hd44780ioClass/hd44780_pinIO.h>
+
+hd44780_pinIO lcd(8, 9, 4, 5, 6, 7, 10, HIGH);
 
 void printLCD(int theLine, const char* theInfo, boolean clearFirst=true) {
   if (clearFirst) {

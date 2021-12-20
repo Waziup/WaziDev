@@ -14,14 +14,11 @@ void setup()
 {
   Serial.begin(9600);
   wazidev.setupLoRaWAN(devAddr, appSkey, nwkSkey);
-  
 }
 
 void loop(void)
 {
-  interface(
-    Serial,
-    sendLoRaWAN, "sendLoRaWAN: Send a LoRaWAN value. @value: int @return: string");
+  interface(Serial, sendLoRaWAN, "sendLoRaWAN: Send a LoRaWAN value. @value: int @return: string");
 }
 
 char* sendLoRaWAN(int temp)

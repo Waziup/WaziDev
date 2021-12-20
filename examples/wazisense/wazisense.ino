@@ -1,5 +1,6 @@
 #include <Wire.h>
-#include "i2c.h"
+// you have to install the "LiquidCrystal" library published by Arduino from Tools > Library Manager
+#include "LiquidCrystal.h"
 
 /*-------*/
 
@@ -7,7 +8,7 @@
 XLPP xlpp(120);
 
 /*-------*/
-
+// you have to install the "I2C-Sensor-Lib iLib" library published by Ingmar Splitt from Tools > Library Manager
 #include "i2c_SI7021.h"
 SI7021 si7021;
 

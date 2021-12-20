@@ -41,6 +41,7 @@
 //#define ARDUINO_Heltec_WIFI_LoRa_32
 
 #include <SPI.h>
+// you have to install the "MFRC522" library published by GitHubCommunity from Tools > Library Manager
 #include <MFRC522.h>
 
 #if defined ARDUINO_Heltec_WIFI_LoRa_32 || defined ESP32

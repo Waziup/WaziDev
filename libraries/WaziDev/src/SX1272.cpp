@@ -29,6 +29,9 @@
 #include "SX1272.h"
 #include <SPI.h>
 
+#define DEBUG false // flag to turn on/off debugging
+#define Serial if(DEBUG)Serial
+
 /*  CHANGE LOGS by C. Pham
  *	June 29th, 2018
  *		- SX1272_WRST (not defined by default) controls whether there will be a RST procedure or not. Normally, there is no need for the RST.

@@ -16,29 +16,24 @@ void setup()
   wazidev.setupLoRaWAN(devAddr, appSkey, nwkSkey);
 }
 
-void loop(void)
-{
-  interface(Serial, sendLoRaWAN, "sendLoRaWAN: Send a LoRaWAN value. @value: int @return: string");
-}
 
-char* sendLoRaWAN(int temp)
+Object<uint8_t, char *> sendLoRaWAN(int temp)
 {
   xlpp.reset();
   xlpp.addTemperature(1, temp);
   uint8_t e = wazidev.sendLoRaWAN(xlpp.buf, xlpp.len);
 
+  char payload[100] = "";
   e = wazidev.receiveLoRaWAN(xlpp.buf, &xlpp.offset, &xlpp.len, 6000);
-  if (e != 0)
+  if (e == 0)
   {
-    if (e == ERR_LORA_TIMEOUT){
-      return("Nothing received");
-    } else {
-      return("Err %d", e);
-    }
+    base64_decode(payload, xlpp.getBuffer(), xlpp.len);
   }
-  char payload[100];
-  base64_decode(payload, xlpp.getBuffer(), xlpp.len);
-  return payload;
+  return {e, payload};
 }
 
+void loop(void)
+{
+  interface(Serial, sendLoRaWAN, "sendLoRaWAN: Send a LoRaWAN value. @value: int @return: string");
+}
 

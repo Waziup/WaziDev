@@ -13,8 +13,9 @@ interface = Interface("/dev/ttyUSB0")
 
 @app.route('/', methods=['POST'])
 def postVal():
-   return sendValueWaziDev(request.form)
-
+   print(request.json)
+   print(request.json["val"])
+   return sendValueWaziDev(int(request.json["val"]))
 
 def sendValueWaziDev(val: int) -> str:
     print("sending value: " + str(val))

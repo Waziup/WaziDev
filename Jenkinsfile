@@ -28,7 +28,7 @@ pipeline {
     stage('Stage') {
       steps {
         sh 'arduino-cli compile --fqbn arduino:avr:pro:cpu=8MHzatmega328 tests/LoRaWAN-test/'
-        sh 'arduino-cli upload -p $WAZIDEV_PORT --fqbn arduino:avr:pro:cpu=8MHzatmega328 tests/LoRaWAN-test/'
+        sh 'sudo arduino-cli upload -p $WAZIDEV_PORT --fqbn arduino:avr:pro:cpu=8MHzatmega328 tests/LoRaWAN-test/'
       }
     }
   }

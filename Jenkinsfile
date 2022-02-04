@@ -17,6 +17,7 @@ pipeline {
         sh 'arduino-cli lib install OneWire'
         sh 'arduino-cli lib install DallasTemperature'
         sh 'arduino-cli lib install TinyGPSPlus'
+        sh 'arduino-cli lib install simpleRPC'
       }
     }
     stage('Test examples') {
@@ -26,8 +27,7 @@ pipeline {
     }
     stage('Stage') {
       steps {
-        sh 'arduino-cli lib install simpleRPC'
-        sh 'arduino-cli compile --fqbn arduino:avr:pro:cpu=8MHzatmega328 tests/LoRaWAN-test'
+        sh 'arduino-cli compile --fqbn arduino:avr:pro:cpu=8MHzatmega328 tests/LoRaWAN-test/'
         sh 'arduino-cli upload -p $WAZIDEV_PORT --fqbn arduino:avr:pro:cpu=8MHzatmega328'
       }
     }

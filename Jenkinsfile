@@ -2,7 +2,6 @@ pipeline {
   agent any
   environment {
     ARDUINO_DIRECTORIES_USER = "$WORKSPACE"
-    #PATH = $PATH:/home/linuxbrew/.linuxbrew/bin/
   }
   stages {
     stage('Prepare') {

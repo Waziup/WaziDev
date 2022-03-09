@@ -8,7 +8,7 @@ app = Flask(__name__)
 app.config["DEBUG"] = True
 wazidev_port = os.getenv("WAZIDEV_PORT", '/dev/ttyUSB0')
 
-interface = Interface("/dev/ttyUSB0")
+interface = Interface(wazidev_port)
 
 
 @app.route('/', methods=['POST'])

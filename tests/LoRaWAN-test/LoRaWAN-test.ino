@@ -20,6 +20,7 @@ void setup()
   wazidev.setupLoRaWAN(devAddr, appSkey, nwkSkey);
 }
 
+//Interface to sending LoRaWAN frames
 Object<uint8_t, char *> sendLoRaWAN(int temp)
 {
   xlpp.reset();
@@ -36,6 +37,8 @@ Object<uint8_t, char *> sendLoRaWAN(int temp)
   return {e, payload};
 }
 
+//Interface to sending LoRaWAN frames (simple version)
+Object<uint8_t, char *> sendLoRaWAN(int temp)
 char *sendLoRaWAN2(int temp)
 {
   char *res = malloc(50); 

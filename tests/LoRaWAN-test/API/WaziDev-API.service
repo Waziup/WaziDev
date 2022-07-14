@@ -1,0 +1,14 @@
+[Unit]
+Description=WaziDev-API service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+ExecStart=/home/cdupont/.local/bin/wazidev-api
+User=cdupont
+
+[Install]
+WantedBy=multi-user.target

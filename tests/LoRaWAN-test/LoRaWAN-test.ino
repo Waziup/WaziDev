@@ -38,7 +38,6 @@ Object<uint8_t, char *> sendLoRaWAN(int temp)
 }
 
 //Interface to sending LoRaWAN frames (simple version)
-Object<uint8_t, char *> sendLoRaWAN(int temp)
 char *sendLoRaWAN2(int temp)
 {
   char *res = malloc(50); 

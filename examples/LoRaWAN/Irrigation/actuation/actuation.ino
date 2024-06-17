@@ -11,9 +11,8 @@ unsigned char devAddr[4] = {0x26, 0x01, 0x1D, 0xB5};
 WaziDev wazidev;
 
 // globals
-//int interval = 180000; //3min
-//int interval = 600000; //10min
-int interval = 30000; //20sec
+int interval = 10000; //10 sec
+int interval_rep = 5;
 int relayPin = 7;
 
 void setup()
@@ -130,8 +129,11 @@ void loop(void)
   // if no error...
   if (!e) {
     // 2. LoRaWAN Downlink
-    // waiting for interval time only!
-    downlink(interval);
+    // waiting for interval time only! => LoRa chip cannot be turned on longer than 10sec
+    for(int i = 0; i <= interval_rep; i++){
+      downlink(interval);
+      Serial.println("repeat_interval: " + String(i));
+    }
   }
   else {
     Serial.println("Error: " + e);

@@ -2,6 +2,7 @@
 #include <xlpp.h>
 #include <LowPower.h>
 #include <Vcc.h> 
+#include <DHT.h>
 //#include <avr/sleep.h>
 //#include <avr/power.h>
 //#include <avr/wdt.h>
@@ -13,11 +14,11 @@ WaziDev wazidev;
 // Copy'n'paste the key to your Wazigate: 23158D3BBC31E6AF670D195B5AED5525
 unsigned char LoRaWANKeys[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF, 0x67, 0x0D, 0x19, 0x5B, 0x5A, 0xED, 0x55, 0x25};
 // Copy'n'paste the DevAddr (Device Address): 26011D87
-unsigned char devAddr[4] = {0x26, 0x01, 0x1D, 0xB5};
+unsigned char devAddr[4] = {0x26, 0x01, 0x1D, 0xB6};//DEBUG
 // You can change the Key and DevAddr as you want.
 
 // Relay
-int interval = 3000; //3sec
+int interval = 5000; //was 3sec
 int relayPin = 7;
 
 // Flow sensor
@@ -35,17 +36,17 @@ unsigned long startTime = 0;
 unsigned long samplingTime = 1000;  // Sampling period in milliseconds (1 second)
 
 // Pump related
-int MAX_IRRIGATION_TIME = 180000; // 3 minutes in milliseconds
-int REST_PERIOD = 300000; // 5 minutes in milliseconds
+const long MAX_IRRIGATION_TIME = 180000; // 3 minutes in milliseconds
+const long REST_PERIOD = 300000; // 5 minutes in milliseconds
 
 // sleep related
 //volatile bool wdt_interrupt = false; // Flag to check if WDT interrupt occurred
 //volatile int wakeup_count = 0; // Counter to track wake-ups
-int sleep_sec = 1800;//60;
+int sleep_sec = 60;//1800 // Time in sec in sleep mode DEBUG
 
 // Voltage transmission
 unsigned long lastTransmissionTime = 0; // Stores the last transmission time
-const unsigned long interval_vcc = 3600000; // 60 minutes in milliseconds
+const unsigned long interval_vcc = 10;//3600000; // 60 minutes in milliseconds DEBUG
 
 // LED
 const int ledPin = 8; // Pin on microcontroller
@@ -54,12 +55,22 @@ const int initialDelay = 100; // Initial delay in milliseconds
 const int finalDelay = 10; // Final delay in milliseconds
 
 // Read voltage
-const int batt_pin = 6;
+const int batt_pin = A6;
 //finally set VccCorrection to measured Vcc by multimeter divided by reported Vcc
 const float VccCorrection = 12.35/12.68; //for the one in the case
 // calibration mode: uncomment to perform calibration
 //const float VccCorrection = 1;
 Vcc vcc(VccCorrection); 
+
+// DHT
+const int dhtDataPin = 9;     // Pin which is connected to the DHT sensor
+const int powerPinDht = A1;    // PowerPin A1=15
+// Initialize DHT sensor for normal 16mhz Arduino
+DHT dht(dhtDataPin, DHT11);
+struct DHTData {
+    float temperature;
+    float humidity;
+};
 
 //ISR(WDT_vect) {
 //  wdt_interrupt = true;
@@ -107,6 +118,12 @@ void setup()
   pinMode(relayPin, OUTPUT);
   pinMode(FlowMeterSensor , INPUT);
   pinMode(ledPin, OUTPUT);
+  pinMode(powerPinDht, OUTPUT);
+  digitalWrite(powerPinDht, HIGH); // Provide power to the sensor
+
+  // DHT
+  dht.begin();
+  delay(2000);
 
   // Blink to say hello
   blink_led();
@@ -121,7 +138,7 @@ void setup()
   //setupWatchdog(); // Set up the watchdog timer
 }
 
-XLPP xlpp(120);
+XLPP xlpp(40);
 
 //---Function executed in interrupt---------------
 void  PulseCount  ( )
@@ -184,14 +201,17 @@ int GetFrequencyPolling () {
 //  Serial.println(sleep_sec, " seconds has passed. Performing task...");
 //}
 
+// ---Function to perform SLEEP MODE---
 void sleep(int sec_to_sleep) {
   Serial.print("Will sleep now for approximately ");
   Serial.print(sec_to_sleep);
   Serial.println(" seconds.");
+  delay(1000);
 
   for (int i = 0; i < sec_to_sleep / 8; i++) {
     LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
   }
+  delay(1000);
   Serial.print(sec_to_sleep);
   Serial.println(" seconds has passed. Performing task...");
 }
@@ -239,6 +259,81 @@ int irrigate(float amount) {
   return 0;
 }
 
+float readVolts(){
+  // Read voltage of reg and bat
+  // Regulator:
+  int j = 0;
+  float vcc_reg = 0;
+  for (j = 0; j < 100; j++) {
+    vcc_reg += vcc.Read_Volts();
+    delay(5);
+  }
+  // Calc average of regulator readings
+  vcc_reg = vcc_reg / j;
+  // Print VCC
+  Serial.print("VCC of regulator: ");
+  Serial.print(vcc_reg, 3);
+  Serial.println("V ");
+  
+  // Read voltage of battery:  
+  int i = 0;
+  float last_vcc = 0;
+  for (i = 0; i < 100; i++) {
+    last_vcc += ((analogRead(batt_pin) * (vcc_reg / 1023.0)) * 3.83); 
+    delay(5);
+  }
+  // Calc average of battery readings
+  last_vcc = last_vcc / i;
+  // Print voltage of bat
+  Serial.print("Voltage of Battery: ");
+  Serial.print(last_vcc, 2);
+  Serial.println("V");
+
+  return last_vcc;
+}
+
+DHTData readDHT() {
+  DHTData data;
+  // Power on the DHT sensor
+  digitalWrite(powerPinDht, HIGH);
+  delay(3000);  // Wait a bit for the sensor to stabilize
+  
+  // Read temperature as Celsius (the default)
+  data.temperature = dht.readTemperature();
+  Serial.print("Temperature: ");
+  Serial.println(data.temperature);
+  
+  //return data; //DEBUG
+  //delay(3000);  // DEBUG
+  // Reading temperature or humidity takes about 250 milliseconds!
+  data.humidity = dht.readHumidity();
+  Serial.println("Humidity:");
+  Serial.println(data.humidity);
+  
+  //delay(3000); //DEBUG
+
+  Serial.println("Reading temp was finished...");
+
+  if (isnan(data.humidity) || isnan(data.temperature)) {
+    Serial.println("Failed to read from DHT11 sensor!");
+    return;
+  }
+  else {
+    // Print them on console
+    Serial.print("Temperature: ");
+    Serial.print(data.temperature);
+    Serial.print(" °C\t");
+    Serial.print("Humidity: ");
+    Serial.print(data.humidity);
+    Serial.println(" % ");
+  }
+
+  // Power off the DHT sensor to save energy
+  digitalWrite(powerPinDht, LOW);
+  delay(3000); //DEBUG
+  return data;
+}
+
 uint8_t uplink()
 {
   // 1
@@ -252,37 +347,17 @@ uint8_t uplink()
   // 3
   // send voltage in larger time intervals (capsulate function, but lazy^^)
   if (millis() - lastTransmissionTime >= interval_vcc) {
-    // Read voltage of reg and bat
-    // Regulator:
-    int j = 0;
-    float vcc_reg = 0;
-    for (j = 0; j < 100; j++) {
-      vcc_reg += vcc.Read_Volts();
-      delay(5);
-    }
-    // Calc average of regulator readings
-    vcc_reg = vcc_reg / j;
-    // Print VCC
-    Serial.print("VCC of regulator: ");
-    Serial.print(vcc_reg, 3);
-    Serial.println("V ");
-    
-    // Read voltage of battery:  
-    int i = 0;
-    float last_vcc = 0;
-    for (i = 0; i < 100; i++) {
-      last_vcc += ((analogRead(batt_pin) * (vcc_reg / 1023.0)) * 3.83); 
-      delay(5);
-    }
-    // Calc average of battery readings
-    last_vcc = last_vcc / i;
-    // Print voltage of bat
-    Serial.print("Voltage of Battery: ");
-    Serial.print(last_vcc, 2);
-    Serial.println("V");
-
+    // read volts
+    float last_vcc = readVolts();
     // Add payload
-    xlpp.addVoltage(2, last_vcc);   
+    xlpp.addVoltage(2, last_vcc); 
+
+    // readDHT
+    DHTData data = readDHT();
+    // Add payload
+    xlpp.addTemperature(3, data.temperature);
+    xlpp.addRelativeHumidity(4, data.humidity);
+       
     // Update the last transmission time
     lastTransmissionTime = millis();
   }
@@ -290,6 +365,7 @@ uint8_t uplink()
   // 4
   // Send payload with LoRaWAN.
   serialPrintf("LoRaWAN send ... ");
+  delay(3000); 
   uint8_t e = wazidev.sendLoRaWAN(xlpp.buf, xlpp.len);
   if (e != 0)
   {
@@ -301,6 +377,91 @@ uint8_t uplink()
 
   return 0;
 }
+
+uint8_t downlink_with_logs(uint16_t timeout)
+{
+  uint8_t e;
+
+  // 1.
+  // Receive LoRaWAN downlink message in RX1
+  Serial.println("Waiting for RX1...");
+  //delay(500); // former: Wait for 1 second (RX1)
+  long startSend = millis();
+  e = wazidev.receiveLoRaWAN(xlpp.buf, &xlpp.offset, &xlpp.len, timeout);
+  long endSend = millis();
+  if (e == ERR_LORA_TIMEOUT)
+  {
+    Serial.println("RX1 Timeout. Waiting for RX2...");
+    // Receive LoRaWAN downlink message in RX2
+    delay(2000); // Wait for an additional 2 seconds (RX2)
+    e = wazidev.receiveLoRaWAN(xlpp.buf, &xlpp.offset, &xlpp.len, timeout);
+    if (e == ERR_LORA_TIMEOUT)
+    {
+      Serial.println("RX2 Timeout. No downlink received.");
+      return ERR_LORA_TIMEOUT;
+    }
+    else
+    {
+      Serial.println("Downlink received in RX2.");
+    }
+  }
+  else
+  {
+    Serial.println("Downlink received in RX1.");
+  }
+
+  // Further processing of the downlink message...
+  serialPrintf("Time On Air: %d ms\n", endSend - startSend);
+  serialPrintf("LoRa SNR: %d\n", wazidev.loRaSNR);
+  serialPrintf("LoRa RSSI: %d\n", wazidev.loRaRSSI);
+  serialPrintf("LoRaWAN frame size: %d\n", xlpp.offset + xlpp.len);
+  serialPrintf("LoRaWAN payload len: %d\n", xlpp.len);
+  serialPrintf("Payload: ");
+  if (xlpp.len == 0)
+  {
+    Serial.println("(no payload received)");
+    return 1;
+  }
+  printBase64(xlpp.getBuffer(), xlpp.len);
+  Serial.println();
+
+  // Read xlpp payload from downlink message
+  int end = xlpp.len + xlpp.offset;
+  while (xlpp.offset < end)
+  {
+    uint8_t chan = xlpp.getChannel();
+    serialPrintf("Chan %2d: ", chan);
+    uint8_t type = xlpp.getType();
+    serialPrintf("Type %2d: ", type);
+    switch (type)
+    {
+      case LPP_ANALOG_OUTPUT:
+      case LPP_ANALOG_INPUT:
+        {
+          amountWater = xlpp.getAnalogOutput();
+          Serial.print("Anticipated amount to water: ");
+          Serial.println(amountWater);
+          e = irrigate(amountWater);
+          if (e != 0)
+          {
+            Serial.print("There was an Error in the irrigation function: ");
+            Serial.println(e);
+          }
+          else
+          {
+            Serial.println("Irrigation successful.");
+          }
+          break;
+        }
+      default:
+        Serial.println("Other unknown type.");
+        return 1;
+    }
+  }
+
+  return 0;
+}
+
 
 uint8_t downlink(uint16_t timeout)
 {
@@ -402,7 +563,7 @@ void loop(void)
   if (!e) {
     // 2. LoRaWAN Downlink
     // waiting for interval time only!
-    downlink(interval);
+    downlink_with_logs(interval);
     sleep(sleep_sec);
   }
   else {

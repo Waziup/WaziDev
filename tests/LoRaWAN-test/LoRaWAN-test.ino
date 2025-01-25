@@ -44,6 +44,7 @@ char *sendLoRaWAN2(int temp)
   char *res = malloc(50); 
   xlpp.reset();
   xlpp.addTemperature(1, temp);
+  xlpp.addActuators(1, LPP_ANALOG_OUTPUT);
   uint8_t e = wazidev.sendLoRaWAN(xlpp.buf, xlpp.len);
 
   e = wazidev.receiveLoRaWAN(xlpp.buf, &xlpp.offset, &xlpp.len, 1000);

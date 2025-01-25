@@ -16,7 +16,7 @@ res = interface.sendLoRaWAN(62)
 print(res)
 ```
 
-The folder [API](API/] contains a python program capable of sending those USB commands to the WaziDev.
+The folder [API](API/) contains a python program capable of sending those USB commands to the WaziDev.
 The python program exposes a REST API to the commands. 
 You can call them with:
 ```

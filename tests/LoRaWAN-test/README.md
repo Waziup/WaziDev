@@ -3,7 +3,8 @@ WaziDev command program
 
 This folder contains a small Arduino program to send commands to the WaziDev via the USB cable.
 The Arduino program uses a library called "simpleRPC". With it, you can call functions on the WaziDev from your PC.
-You can find the program [here](LoRaWAN-test.ino). This program have a function `sendLoRaWAN` that can be called from the USB interface of the WaziDev.
+You can find the program [here](LoRaWAN-test.ino). 
+This program have a function `sendLoRaWAN` that can be called from the USB interface of the WaziDev.
 It can be used for example in a python program:
 ```
 from simple_rpc import Interface

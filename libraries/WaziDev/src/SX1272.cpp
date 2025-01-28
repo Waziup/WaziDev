@@ -29,9 +29,6 @@
 #include "SX1272.h"
 #include <SPI.h>
 
-#define DEBUG false // flag to turn on/off debugging
-#define Serial if(DEBUG)Serial
-
 /*  CHANGE LOGS by C. Pham
  *	June 29th, 2018
  *		- SX1272_WRST (not defined by default) controls whether there will be a RST procedure or not. Normally, there is no need for the RST.
@@ -199,7 +196,9 @@ void SX1272::RxChainCalibration()
 {
     if (_board==SX1276Chip) {
 
+#if (SX1272_debug_mode > 1)
         Serial.println(F("SX1276 LF/HF calibration"));
+#endif
 
         // Cut the PA just in case, RFO output, power = -1 dBm
         writeRegister( REG_PA_CONFIG, 0x00 );
@@ -276,7 +275,9 @@ uint8_t SX1272::ON()
 
     if (version == 0x22) {
         // sx1272
+#if (SX1272_debug_mode > 1)
         Serial.println(F("SX1272 detected, starting"));
+#endif        
         _board = SX1272Chip;
     } else {
         // sx1276?
@@ -289,7 +290,9 @@ uint8_t SX1272::ON()
         version = readRegister(REG_VERSION);
         if (version == 0x12) {
             // sx1276
+#if (SX1272_debug_mode > 1)
             Serial.println(F("SX1276 detected, starting"));
+#endif
             _board = SX1276Chip;
         } else {
             Serial.println(F("Unrecognized transceiver"));
@@ -606,7 +609,6 @@ uint8_t SX1272::setLORA()
         writeRegister(REG_OP_MODE, LORA_STANDBY_MODE);
         delay(50+retry*10);
         st0 = readRegister(REG_OP_MODE);
-        Serial.println(F("..."));
 
         if ((retry % 2)==0) {
             if (retry==20)
@@ -4560,6 +4562,118 @@ uint8_t SX1272::getPacketMAXTimeout()
 int8_t SX1272::getPacket()
 {
     return getPacket(MAX_TIMEOUT);
+}
+
+int8_t SX1272::hasReceived()
+{
+    uint8_t state = 2;
+    byte value = 0x00;
+    //unsigned long previous;
+    unsigned long exitTime;
+    boolean p_received = false;
+
+    if( _modem == LORA )
+    { // LoRa mode
+        value = readRegister(REG_IRQ_FLAGS);
+        if (bitRead(value, 6) == 0)
+        {
+            return 0; // nothing received
+        }
+
+        //CrcOnPayload?
+        if (bitRead(readRegister(REG_HOP_CHANNEL),6))
+        {
+            if ( (bitRead(value, 5) == 0) ) {
+                _reception = CORRECT_PACKET;
+            }
+            else
+            {
+                _reception = INCORRECT_PACKET;
+            }
+        }
+        else
+        {
+            // as CRC is not set we suppose that CRC is correct
+            _reception = CORRECT_PACKET;
+        }
+
+        writeRegister(REG_OP_MODE, LORA_STANDBY_MODE);
+    }
+    else
+    {
+        value = readRegister(REG_IRQ_FLAGS2);
+        if (bitRead(value, 2) == 0)
+        {
+            return 0; // nothing received
+        }
+
+        p_received = true;
+        if (bitRead(value, 1) == 1)
+        {
+            _reception = CORRECT_PACKET;
+        }
+        else
+        {
+            _reception = INCORRECT_PACKET;
+        }
+        writeRegister(REG_OP_MODE, FSK_STANDBY_MODE);
+    }
+   
+    if( _modem == LORA )
+    {
+        // comment by C. Pham
+        // set the FIFO addr to 0 to read again all the bytes
+        writeRegister(REG_FIFO_ADDR_PTR, 0x00);  	// Setting address pointer in FIFO data buffer
+
+        packet_received.dst = 0;
+    }
+    else
+    {
+        value = readRegister(REG_PACKET_CONFIG1);
+        if( (bitRead(value, 2) == 0) && (bitRead(value, 1) == 0) )
+        {
+            packet_received.dst = readRegister(REG_FIFO); // Storing first byte of the received packet
+        }
+        else
+        {
+            packet_received.dst = _destination;			// Storing first byte of the received packet
+        }
+    }
+
+    packet_received.type = 0;
+    packet_received.src = 0;
+    packet_received.packnum = 0;
+    packet_received.length = readRegister(REG_RX_NB_BYTES);
+
+    if( _modem == LORA )
+    {
+        _payloadlength=packet_received.length;
+    }
+
+    if( packet_received.length > (MAX_LENGTH + 1) )
+    {
+#if (SX1272_debug_mode > 0)
+        Serial.println(F("Corrupted packet, length must be less than 256"));
+#endif
+    }
+    else
+    {
+        for(unsigned int i = 0; i < _payloadlength; i++)
+        {
+            packet_received.data[i] = readRegister(REG_FIFO); // Storing payload
+        }
+
+        state = 0;
+    }
+
+    if( _modem == LORA )
+    {
+        writeRegister(REG_FIFO_ADDR_PTR, 0x00);  // Setting address pointer in FIFO data buffer
+    }
+
+    clearFlags();	// Initializing flags
+
+    return 1;
 }
 
 /*

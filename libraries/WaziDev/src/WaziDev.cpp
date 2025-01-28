@@ -95,7 +95,8 @@ void setLoRaInversion(bool inv)
 
 uint8_t WaziDev::setLoRaFreq(uint32_t freq)
 {
-    uint32_t chan = (uint64_t (freq)) << 19 / 32000000;
+    // uint32_t chan = (uint64_t (freq)) << 19 / 32000000;
+    uint32_t chan = freq * RH_LORA_FCONVERT;
     return sx1272.setChannel(chan);
 }
 
@@ -112,6 +113,16 @@ uint8_t WaziDev::setLoRaBW(uint16_t bw)
 uint8_t WaziDev::setLoRaSF(uint8_t sf)
 {
     return sx1272.setSF(sf);
+}
+
+uint8_t WaziDev::setLoRaPower(uint8_t dbm)
+{
+    return sx1272.setPowerDBM(dbm);
+}
+
+uint8_t WaziDev::setLoRaSyncWord(uint8_t sw)
+{
+    return sx1272.setSyncWord(sw);
 }
 
 uint8_t WaziDev::sendLoRa(void *pl, uint8_t len, bool invert)
@@ -144,20 +155,53 @@ uint8_t WaziDev::receiveLoRa(void *pl, uint8_t* len, uint16_t timeout)
     return receiveLoRa(pl, len, timeout, true);
 }
 
+uint8_t WaziDev::receiveLoRa(void *pl, uint8_t* len)
+{
+    return receiveLoRa(pl, len, 0, true);
+}
+
 uint8_t WaziDev::receiveLoRa(void *pl, uint8_t* len, uint16_t timeout, bool invert)
 {
-    setLoRaInversion(invert);
-    int e = sx1272.receiveAll(timeout);
-    if (e == 0)
+    if (timeout)
     {
+        setLoRaInversion(invert);
+        int e = sx1272.receiveAll(timeout);
+        if (e == 0)
+        {
+            *len = sx1272._payloadlength;
+            memcpy(pl, sx1272.packet_received.data, sx1272._payloadlength);
+            sx1272.getSNR();
+            loRaSNR = sx1272._SNR;
+            sx1272.getRSSI();
+            loRaRSSI = sx1272._RSSI;
+        }
+        return e;
+    }
+    else
+    {
+        if((sx1272._modem == LORA && sx1272.readRegister(REG_OP_MODE) != LORA_RX_MODE) || (sx1272._modem == FSK && sx1272.readRegister(REG_OP_MODE) != FSK_RX_MODE))
+        {
+            setLoRaInversion(invert);
+            if(sx1272.receive())
+            {
+                return 1;
+            }
+        }
+
+        if(!sx1272.hasReceived())
+        {
+            return 2;
+        }
+
         *len = sx1272._payloadlength;
         memcpy(pl, sx1272.packet_received.data, sx1272._payloadlength);
         sx1272.getSNR();
         loRaSNR = sx1272._SNR;
         sx1272.getRSSI();
         loRaRSSI = sx1272._RSSI;
+        return 0;
+
     }
-    return e;
 }
 
 uint8_t WaziDev::receiveLoRaWAN(void *pl, uint8_t* offs, uint8_t* len, uint16_t timeout, bool invert)
@@ -182,6 +226,15 @@ uint8_t WaziDev::receiveLoRaWAN(void *pl, uint8_t* offs, uint8_t* len, uint16_t 
     return receiveLoRaWAN(pl, offs, len, timeout, true);
 }
 
+uint8_t WaziDev::receiveLoRaWAN(void *pl, uint8_t* offs, uint8_t* len)
+{
+    return receiveLoRaWAN(pl, offs, len, 0, true);
+}
+
+uint8_t WaziDev::setPowerDBM(uint8_t dbm)
+{
+    return sx1272.setPowerDBM(dbm);
+}
 
 int printBase64(const void *buf, int len)
 {

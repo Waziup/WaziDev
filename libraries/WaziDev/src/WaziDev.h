@@ -62,6 +62,12 @@ public:
     // Default: SF12 (LORA_SF_12)
     // LORA_SF_6 (SF6), LORA_SF_7 (SF7), ..., LORA_SF_12 (SF12).
     uint8_t setLoRaSF(uint8_t sf);
+    // Change the LoRa (and LoRaWAN) power in dBm.
+    // Default: 14 dBm.
+    uint8_t setLoRaPower(uint8_t dbm);
+    // Change the LoRa (and LoRaWAN) sync word.
+    // Use 0x34 for LoRaWAN, 0x12 for LoRa.
+    uint8_t setLoRaSyncWord(uint8_t sw);
 
     // Send a decrypted LoRaWAN message on air.
     uint8_t sendLoRaWAN(void *pl, uint8_t len);
@@ -76,13 +82,19 @@ public:
     // 0: The command has been executed with no errors.
     // 1: There has been an error while executing the command.
     // 2: No data received within the timeout period.
+    uint8_t receiveLoRa(void *pl, uint8_t *len);
     uint8_t receiveLoRa(void *pl, uint8_t *len, uint16_t timeout);
     uint8_t receiveLoRa(void *pl, uint8_t *len, uint16_t timeout, bool invert);
 
     // Receives LoRaWAN data on air and decrypts the message.
     // Returns an error != 0 (if any): ERR_LORA_CRC, ERR_LORA_TIMEOUT
+    uint8_t receiveLoRaWAN(void *pl, uint8_t *offs, uint8_t *len);
     uint8_t receiveLoRaWAN(void *pl, uint8_t *offs, uint8_t *len, uint16_t timeout);
     uint8_t receiveLoRaWAN(void *pl, uint8_t *offs, uint8_t *len, uint16_t timeout, bool invert);
+
+    // Change the LoRa (and LoRaWAN) power in dBm.
+    // Default: 14 dBm. Use 0 .. 14 (normal) and 20 (high power).
+    uint8_t setPowerDBM(uint8_t dbm);
 
     // LoRa SNR (signal-to-noise ratio) value in dB. Higher means better.
     // It will be -20dB (below noise floor) to +10dB (above noise floor).

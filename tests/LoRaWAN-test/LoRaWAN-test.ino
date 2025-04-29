@@ -28,6 +28,7 @@ Object<uint8_t, char *> sendLoRaWAN(int temp)
   xlpp.addActuators(1, LPP_ANALOG_OUTPUT);
   uint8_t e = wazidev.sendLoRaWAN(xlpp.buf, xlpp.len);
 
+  xlpp.reset();
   e = wazidev.receiveLoRaWAN(xlpp.buf, &xlpp.offset, &xlpp.len, 3000);
   if (e == 0)
   {

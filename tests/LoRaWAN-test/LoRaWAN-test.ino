@@ -53,7 +53,7 @@ char *sendLoRaWAN2(int temp)
   {
     case 0:
       base64_decode(payload, xlpp.getBuffer(), xlpp.len);
-      sprintf(res, "Received: %s", payload);
+      sprintf(res, "Received: %s, with length %d", payload, xlpp.len);
       break;
     case 2: 
       sprintf(res, "Error: Nothing received");

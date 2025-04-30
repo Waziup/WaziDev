@@ -52,8 +52,8 @@ char *sendLoRaWAN2(int temp)
   switch (e)
   {
     case 0:
-      base64_decode(payload, xlpp.getBuffer(), xlpp.len);
-      sprintf(res, "Received: %s, with length %d", payload, xlpp.len);
+      char *outstr = to_hex_string(xlpp.getBuffer(), xlpp.len);
+      sprintf(res, "Received: %s, with length %d", outstr, xlpp.len);
       break;
     case 2: 
       sprintf(res, "Error: Nothing received");
@@ -63,6 +63,19 @@ char *sendLoRaWAN2(int temp)
       break;
   }
   return res;
+}
+
+char *to_hex_string(const unsigned char *array, size_t length)
+{
+    char *outstr = malloc(2*length + 1);
+    if (!outstr) return outstr;
+
+    char *p = outstr;
+    for (size_t i = 0;  i < length;  ++i) {
+        p += sprintf(p, "%02hhx", array[i]);
+    }
+
+    return outstr;
 }
 
 void loop(void)

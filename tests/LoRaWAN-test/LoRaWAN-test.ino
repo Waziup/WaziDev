@@ -52,8 +52,12 @@ char *sendLoRaWAN2(int temp)
   switch (e)
   {
     case 0:
-      char *outstr = to_hex_string(xlpp.getBuffer(), xlpp.len);
-      sprintf(res, "Received: %s, with length %d", outstr, xlpp.len);
+      if (xlpp.len == 0) {
+        sprintf(res, "Downlink received (no data).");
+      } else {
+        char *outstr = to_hex_string(xlpp.getBuffer(), xlpp.len);
+        sprintf(res, "Downlink received. Payload: %s, with length %d", outstr, xlpp.len);
+      }
       break;
     case 2: 
       sprintf(res, "Error: Nothing received");

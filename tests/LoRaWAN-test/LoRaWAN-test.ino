@@ -56,7 +56,7 @@ char *sendLoRaWAN2(int temp)
         sprintf(res, "Downlink received (no data).");
       } else {
         char *outstr = to_hex_string(xlpp.getBuffer(), xlpp.len);
-        sprintf(res, "Downlink received. Payload: %s, with length %d", outstr, xlpp.len);
+        sprintf(res, "Downlink received. Payload: 0x%s, with length %d", outstr, xlpp.len);
       }
       break;
     case 2: 

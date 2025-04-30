@@ -70,9 +70,10 @@ char *to_hex_string(const unsigned char *array, size_t length)
     char *outstr = malloc(2*length + 1);
     if (!outstr) return outstr;
 
+    sprintf(outstr, "");
     char *p = outstr;
     for (size_t i = 0;  i < length;  ++i) {
-        p += sprintf(p, "%02hhx", array[i]);
+      p += sprintf(p, "%02hhx", array[i]);
     }
 
     return outstr;

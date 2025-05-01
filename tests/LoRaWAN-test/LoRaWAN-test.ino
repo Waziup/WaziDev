@@ -18,6 +18,8 @@ void setup()
 {
   Serial.begin(9600);
   wazidev.setupLoRaWAN(devAddr, appSkey, nwkSkey);
+  wazidev.setLoRaSF(7);
+  
 }
 
 //Interface to sending LoRaWAN frames

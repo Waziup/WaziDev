@@ -12,7 +12,7 @@ unsigned char nwkSkey[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF, 0x6
 
 WaziDev wazidev;
 XLPP xlpp(120);
-char payload[100] = "";
+char result[100] = "";
 
 void setup()
 {
@@ -34,17 +34,16 @@ Object<uint8_t, char *> sendLoRaWAN(int temp)
   e = wazidev.receiveLoRaWAN(xlpp.buf, &xlpp.offset, &xlpp.len, 3000);
   if (e == 0)
   {
-    base64_decode(payload, xlpp.getBuffer(), xlpp.len);
+    base64_decode(result, xlpp.getBuffer(), xlpp.len);
   } else {
-    payload[0] = '\0';
+    result[0] = '\0';
   }
-  return {e, payload};
+  return {e, result};
 }
 
 //Interface to sending LoRaWAN frames (simple version)
 char *sendLoRaWAN2(int temp)
 {
-  char *res = malloc(50); 
   xlpp.reset();
   xlpp.addTemperature(1, temp);
   xlpp.addActuators(1, LPP_ANALOG_OUTPUT);
@@ -55,34 +54,30 @@ char *sendLoRaWAN2(int temp)
   {
     case 0:
       if (xlpp.len == 0) {
-        sprintf(res, "Downlink received (no data).");
+        sprintf(result, "Downlink received (no data).");
       } else {
-        char *outstr = to_hex_string(xlpp.getBuffer(), xlpp.len);
-        sprintf(res, "Downlink received. Payload: 0x%s, with length %d", outstr, xlpp.len);
+        char payload [50];
+        to_hex_string(payload, xlpp.getBuffer(), xlpp.len);
+        sprintf(result, "Downlink received. Payload: 0x%s, with length %d", payload, xlpp.len);
       }
       break;
     case 2: 
-      sprintf(res, "Error: Nothing received");
+      sprintf(result, "Error: Nothing received");
       break;
     default:
-      sprintf(res, "Error: %d", e);
+      sprintf(result, "Error: %d", e);
       break;
   }
-  return res;
+  return result;
 }
 
-char *to_hex_string(const unsigned char *array, size_t length)
+void to_hex_string(unsigned char *outstr, const unsigned char *array, size_t length)
 {
-    char *outstr = malloc(2*length + 1);
-    if (!outstr) return outstr;
-
-    sprintf(outstr, "");
+    outstr[0] = '\0';
     char *p = outstr;
     for (size_t i = 0;  i < length;  ++i) {
       p += sprintf(p, "%02hhx", array[i]);
     }
-
-    return outstr;
 }
 
 void loop(void)

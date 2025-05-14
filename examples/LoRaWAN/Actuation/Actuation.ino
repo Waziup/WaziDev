@@ -16,6 +16,10 @@ unsigned char nwkSkey[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF, 0x6
 
 WaziDev wazidev;
 
+// You need to identify the ChirpStack version on your LoRaWAN server or gateway and select it.
+//#define GATEWAY_CHIRPSTACK_V3 // ChirpStack V3 sends downlink payload as base64 encoded
+#define GATEWAY_CHIRPSTACK_V4   // ChirpStack V4 sends downlink payload as bytes
+
 void setup()
 {
   Serial.begin(38400);
@@ -69,11 +73,27 @@ void loop(void)
   serialPrintf("LoRa RSSI: %d\n", wazidev.loRaRSSI);
   serialPrintf("LoRaWAN frame size: %d\n", xlpp.offset+xlpp.len);
   serialPrintf("LoRaWAN payload len: %d\n", xlpp.len);
+  
+#if defined(GATEWAY_CHIRPSTACK_V3)  
   serialPrintf("Payload: ");
   char payload[100];
   base64_decode(payload, xlpp.getBuffer(), xlpp.len); 
   serialPrintf(payload);
   serialPrintf("\n");
+#endif
+
+#if defined(GATEWAY_CHIRPSTACK_V4)
+  char payload[101]; // +1 for null-terminator
+  memset(payload, 0, sizeof(payload)); // Clear buffer
+
+  // Copy bytes into payload and null-terminate
+  memcpy(payload, xlpp.getBuffer(), xlpp.len);
+  payload[xlpp.len] = '\0';
+
+  serialPrintf("Payload: ");
+  serialPrintf(payload);
+  serialPrintf("\n");
+#endif
   
   delay(60000);
 }

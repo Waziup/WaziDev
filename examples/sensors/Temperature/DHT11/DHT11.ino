@@ -6,7 +6,7 @@
 #include <DHT.h>
 
 //Constants
-#define DHTPIN 2     // what pin on the arduino is the DHT22 data line connected to
+#define DHTPIN 9     // what pin on the arduino is the DHT22 data line connected to
 #define DHTTYPE DHT11   // DHT 11
 DHT dht(DHTPIN, DHTTYPE); // Initialize DHT sensor for normal Arduino
 
@@ -16,13 +16,15 @@ void setup() { // to run once
   Serial.println("RH\t Temp (C)");
 
 //  pinMode(5, OUTPUT);  digitalWrite(5, LOW);
-  pinMode(3, OUTPUT);  digitalWrite(3, HIGH);
+  pinMode(A1, OUTPUT);  digitalWrite(A1, HIGH);
   
   dht.begin();
+  
   delay(2000);
 }
 
 void loop() {
+  delay(3000);
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
   float h = dht.readHumidity();
@@ -37,7 +39,4 @@ void loop() {
   Serial.print(" %\t\t");
   Serial.print(t); 
   Serial.println(" °C");
-  // Wait a few seconds between measurements. The DHT11 should not be read at a higher frequency of
-  // about once every 2 seconds. So we add a 3 second delay to cover this.
-  delay(3000);
 }

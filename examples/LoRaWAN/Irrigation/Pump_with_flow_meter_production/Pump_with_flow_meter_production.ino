@@ -2,20 +2,22 @@
 #include <xlpp.h>
 #include <LowPower.h>
 #include <Vcc.h> 
-#include <DHT.h>
+//#include <DHT.h>
 
 WaziDev wazidev;
 
 unsigned char LoRaWANKeys[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF, 0x67, 0x0D, 0x19, 0x5B, 0x5A, 0xED, 0x55, 0x25};
-unsigned char devAddr[4] = {0x26, 0x01, 0x1D, 0xB5};
+unsigned char devAddr[4] = {0x26, 0x01, 0x1D, 0xD9};
 
 const int interval = 3000;
-const int relayPin = 7;
+const int relayPin = 5;
+const int relayPowerPin = 6;
 
 volatile int NumPulses = 0;
-const int FlowMeterSensorDataPin = 6;
-const int FlowMeterSensorPowerPin = A0;
-const float factor_conversion = 5.625;
+const int FlowMeterSensorDataPin = 4;
+const int FlowMeterSensorPowerPin = 7;
+// const float factor_conversion = 5.625; // for DN20
+const float factor_conversion = 12.0;     // for DN50
 float volume = 0;
 long dt = 0;
 long t0 = 0;
@@ -30,26 +32,27 @@ const long REST_PERIOD = 300000;
 
 const int sleep_sec = 1800;//1800 // Time in sec in sleep mode DEBUG
 
-//unsigned long lastTransmissionTime = 0;
-//const unsigned long interval_vcc = 3000;//3600000; // 60 minutes in milliseconds //DEBUG
+// unsigned long lastTransmissionTime = 0;
+// const unsigned long interval_vcc = 3000;//3600000; // 60 minutes in milliseconds //DEBUG
 
 const int ledPin = 8;
 const int totalBlinks = 20;
 const int initialDelay = 100;
 const int finalDelay = 10;
 
-const int batt_pin = A6;
-const float VccCorrection = 12.35 / 12.68;
+const int batt_pin = A0;
+// const float VccCorrection = 12.35 / 12.68; // 12V
+const float VccCorrection = 3.85 / 7.5; // 4,2V LiIon
 Vcc vcc(VccCorrection);
 
-const int dhtDataPin = 9;
-const int powerPinDht = A1;
-DHT dht(dhtDataPin, DHT11);
+// const int dhtDataPin = 9;
+// const int powerPinDht = A1;
+// DHT dht(dhtDataPin, DHT11);
 
-struct DHTData {
-    float temperature;
-    float humidity;
-};
+// struct DHTData {
+//     float temperature;
+//     float humidity;
+// };
 
 void blink_led() {
     for (int i = 0; i < totalBlinks; i++) {
@@ -64,14 +67,15 @@ void setup() {
     Serial.begin(38400);
 
     pinMode(relayPin, OUTPUT);
+    pinMode(relayPowerPin, OUTPUT);
     pinMode(FlowMeterSensorDataPin, INPUT);
     pinMode(FlowMeterSensorPowerPin, OUTPUT);
     pinMode(ledPin, OUTPUT);
-    pinMode(powerPinDht, OUTPUT);
-    digitalWrite(powerPinDht, HIGH);
+    //pinMode(powerPinDht, OUTPUT);
+    //digitalWrite(powerPinDht, HIGH);
 
-    dht.begin();
-    delay(2000);
+    //dht.begin();
+    //delay(2000);
 
     blink_led();
 
@@ -80,8 +84,10 @@ void setup() {
 
     Serial.println(F("Send 'r' to reset the volume to 0 Liters"));
     t0 = millis();
-    
-    digitalWrite(powerPinDht, LOW);
+
+    // Preserve energy
+    digitalWrite(relayPowerPin, LOW);
+    //digitalWrite(powerPinDht, LOW);
 }
 
 XLPP xlpp(40);
@@ -126,13 +132,14 @@ int irrigate(float amount) {
     previousState = LOW;
     
     digitalWrite(FlowMeterSensorPowerPin, HIGH);
-    
+
+    digitalWrite(relayPowerPin, HIGH);
     delay(1000);
+    digitalWrite(relayPin, LOW);
+
     t0 = millis();
-    unsigned long startIrrigationTime = millis();
-    
-    digitalWrite(relayPin, HIGH);
-    
+    unsigned long startIrrigationTime = t0;
+
     Serial.print(F("Irrigation started. \nAmount already given:\t"));
     Serial.print(volume, 3);
     Serial.print(F("\tAmount to Irrigate: \t"));
@@ -141,7 +148,7 @@ int irrigate(float amount) {
     while (volume < amount) {
         if (millis() - startIrrigationTime >= MAX_IRRIGATION_TIME) {
             Serial.println(F("Max irrigation time reached. Pausing irrigation."));
-            digitalWrite(relayPin, LOW);
+            digitalWrite(relayPin, HIGH);
             delay(REST_PERIOD);
             return irrigate(amount - volume);
         }
@@ -161,7 +168,9 @@ int irrigate(float amount) {
     }
 
     Serial.println(F("Irrigation completed."));
-    digitalWrite(relayPin, LOW);
+    digitalWrite(relayPin, HIGH);
+    delay(100);
+    digitalWrite(relayPowerPin, LOW);
     digitalWrite(FlowMeterSensorPowerPin, LOW);
 
     return 0;
@@ -193,28 +202,28 @@ float readVolts() {
     return last_vcc;
 }
 
-DHTData readDHT() {
-    DHTData data;
-    digitalWrite(powerPinDht, HIGH);
-    delay(3000);
-
-    data.temperature = dht.readTemperature();
-    data.humidity = dht.readHumidity();
-
-    if (isnan(data.humidity) || isnan(data.temperature)) {
-        Serial.println(F("Failed to read from DHT11 sensor!"));
-    } else {
-        Serial.print(F("Temperature: "));
-        Serial.print(data.temperature);
-        Serial.print(F(" °C\tHumidity: "));
-        Serial.print(data.humidity);
-        Serial.println(F(" % "));
-    }
-
-    digitalWrite(powerPinDht, LOW);
-    
-    return data;
-}
+//DHTData readDHT() {
+//    DHTData data;
+//    digitalWrite(powerPinDht, HIGH);
+//    delay(3000);
+//
+//    data.temperature = dht.readTemperature();
+//    data.humidity = dht.readHumidity();
+//
+//    if (isnan(data.humidity) || isnan(data.temperature)) {
+//        Serial.println(F("Failed to read from DHT11 sensor!"));
+//    } else {
+//        Serial.print(F("Temperature: "));
+//        Serial.print(data.temperature);
+//        Serial.print(F(" °C\tHumidity: "));
+//        Serial.print(data.humidity);
+//        Serial.println(F(" % "));
+//    }
+//
+//    digitalWrite(powerPinDht, LOW);
+//    
+//    return data;
+//}
 
 uint8_t uplink() {
     xlpp.reset();
@@ -225,9 +234,9 @@ uint8_t uplink() {
     float last_vcc = readVolts();
     xlpp.addVoltage(2, last_vcc);
 
-    DHTData data = readDHT();
-    xlpp.addTemperature(3, data.temperature);
-    xlpp.addRelativeHumidity(4, data.humidity);
+//    DHTData data = readDHT();
+//    xlpp.addTemperature(3, data.temperature);
+//    xlpp.addRelativeHumidity(4, data.humidity);
 
     //lastTransmissionTime = millis();
     //}

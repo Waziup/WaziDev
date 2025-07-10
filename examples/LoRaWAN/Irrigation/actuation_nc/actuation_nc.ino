@@ -5,21 +5,30 @@
 // Copy'n'paste the key to your Wazigate: 23158D3BBC31E6AF670D195B5AED5525
 unsigned char LoRaWANKeys[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF, 0x67, 0x0D, 0x19, 0x5B, 0x5A, 0xED, 0x55, 0x25};
 // Copy'n'paste the DevAddr (Device Address): 26011D87
-unsigned char devAddr[4] = {0x26, 0x01, 0x1D, 0xB5};
+unsigned char devAddr[4] = {0x26, 0x01, 0x1D, 0xE7};
 // You can change the Key and DevAddr as you want.
 
 WaziDev wazidev;
 
 // globals
-int interval = 10000; //10 sec
-int interval_rep = 5;
-int relayPin = 7;
+const int interval = 10000; //10 sec
+const int interval_rep = 5;
+const int relayPin = 5;
+const int mosfetPin = 6; // for power
 
 void setup()
 {
   Serial.begin(38400);
   wazidev.setupLoRaWAN(devAddr, LoRaWANKeys);
   pinMode(relayPin, OUTPUT);
+  delay(1000);
+  pinMode(mosfetPin, OUTPUT);
+  delay(1000);
+  digitalWrite(relayPin, LOW);
+  delay(1000);
+  digitalWrite(mosfetPin, HIGH);
+  delay(2000);
+  serialPrintf("Setup done...");
 }
 
 XLPP xlpp(120);
@@ -104,11 +113,25 @@ uint8_t downlink(uint16_t timeout)
       case XLPP_BOOL_FALSE:
         {
           digitalWrite(relayPin, LOW);
+          serialPrintf("Switch relay off\n");
           break;
         }
       case XLPP_BOOL_TRUE:
         {
           digitalWrite(relayPin, HIGH);
+          serialPrintf("Switch relay on\n");
+          break;
+        }
+      case XLPP_BOOL:
+        {
+          digitalWrite(relayPin, xlpp.getBool());
+          serialPrintf("Switch relay %s", xlpp.getBool() ? "true" : "false");
+          break;
+        }
+      case LPP_SWITCH:
+        {
+          digitalWrite(relayPin, xlpp.getSwitch());
+          serialPrintf("Switch relay %s", xlpp.getSwitch() ? "true" : "false");
           break;
         }
       default:

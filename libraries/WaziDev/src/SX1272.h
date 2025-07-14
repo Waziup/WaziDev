@@ -944,6 +944,13 @@ public:
 	*/
 	int8_t getPacket(uint16_t wait);
 
+	//! It checks if there is a received packet in FIFO and copies it in 'packet' variable.
+	/*!
+	 *
+	\return '1' on success (packet received and read), '0' otherwise
+	*/
+	int8_t hasReceived();
+
 	//! It sends the packet stored in FIFO before ending MAX_TIMEOUT.
 	/*!
 	 *

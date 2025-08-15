@@ -21,13 +21,13 @@ void setup()
   Serial.begin(38400);
   wazidev.setupLoRaWAN(devAddr, LoRaWANKeys);
   pinMode(relayPin, OUTPUT);
-  delay(1000);
+  delay(100);
   pinMode(mosfetPin, OUTPUT);
-  delay(1000);
+  delay(100);
   digitalWrite(relayPin, HIGH);
-  delay(1000);
+  delay(100);
   digitalWrite(mosfetPin, HIGH);
-  delay(2000);
+  delay(1000);
   serialPrintf("Setup done...");
 }
 

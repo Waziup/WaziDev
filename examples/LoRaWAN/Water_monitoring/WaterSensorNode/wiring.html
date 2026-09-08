@@ -1,0 +1,2133 @@
+<title>KijaniSpace Node Wiring</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --bg:        #F6F9FA;
+    --surface:   #FFFFFF;
+    --surface-2: #EBF1F3;
+    --border:    #D2DEE3;
+    --border-2:  #B9CAD1;
+    --ink:       #15242A;
+    --ink-2:     #485D67;
+    --ink-3:     #7B9099;
+    --rail12:    #B45F09;
+    --rail33:    #0D6E88;
+    --data:      #6D3BD1;
+    --note-bg:   #FBF3E6;
+    --note-bd:   #E3C79C;
+    --danger:    #A32C24;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:        #0D1517;
+      --surface:   #162226;
+      --surface-2: #1D2C31;
+      --border:    #2B3F46;
+      --border-2:  #3D555E;
+      --ink:       #E3ECEF;
+      --ink-2:     #A2B6BE;
+      --ink-3:     #728A93;
+      --rail12:    #EFA243;
+      --rail33:    #46B7D2;
+      --data:      #A98CF7;
+      --note-bg:   #221B10;
+      --note-bd:   #47381E;
+      --danger:    #F08A80;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg:        #0D1517;
+    --surface:   #162226;
+    --surface-2: #1D2C31;
+    --border:    #2B3F46;
+    --border-2:  #3D555E;
+    --ink:       #E3ECEF;
+    --ink-2:     #A2B6BE;
+    --ink-3:     #728A93;
+    --rail12:    #EFA243;
+    --rail33:    #46B7D2;
+    --data:      #A98CF7;
+    --note-bg:   #221B10;
+    --note-bd:   #47381E;
+    --danger:    #F08A80;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 44px;
+  }
+
+  /* ---- title block, like the corner of an engineering drawing ---- */
+  .titleblock {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    padding: 22px 24px;
+    align-items: end;
+  }
+  .titleblock h1 {
+    font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.7rem, 4vw, 2.4rem);
+    line-height: 1.1;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .titleblock p { margin: 0; color: var(--ink-2); max-width: 62ch; }
+  .meta {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    color: var(--ink-3);
+    text-align: right;
+    line-height: 1.8;
+    white-space: nowrap;
+  }
+  .meta b { color: var(--ink-2); font-weight: 500; }
+
+  h2 {
+    font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+    font-weight: 700;
+    font-size: 1.45rem;
+    margin: 0 0 4px;
+    letter-spacing: -0.005em;
+  }
+  h2 .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ink-3);
+    display: block;
+    letter-spacing: 0.08em;
+    margin-bottom: 2px;
+  }
+  h3 {
+    font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    margin: 0 0 8px;
+  }
+  section > p { margin: 0 0 16px; max-width: 68ch; color: var(--ink-2); }
+  section > p strong { color: var(--ink); font-weight: 600; }
+
+  figure {
+    margin: 20px 0 0;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 20px 20px 0;
+  }
+  .canvas { overflow-x: auto; }
+  figure svg {
+    display: block;
+    min-width: 640px;
+    width: 100%;
+    height: auto;
+    color: var(--ink-2);
+  }
+  figcaption {
+    font-size: 0.85rem;
+    color: var(--ink-3);
+    padding: 14px 2px 18px;
+    border-top: 1px solid var(--border);
+    margin-top: 16px;
+    max-width: 78ch;
+  }
+  figcaption b { color: var(--ink-2); font-weight: 500; }
+
+  /* ---- legend ---- */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    padding: 12px 0 0;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.76rem;
+    color: var(--ink-2);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch { width: 20px; height: 0; border-top-width: 3px; border-top-style: solid; }
+  .sw12 { border-color: var(--rail12); }
+  .sw33 { border-color: var(--rail33); }
+  .swd  { border-color: var(--data); }
+  .swg  { border-color: var(--ink-3); }
+  .swsh { border-top-style: dashed; border-color: var(--ink-3); }
+
+  /* ---- tables ---- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--border); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th {
+    font-family: "IBM Plex Sans Condensed", sans-serif;
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.86em;
+  }
+  td code { background: var(--surface-2); padding: 1px 5px; border-radius: 2px; white-space: nowrap; }
+  .pin { color: var(--rail33); font-weight: 500; }
+
+  /* ---- callouts ---- */
+  .note {
+    border: 1px solid var(--note-bd);
+    background: var(--note-bg);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .note h3 { margin: 0; }
+  .note p { margin: 0; color: var(--ink-2); max-width: 74ch; }
+  .note p strong { color: var(--ink); }
+
+  ul.checks { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  ul.checks li {
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    gap: 12px;
+    color: var(--ink-2);
+    max-width: 76ch;
+  }
+  ul.checks .n {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.78rem;
+    color: var(--ink-3);
+    padding-top: 3px;
+  }
+  ul.checks strong { color: var(--ink); font-weight: 600; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 0; }
+</style>
+
+<div class="sheet">
+
+  <header class="titleblock">
+    <div>
+      <h1>Water Sensor Node — Wiring</h1>
+      <p>Assembly reference for the KijaniSpace LoRaWAN water-quality station: five probes across
+         three buses, two GPIO-gated supply rails, WaziSenseV2 controller.</p>
+    </div>
+    <div class="meta">
+      SITE&nbsp;&nbsp;<b>Lake Victoria / fish farm</b><br>
+      MCU&nbsp;&nbsp;&nbsp;<b>WaziSenseV2 (ATmega328P)</b><br>
+      RADIO&nbsp;<b>SX1272 · EU868 · SF12</b><br>
+      SKETCH&nbsp;<b>WaterSensorNode.ino</b>
+    </div>
+  </header>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">DRAWING 01</span>System overview</h2>
+    <p>The node splits into two voltage domains, and <strong>both of them are gated</strong>. Everything the
+       MCU talks to directly runs at <strong>3.3 V</strong>, switched by <span class="mono pin">D6</span>; the
+       two RS485 probes need <strong>10–30 V</strong> and are fed from a boosted 12 V rail switched by
+       <span class="mono pin">D7</span>. Between measurements both rails are dead — including the RS485
+       fail-safe bias, which would otherwise draw current around the clock. The RS485 bus and the I²C bus
+       stay independent: a fault on one does not take the other down.</p>
+
+    <figure>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 600" role="img"
+             aria-label="Block diagram: solar and battery feed a protection stage, which powers the WaziSense board and a boost converter. Two on-board high-side switches gate a 3.3 volt sensor rail from pin D6 and a 12 volt probe rail from pin D7. The board drives an I2C bus to two Atlas EZO circuits, an RS485 bus through an auto-direction transceiver to two Modbus probes, and a DS18B20 temperature probe on a 1-Wire line from pin A2. The PT1000 and its MAX31865 front-end are not fitted in this build.">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+            <marker id="ar12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--rail12)"/>
+            </marker>
+            <marker id="ard" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--data)"/>
+            </marker>
+          </defs>
+
+          <g font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">
+
+            <!-- ============ POWER ROW ============ -->
+            <g stroke="currentColor" stroke-width="1.2" fill="none">
+              <rect x="16"  y="30" width="126" height="52" rx="2"/>
+              <rect x="196" y="30" width="126" height="52" rx="2"/>
+              <rect x="376" y="30" width="126" height="52" rx="2"/>
+              <rect x="556" y="30" width="126" height="52" rx="2"/>
+            </g>
+            <text x="79"  y="52" text-anchor="middle">Solar panel</text>
+            <text x="79"  y="68" text-anchor="middle" fill="var(--ink-3)">6 V · 5–10 W</text>
+            <text x="259" y="52" text-anchor="middle">Charge ctrl</text>
+            <text x="259" y="68" text-anchor="middle" fill="var(--ink-3)">MPPT</text>
+            <text x="439" y="52" text-anchor="middle">Battery</text>
+            <text x="439" y="68" text-anchor="middle" fill="var(--ink-3)">18650 1–2× ∥</text>
+            <text x="619" y="52" text-anchor="middle">Protection</text>
+            <text x="619" y="68" text-anchor="middle" fill="var(--ink-3)">PTC · SS34 · TVS</text>
+
+            <!-- power row arrows -->
+            <g stroke="var(--rail12)" stroke-width="2" marker-end="url(#ar12)">
+              <line x1="142" y1="56" x2="190" y2="56"/>
+              <line x1="322" y1="56" x2="370" y2="56"/>
+              <line x1="502" y1="56" x2="550" y2="56"/>
+            </g>
+
+            <!-- split from protection -->
+            <path d="M 682 56 L 730 56" stroke="var(--rail12)" stroke-width="2" fill="none"/>
+            <path d="M 730 56 L 730 118" stroke="var(--rail12)" stroke-width="2" fill="none" marker-end="url(#ar12)"/>
+            <path d="M 619 82 L 619 250 L 300 250" stroke="var(--rail33)" stroke-width="2" fill="none" marker-end="url(#ar)" color="var(--rail33)"/>
+            <text x="470" y="242" fill="var(--rail33)">3.7 V → board VIN</text>
+
+            <!-- boost + gate -->
+            <g stroke="currentColor" stroke-width="1.2" fill="none">
+              <rect x="666" y="122" width="128" height="50" rx="2"/>
+              <rect x="666" y="200" width="128" height="50" rx="2"/>
+            </g>
+            <text x="730" y="143" text-anchor="middle">XL6009 boost</text>
+            <text x="730" y="159" text-anchor="middle" fill="var(--ink-3)">3.7 V → 12 V</text>
+            <text x="730" y="221" text-anchor="middle">High-side switch</text>
+            <text x="730" y="237" text-anchor="middle" fill="var(--ink-3)">22 A opto module</text>
+            <line x1="730" y1="172" x2="730" y2="196" stroke="var(--rail12)" stroke-width="2" marker-end="url(#ar12)"/>
+
+            <!-- gate control from board -->
+            <path d="M 300 300 L 620 300 L 620 225 L 662 225" stroke="var(--rail33)" stroke-width="1.6"
+                  stroke-dasharray="5 4" fill="none" marker-end="url(#ar)" color="var(--rail33)"/>
+            <text x="400" y="292" fill="var(--rail33)">D7 · 12 V rail enable</text>
+
+            <!-- 12 V bus bar -->
+            <line x1="730" y1="250" x2="730" y2="330" stroke="var(--rail12)" stroke-width="2"/>
+            <line x1="470" y1="330" x2="960" y2="330" stroke="var(--rail12)" stroke-width="3"/>
+            <text x="836" y="322" fill="var(--rail12)">+12 V switched rail</text>
+            <!-- bulk cap on the rail -->
+            <g stroke="var(--rail12)" stroke-width="2">
+              <line x1="660" y1="330" x2="660" y2="352"/>
+              <line x1="648" y1="352" x2="672" y2="352"/>
+              <line x1="648" y1="359" x2="672" y2="359"/>
+            </g>
+            <text x="676" y="364" fill="var(--ink-3)" font-size="11">1000 µF</text>
+
+            <!-- ============ BOARD ============ -->
+            <rect x="16" y="262" width="284" height="222" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+            <text x="32" y="288" font-family="IBM Plex Sans Condensed, sans-serif" font-size="15" font-weight="700" fill="var(--ink)">WaziSenseV2</text>
+            <text x="32" y="305" fill="var(--ink-3)" font-size="11">ATmega328P · 3.3 V logic</text>
+            <line x1="16" y1="316" x2="300" y2="316" stroke="var(--border-2)" stroke-width="1"/>
+
+            <text x="32" y="340" fill="var(--rail33)">A4 SDA   A5 SCL</text>
+            <text x="32" y="360" fill="var(--data)">D3 RX   D4 TX   (no DE pin)</text>
+            <text x="32" y="380" fill="currentColor">A2 1-Wire   D11/12/13 SPI (radio)</text>
+            <text x="32" y="400" fill="currentColor">D6 3V3-EN  D7 12V-EN  D8 LED  A0 VBAT</text>
+
+            <line x1="16" y1="414" x2="300" y2="414" stroke="var(--border-2)" stroke-width="1"/>
+            <text x="32" y="438">SX1272 radio</text>
+            <text x="32" y="456" fill="var(--ink-3)" font-size="11">EU868 · SF12 · ABP</text>
+            <!-- antenna -->
+            <line x1="230" y1="446" x2="272" y2="446" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M 272 434 L 272 458" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M 278 438 L 278 454" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M 284 442 L 284 450" stroke="currentColor" stroke-width="1.6"/>
+            <text x="216" y="472" fill="var(--ink-3)" font-size="11">λ/2 dipole</text>
+
+            <!-- ============ I2C BRANCH ============ -->
+            <path d="M 300 340 L 356 340" stroke="var(--rail33)" stroke-width="2" fill="none" marker-end="url(#ar)" color="var(--rail33)"/>
+            <g stroke="currentColor" stroke-width="1.2" fill="none">
+              <rect x="360" y="392" width="126" height="46" rx="2"/>
+              <rect x="360" y="448" width="126" height="46" rx="2"/>
+            </g>
+            <path d="M 356 340 L 356 415 L 356 471" stroke="var(--rail33)" stroke-width="2" fill="none"/>
+            <path d="M 356 415 L 356 415" stroke="var(--rail33)" stroke-width="2"/>
+            <line x1="356" y1="415" x2="360" y2="415" stroke="var(--rail33)" stroke-width="2"/>
+            <line x1="356" y1="471" x2="360" y2="471" stroke="var(--rail33)" stroke-width="2"/>
+            <text x="423" y="411" text-anchor="middle">EZO-pH</text>
+            <text x="423" y="428" text-anchor="middle" fill="var(--ink-3)" font-size="11">I²C 0x63</text>
+            <text x="423" y="467" text-anchor="middle">EZO-EC</text>
+            <text x="423" y="484" text-anchor="middle" fill="var(--ink-3)" font-size="11">I²C 0x64</text>
+            <text x="304" y="356" fill="var(--rail33)" font-size="11">I²C</text>
+
+            <!-- BNC probes -->
+            <g stroke="currentColor" stroke-width="1.2" fill="none">
+              <rect x="536" y="392" width="112" height="46" rx="2" stroke-dasharray="4 3"/>
+              <rect x="536" y="448" width="112" height="46" rx="2" stroke-dasharray="4 3"/>
+            </g>
+            <line x1="486" y1="415" x2="532" y2="415" stroke="currentColor" stroke-width="1.6" marker-end="url(#ar)"/>
+            <line x1="486" y1="471" x2="532" y2="471" stroke="currentColor" stroke-width="1.6" marker-end="url(#ar)"/>
+            <text x="592" y="411" text-anchor="middle">pH probe</text>
+            <text x="592" y="428" text-anchor="middle" fill="var(--ink-3)" font-size="11">BNC</text>
+            <text x="592" y="467" text-anchor="middle">EC probe K1.0</text>
+            <text x="592" y="484" text-anchor="middle" fill="var(--ink-3)" font-size="11">BNC</text>
+
+            <!-- ============ RS485 BRANCH ============ -->
+            <path d="M 300 360 L 356 360" stroke="var(--data)" stroke-width="2" fill="none" marker-end="url(#ard)"/>
+            <rect x="360" y="336" width="110" height="48" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/>
+            <text x="415" y="356" text-anchor="middle">RS485 module</text>
+            <text x="415" y="372" text-anchor="middle" fill="var(--ink-3)" font-size="11">auto-dir · 3.3 V</text>
+
+            <!-- A/B pair going right -->
+            <line x1="470" y1="352" x2="960" y2="352" stroke="var(--data)" stroke-width="2"/>
+            <line x1="470" y1="360" x2="960" y2="360" stroke="var(--data)" stroke-width="2"/>
+            <text x="700" y="378" fill="var(--data)" font-size="11">RS485 A / B — Modbus-RTU 9600 8N1</text>
+
+            <!-- three slaves -->
+            <g stroke="currentColor" stroke-width="1.2" fill="none">
+              <rect x="700" y="392" width="126" height="46" rx="2"/>
+              <rect x="700" y="448" width="126" height="46" rx="2"/>
+              <rect x="700" y="504" width="126" height="46" rx="2"/>
+            </g>
+            <g stroke="var(--data)" stroke-width="1.6">
+              <line x1="740" y1="360" x2="740" y2="392"/>
+              <line x1="740" y1="438" x2="740" y2="448"/>
+            </g>
+            <g stroke="var(--rail12)" stroke-width="1.6">
+              <line x1="800" y1="330" x2="800" y2="392"/>
+              <line x1="800" y1="438" x2="800" y2="448"/>
+            </g>
+            <text x="763" y="411" text-anchor="middle">DO SEN0680</text>
+            <text x="763" y="428" text-anchor="middle" fill="var(--ink-3)" font-size="11">0x02 · 10–30 V</text>
+            <text x="763" y="467" text-anchor="middle">Y511-A turbidity</text>
+            <text x="763" y="484" text-anchor="middle" fill="var(--ink-3)" font-size="11">0x03 · 5–12 V · wiper</text>
+
+            <!-- Temperature: DS18B20 straight on 1-Wire, no front-end board -->
+            <path d="M 300 400 L 340 400 L 340 527 L 696 527" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            <text x="348" y="466" fill="var(--ink-3)" font-size="11">1-Wire</text>
+            <text x="348" y="484" fill="var(--ink-3)" font-size="11">A2 · needs a</text>
+            <text x="348" y="500" fill="var(--ink-3)" font-size="11">4.7 kΩ pull-up</text>
+            <text x="763" y="523" text-anchor="middle">DS18B20</text>
+            <text x="763" y="540" text-anchor="middle" fill="var(--ink-3)" font-size="11">sealed probe · 3 wires</text>
+
+            <!-- ============ COMMON GROUND ============ -->
+            <line x1="16" y1="576" x2="960" y2="576" stroke="var(--ink-3)" stroke-width="3"/>
+            <g stroke="var(--ink-3)" stroke-width="1.4">
+              <line x1="158" y1="484" x2="158" y2="576"/>
+              <line x1="423" y1="494" x2="423" y2="576"/>
+              <line x1="763" y1="550" x2="763" y2="576"/>
+              <line x1="619" y1="82"  x2="619" y2="96"/>
+            </g>
+            <text x="24" y="568" fill="var(--ink-3)" font-size="11">GND — one continuous rail, never switched</text>
+          </g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i class="swatch sw12"></i>+12 V switched</span>
+        <span><i class="swatch sw33"></i>3.3 V / logic</span>
+        <span><i class="swatch swd"></i>data (RS485, I²C)</span>
+        <span><i class="swatch swg"></i>GND</span>
+      </div>
+      <figcaption>
+        <b>D7</b> gates the +12 V rail, <b>D6</b> the switched 3.3 V rail. Both switch the <em>positive</em>
+        line only — the ground rail runs unbroken from the battery to every probe. Breaking ground instead
+        would destroy the RS485 common reference and the bus would stop working. The RS485 slaves each carry
+        a distinct Modbus address; the two Atlas EZO circuits sit at distinct I²C addresses.
+      </figcaption>
+    </figure>
+  </section>
+
+  <hr>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">DRAWING 02</span>RS485 bus detail</h2>
+    <p>Both Modbus probes share one half-duplex pair. The MCU has a single hardware UART (taken by
+       the USB debug console), so the bus runs on <code>SoftwareSerial</code> — pins
+       <span class="mono pin">D3/D4</span>, and <strong>nothing else</strong>. The transceiver module fitted
+       here is the <strong>auto-direction</strong> type: it breaks out only <code>RXD</code>, <code>TXD</code>,
+       <code>GND</code> and <code>3.3 V</code>, and raises the driver-enable internally from activity on
+       <code>TXD</code>. There is no <code>DE</code> wire to run, and <span class="mono pin">D5</span> stays
+       free. <strong>One 120 Ω terminator only, at the transceiver</strong> — see the calculation below for
+       why a second one is wrong on this bus.</p>
+
+    <figure>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 460" role="img"
+             aria-label="RS485 wiring detail: the auto-direction transceiver module has only four pins — RXD, TXD, GND and 3.3 volts — wired to board pins D3 and D4 and the switched 3.3 volt rail. It has no direction-control pin. The A and B lines run as a shielded twisted pair with a single 120 ohm termination resistor at the transceiver end, fail-safe bias resistors of 680 ohms to 3.3 volts and ground, and two Modbus slaves tapped along the pair. The far end of the pair is left unterminated. The cable shield is grounded at the enclosure end only.">
+          <defs>
+            <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <g font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">
+
+            <!-- MCU stub -->
+            <rect x="16" y="120" width="120" height="130" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+            <text x="76" y="146" text-anchor="middle" font-family="IBM Plex Sans Condensed, sans-serif" font-size="13" font-weight="700" fill="var(--ink)">WaziSense</text>
+            <text x="126" y="176" text-anchor="end" fill="var(--rail33)">D3</text>
+            <text x="126" y="200" text-anchor="end" fill="var(--rail33)">D4</text>
+            <text x="126" y="230" text-anchor="end" fill="var(--ink-3)" font-size="10">D5  free</text>
+
+            <!-- transceiver -->
+            <rect x="230" y="112" width="150" height="150" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+            <text x="305" y="132" text-anchor="middle" font-family="IBM Plex Sans Condensed, sans-serif" font-size="13" font-weight="700" fill="var(--ink)">RS485 module</text>
+            <text x="305" y="150" text-anchor="middle" fill="var(--ink-3)" font-size="10">auto-direction</text>
+            <text x="242" y="176">RXD</text>
+            <text x="242" y="200">TXD</text>
+            <text x="242" y="240" fill="var(--ink-3)" font-size="10">direction: internal</text>
+            <text x="368" y="176" text-anchor="end">A</text>
+            <text x="368" y="224" text-anchor="end">B</text>
+
+            <!-- MCU <-> transceiver -->
+            <g stroke="var(--rail33)" stroke-width="1.8">
+              <line x1="136" y1="172" x2="236" y2="172"/>
+              <line x1="136" y1="196" x2="236" y2="196"/>
+            </g>
+            <text x="150" y="164" fill="var(--ink-3)" font-size="11">RX</text>
+            <text x="150" y="188" fill="var(--ink-3)" font-size="11">TX</text>
+            <text x="16" y="300" fill="var(--ink-3)" font-size="11">two signal wires only — no DE / RE to route</text>
+
+            <!-- VCC to transceiver -->
+            <line x1="305" y1="112" x2="305" y2="76" stroke="var(--rail33)" stroke-width="1.8"/>
+            <line x1="240" y1="76" x2="305" y2="76" stroke="var(--rail33)" stroke-width="1.8"/>
+            <text x="236" y="72" text-anchor="end" fill="var(--rail33)">+3.3 V sw  (X3-1)</text>
+
+            <!-- A/B pair -->
+            <line x1="380" y1="172" x2="930" y2="172" stroke="var(--data)" stroke-width="2.2"/>
+            <line x1="380" y1="220" x2="930" y2="220" stroke="var(--data)" stroke-width="2.2"/>
+            <text x="600" y="140" fill="var(--data)" font-size="11">A  —  shielded twisted pair</text>
+            <text x="600" y="244" fill="var(--data)" font-size="11">B</text>
+
+            <!-- shield: dashed, grounded one end only -->
+            <path d="M 400 258 L 900 258" stroke="var(--ink-3)" stroke-width="1.6" stroke-dasharray="6 5" fill="none"/>
+            <line x1="400" y1="258" x2="400" y2="392" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <circle cx="900" cy="258" r="4" fill="none" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <text x="906" y="262" fill="var(--ink-3)" font-size="11">open — do NOT ground far end</text>
+            <text x="406" y="284" fill="var(--ink-3)" font-size="11">shield grounded at enclosure only</text>
+
+            <!-- near-end 120R termination -->
+            <rect x="398" y="184" width="26" height="24" rx="2" stroke="var(--data)" stroke-width="1.6" fill="none"/>
+            <line x1="411" y1="172" x2="411" y2="184" stroke="var(--data)" stroke-width="1.6"/>
+            <line x1="411" y1="208" x2="411" y2="220" stroke="var(--data)" stroke-width="1.6"/>
+            <text x="430" y="200" fill="var(--data)" font-size="11">120 Ω</text>
+
+            <!-- far end: deliberately NOT terminated -->
+            <circle cx="930" cy="172" r="4" fill="none" stroke="var(--data)" stroke-width="1.6"/>
+            <circle cx="930" cy="220" r="4" fill="none" stroke="var(--data)" stroke-width="1.6"/>
+            <text x="930" y="152" text-anchor="middle" fill="var(--ink-3)" font-size="11">no terminator here</text>
+            <text x="930" y="140" text-anchor="middle" fill="var(--ink-3)" font-size="11">(see note)</text>
+
+            <!-- fail-safe bias -->
+            <rect x="487" y="88" width="26" height="24" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+            <line x1="500" y1="112" x2="500" y2="172" stroke="currentColor" stroke-width="1.4"/>
+            <line x1="500" y1="88"  x2="500" y2="76"  stroke="var(--rail33)" stroke-width="1.6"/>
+            <line x1="500" y1="76"  x2="560" y2="76"  stroke="var(--rail33)" stroke-width="1.6"/>
+            <text x="566" y="80" fill="var(--rail33)" font-size="11">+3.3 V</text>
+            <text x="519" y="105" font-size="11">680 Ω</text>
+
+            <rect x="487" y="292" width="26" height="24" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+            <line x1="500" y1="220" x2="500" y2="292" stroke="currentColor" stroke-width="1.4"/>
+            <line x1="500" y1="316" x2="500" y2="392" stroke="currentColor" stroke-width="1.4"/>
+            <text x="519" y="309" font-size="11">680 Ω</text>
+            <text x="519" y="286" font-size="11" fill="var(--ink-3)">fail-safe bias</text>
+
+            <!-- three slaves tapping the pair -->
+            <g stroke="currentColor" stroke-width="1.2" fill="none">
+              <rect x="600" y="316" width="112" height="44" rx="2"/>
+              <rect x="740" y="316" width="112" height="44" rx="2"/>
+              <rect x="600" y="316" width="112" height="44" rx="2"/>
+            </g>
+            <g stroke="var(--data)" stroke-width="1.6">
+              <line x1="630" y1="172" x2="630" y2="316"/>
+              <line x1="646" y1="220" x2="646" y2="316"/>
+              <line x1="770" y1="172" x2="770" y2="316"/>
+              <line x1="786" y1="220" x2="786" y2="316"/>
+            </g>
+            <text x="656" y="336" text-anchor="middle">probe n</text>
+            <text x="656" y="352" text-anchor="middle" fill="var(--ink-3)" font-size="11">A B GND +12 V</text>
+            <text x="796" y="336" text-anchor="middle">probe n+1</text>
+            <text x="796" y="352" text-anchor="middle" fill="var(--ink-3)" font-size="11">A B GND +12 V</text>
+
+            <!-- 12V feed to slaves -->
+            <line x1="600" y1="424" x2="860" y2="424" stroke="var(--rail12)" stroke-width="2.4"/>
+            <g stroke="var(--rail12)" stroke-width="1.6">
+              <line x1="700" y1="360" x2="700" y2="424"/>
+              <line x1="840" y1="360" x2="840" y2="424"/>
+            </g>
+            <text x="606" y="444" fill="var(--rail12)" font-size="11">+12 V switched rail (from D7)</text>
+
+            <!-- ground rail -->
+            <line x1="16" y1="392" x2="930" y2="392" stroke="var(--ink-3)" stroke-width="2.6"/>
+            <g stroke="var(--ink-3)" stroke-width="1.4">
+              <line x1="76"  y1="250" x2="76"  y2="392"/>
+              <line x1="305" y1="262" x2="305" y2="392"/>
+              <line x1="672" y1="360" x2="672" y2="392"/>
+              <line x1="812" y1="360" x2="812" y2="392"/>
+            </g>
+            <text x="24" y="384" fill="var(--ink-3)" font-size="11">GND</text>
+          </g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i class="swatch sw12"></i>+12 V switched</span>
+        <span><i class="swatch sw33"></i>3.3 V / logic</span>
+        <span><i class="swatch swd"></i>RS485 A / B</span>
+        <span><i class="swatch swg"></i>GND</span>
+        <span><i class="swatch swsh"></i>cable shield</span>
+      </div>
+      <figcaption>
+        <b>One 120 Ω</b> resistor across A/B at the transceiver. The far end of the cable is left
+        <b>unterminated</b>. The <b>680 Ω</b> fail-safe bias pair holds the idle bus at a defined level so
+        noise is not decoded as data; fit it once, at the master end. The shield connects to enclosure
+        ground at <b>one end only</b> — grounding both ends creates a ground loop that injects noise into
+        the pair.
+      </figcaption>
+    </figure>
+
+    <div class="note">
+      <h3>Why only one terminator on this bus</h3>
+      <p>Termination and fail-safe bias form one voltage divider, so they have to be chosen together.
+         The idle differential voltage is</p>
+      <p class="mono" style="color:var(--ink)">U_diff = 3.3 V × R_term / (2 × R_bias + R_term)</p>
+      <p>An RS485 receiver needs more than <strong>200 mV</strong> to see a defined idle state:</p>
+      <div class="tablewrap" style="margin:4px 0">
+        <table>
+          <thead><tr><th>Configuration</th><th>R_term seen by the bias</th><th>U_diff idle</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>2 × 120 Ω + 680 Ω bias</td><td>60 Ω (parallel)</td><td>139 mV</td><td>✗ below threshold</td></tr>
+            <tr><td><b>1 × 120 Ω + 680 Ω bias</b></td><td>120 Ω</td><td><b>268 mV</b></td><td>✓ used here</td></tr>
+            <tr><td>2 × 120 Ω + 390 Ω bias</td><td>60 Ω (parallel)</td><td>236 mV</td><td>✓ valid alternative</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Why the second terminator is not needed anyway.</strong> At 9600 baud one bit lasts
+         <strong>104 µs</strong>, while a reflection on a 2 m stub has settled after roughly <strong>20 ns</strong> —
+         a ratio of about 1:5000. The receiver samples mid-bit, long after any ringing has died away.
+         Termination matters on multi-megabit buses; on a few metres at 9600 baud it buys nothing and only
+         drags the bias level down.</p>
+      <p>So: <strong>do not add a terminator at the probes.</strong> If you ever raise the baud rate or extend
+         the run substantially, fit the second 120 Ω <em>and</em> drop the bias resistors to ~390 Ω in the
+         same step — never one without the other.</p>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">DRAWING 03</span>Power chain and protection</h2>
+    <p>One battery domain, two output rails. The protection parts sit between the battery and everything
+       else, so a surge coming down the solar cable or a reversed connector is stopped before it reaches
+       the boost converter or the MCU.</p>
+
+    <figure>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 330" role="img"
+             aria-label="Power chain: solar panel through a TVS diode to the MPPT charge controller, then the 18650 battery, then a PTC fuse and SS34 Schottky diode with a TVS across the rail. The protected rail feeds the board directly at 3.7 volts and an XL6009 boost converter to 12 volts, which passes through a GPIO-controlled high-side switch and a 1000 microfarad bulk capacitor to the sensor rail.">
+          <defs>
+            <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--rail12)"/>
+            </marker>
+          </defs>
+          <g font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">
+
+            <g stroke="currentColor" stroke-width="1.3" fill="none">
+              <rect x="16"  y="70" width="112" height="48" rx="2"/>
+              <rect x="196" y="70" width="120" height="48" rx="2"/>
+              <rect x="384" y="70" width="120" height="48" rx="2"/>
+              <rect x="572" y="70" width="120" height="48" rx="2"/>
+            </g>
+            <text x="72"  y="90"  text-anchor="middle">Solar 6 V</text>
+            <text x="72"  y="106" text-anchor="middle" fill="var(--ink-3)" font-size="11">5–10 W</text>
+            <text x="256" y="90"  text-anchor="middle">Charge ctrl</text>
+            <text x="256" y="106" text-anchor="middle" fill="var(--ink-3)" font-size="11">MPPT</text>
+            <text x="444" y="90"  text-anchor="middle">Battery</text>
+            <text x="444" y="106" text-anchor="middle" fill="var(--ink-3)" font-size="11">18650 · 3.0–4.2 V</text>
+            <text x="632" y="90"  text-anchor="middle">XL6009 boost</text>
+            <text x="632" y="106" text-anchor="middle" fill="var(--ink-3)" font-size="11">→ 12 V</text>
+
+            <g stroke="var(--rail12)" stroke-width="2.2" marker-end="url(#ar3)">
+              <line x1="128" y1="94" x2="190" y2="94"/>
+              <line x1="316" y1="94" x2="378" y2="94"/>
+              <line x1="504" y1="94" x2="566" y2="94"/>
+              <line x1="692" y1="94" x2="754" y2="94"/>
+            </g>
+
+            <!-- protection markers on the battery-to-boost run -->
+            <g stroke="currentColor" stroke-width="1.4" fill="var(--surface)">
+              <rect x="510" y="40" width="48" height="20" rx="2"/>
+            </g>
+            <text x="534" y="54" text-anchor="middle" font-size="10">PTC 2.6 A</text>
+            <line x1="534" y1="60" x2="534" y2="94" stroke="currentColor" stroke-width="1.2"/>
+
+            <g stroke="currentColor" stroke-width="1.4" fill="var(--surface)">
+              <rect x="470" y="150" width="52" height="20" rx="2"/>
+              <rect x="540" y="150" width="60" height="20" rx="2"/>
+            </g>
+            <text x="496" y="164" text-anchor="middle" font-size="10">SS34</text>
+            <text x="570" y="164" text-anchor="middle" font-size="10">SMBJ5.0A</text>
+            <line x1="496" y1="150" x2="496" y2="94"  stroke="currentColor" stroke-width="1.2"/>
+            <line x1="570" y1="150" x2="570" y2="94"  stroke="currentColor" stroke-width="1.2"/>
+            <line x1="570" y1="170" x2="570" y2="266" stroke="currentColor" stroke-width="1.2"/>
+            <text x="470" y="188" font-size="10" fill="var(--ink-3)">reverse-polarity · TVS clamp</text>
+
+            <!-- TVS on solar input -->
+            <g stroke="currentColor" stroke-width="1.4" fill="var(--surface)">
+              <rect x="132" y="150" width="60" height="20" rx="2"/>
+            </g>
+            <text x="162" y="164" text-anchor="middle" font-size="10">TVS</text>
+            <line x1="162" y1="150" x2="162" y2="94"  stroke="currentColor" stroke-width="1.2"/>
+            <line x1="162" y1="170" x2="162" y2="266" stroke="currentColor" stroke-width="1.2"/>
+
+            <!-- branch to board -->
+            <path d="M 444 118 L 444 220 L 300 220" stroke="var(--rail33)" stroke-width="2" fill="none"/>
+            <rect x="176" y="196" width="124" height="48" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+            <text x="238" y="216" text-anchor="middle">WaziSense</text>
+            <text x="238" y="232" text-anchor="middle" fill="var(--ink-3)" font-size="11">VIN · 3.3 V logic</text>
+            <text x="330" y="212" fill="var(--rail33)" font-size="11">3.7 V</text>
+
+            <!-- high-side switch -->
+            <rect x="758" y="70" width="126" height="48" rx="2" stroke="currentColor" stroke-width="1.3" fill="none"/>
+            <text x="821" y="90"  text-anchor="middle">High-side sw</text>
+            <text x="821" y="106" text-anchor="middle" fill="var(--ink-3)" font-size="11">22 A opto module</text>
+            <path d="M 300 236 L 700 236 L 700 130 L 754 130 L 754 106 L 758 106"
+                  stroke="var(--rail33)" stroke-width="1.6" stroke-dasharray="5 4" fill="none"/>
+            <text x="430" y="252" fill="var(--rail33)" font-size="11">D7 → opto control input (boots OFF)</text>
+
+            <!-- bulk cap + rail out -->
+            <line x1="884" y1="94" x2="960" y2="94" stroke="var(--rail12)" stroke-width="2.6"/>
+            <g stroke="var(--rail12)" stroke-width="2">
+              <line x1="916" y1="94" x2="916" y2="120"/>
+              <line x1="904" y1="120" x2="928" y2="120"/>
+              <line x1="904" y1="127" x2="928" y2="127"/>
+              <line x1="916" y1="127" x2="916" y2="266"/>
+            </g>
+            <text x="934" y="122" fill="var(--ink-3)" font-size="10">1000 µF</text>
+            <text x="960" y="80" text-anchor="end" fill="var(--rail12)" font-size="11">+12 V rail →</text>
+
+            <!-- ground -->
+            <line x1="16" y1="266" x2="960" y2="266" stroke="var(--ink-3)" stroke-width="2.6"/>
+            <g stroke="var(--ink-3)" stroke-width="1.4">
+              <line x1="72"  y1="118" x2="72"  y2="266"/>
+              <line x1="256" y1="118" x2="256" y2="266"/>
+              <line x1="444" y1="118" x2="444" y2="196"/>
+              <line x1="238" y1="244" x2="238" y2="266"/>
+              <line x1="632" y1="118" x2="632" y2="266"/>
+            </g>
+            <text x="24" y="286" fill="var(--ink-3)" font-size="11">GND — continuous from battery to every probe; the switch is on the +12 V side only</text>
+          </g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i class="swatch sw12"></i>power path</span>
+        <span><i class="swatch sw33"></i>3.3 V / control</span>
+        <span><i class="swatch swg"></i>GND</span>
+      </div>
+      <figcaption>
+        The <b>PTC</b> is resettable, so an overcurrent event does not need a field visit to replace a fuse.
+        The <b>SS34</b> costs about 0.5 V of forward drop in exchange for reverse-polarity immunity — an
+        acceptable trade at this power level. The 12 V switch is the <b>opto-isolated 22 A module</b>: its
+        control input is an LED, so with D7 low it is simply dark and the rail is off. That is why no gate
+        pull-down appears anywhere in this design — there is no floating gate to define.
+      </figcaption>
+    </figure>
+  </section>
+
+  <hr>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">TABLE 01</span>Pin assignment — WaziSense v2</h2>
+    <p>Taken from the <em>WaziSense v2 Internal User Manual</em> and matching the constants at the top of
+       <code>WaterSensorNode.ino</code>. <strong>D2, D9, D10, D11, D12, D13 belong to the RFM95W radio</strong> and
+       are not available; I²C is fixed to A4/A5 in hardware.</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Pin</th><th>Sketch constant</th><th>Connects to</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>D3</code></td><td><code>RS485_RX_PIN</code></td><td>RS485 module <code>RXD</code></td><td>SoftwareSerial receive</td></tr>
+          <tr><td><code>D4</code></td><td><code>RS485_TX_PIN</code></td><td>RS485 module <code>TXD</code></td><td>SoftwareSerial transmit</td></tr>
+          <tr><td><code>D6</code></td><td><code>RAIL33_EN</code></td><td><b>"Sensor Power 1"</b> terminal → <code>X3-1</code></td><td>On-board <b>high-side</b> MOSFET. With <b>H1 = 3.3 V</b> this is the switched 3.3 V rail: transceiver, MAX31865, RS485 bias, EZO isolators.</td></tr>
+          <tr><td><code>D7</code></td><td><code>RAIL12_EN</code></td><td><b>"Sensor Power 2"</b> terminal → opto <code>IN+</code></td><td>3.3 V used as a <em>control signal</em> into the 22 A module that switches the 12 V rail. No pull-down — the opto LED defines OFF.</td></tr>
+          <tr><td><code>A2</code></td><td><code>ONE_WIRE_PIN</code></td><td>DS18B20 <code>DQ</code></td><td><b>The temperature sensor in this build.</b> Needs an external 4.7 kΩ pull-up to <code>X3-1</code> — this one you <em>do</em> fit.</td></tr>
+          <tr><td><code>A0</code></td><td><code>batt_pin</code></td><td>— (on board)</td><td>On-board 2 × 470 kΩ divider. <code>BATT%</code> jumper can be cut to free A0.</td></tr>
+          <tr><td><code>A4</code></td><td>— (<code>Wire</code>)</td><td>SDA → both EZO circuits</td><td>Pull-up <b>via <code>I2C_J</code> — verify with a meter</b>, it has been found open. ~4.7 kΩ to 3V3 = fine; megohms = fit your own to <code>X3-1</code>.</td></tr>
+          <tr><td><code>A5</code></td><td>— (<code>Wire</code>)</td><td>SCL → both EZO circuits</td><td>Same check. Without a pull-up the bus does not merely fail — it <b>hangs</b> the Wire library.</td></tr>
+          <tr><td><code>D8</code></td><td><code>ledPin</code></td><td>— (on board LED1)</td><td>Boot blink pattern</td></tr>
+          <tr><td><code>D11/12/13</code></td><td>— (<code>SPI</code>)</td><td>RFM95W radio only</td><td>Nothing else shares SPI in this build. Re-enabling the PT1000 puts a MAX31865 here with <code>CS</code> on <code>A1</code>.</td></tr>
+          <tr><td><code>D2 · D9 · D10</code></td><td>—</td><td>RFM95W DIO0 · RESET · NSS</td><td><b>Reserved — do not use</b></td></tr>
+          <tr><td><code>D5 · A1 · A3</code></td><td>—</td><td>— free —</td><td>Spare. <code>D5</code> was reserved for the RS485 <code>DE</code> line, <code>A1</code> for the MAX31865 chip select — neither is needed now.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <h3>What the WaziSense manual changes</h3>
+      <p><strong>1. The I²C pull-ups are supposed to be on the board — verify that they are.</strong> The manual
+         describes two 4.7 kΩ resistors to 3.3 V, enabled by the <code>I2C_J</code> jumper and closed from the
+         factory, and says you cut it only to use A4/A5 as plain analog inputs. <strong>On the board actually
+         built here it was open:</strong> <code>A4</code> and <code>A5</code> both measured <b>5.9 MΩ</b> to 3V3, not
+         4.7 kΩ.</p>
+      <p>That is worth knowing because a missing I²C pull-up does not degrade gracefully. The TWI hardware
+         releases SCL and waits for it to rise before it can issue a START condition; with no pull-up it never
+         rises, so the hardware waits forever. On AVR cores before 1.8.1 there is no timeout, so
+         <code>Wire.endTransmission()</code> never returns and the sketch stops dead with nothing in the log.
+         "The log just ends after the last sensor" is the signature.</p>
+      <p><strong>So: measure, then decide.</strong> ~4.7 kΩ means fit nothing — a second pair in parallel gives
+         ~2.35 kΩ and overloads the bus. Megohms means fit <b>2 × 4.7 kΩ from <code>A4</code> and
+         <code>A5</code> to <code>X3-1</code></b>. Use the switched rail rather than the permanent 3V3, so the
+         pull-ups come up and go down with the devices they serve.</p>
+      <p><strong>2. D6 and D7 are ready-made high-side switches — but H1 sets both at once.</strong> The block
+         diagram calls it a "Dedicated VCC Mosfet": the positive line is switched and ground runs through,
+         exactly the topology the RS485 bus needs. The catch is that <strong>H1 selects the voltage for
+         <em>both</em> blocks simultaneously</strong>, so they cannot be split between BATT and 3.3 V.
+         <strong>Set H1 to 3.3 V.</strong> The transceiver decides it: 3.0–3.6 V is a hard limit for the part, and
+         a full 18650 at 4.2 V sits outside it. D6 then carries the switched 3.3 V sensor rail, and D7 becomes
+         a logic signal into the external 22 A module that gates the 12 V line.</p>
+      <p><strong>2b. What H1 = 3.3 V costs.</strong> The XL6009 can no longer be gated from a "Sensor Power"
+         terminal, because it needs the battery-voltage input those terminals no longer carry. So the converter
+         runs continuously and only its 12 V <em>output</em> is switched. That quiescent current is real but
+         small beside the measurement energy. To remove it later, put a second high-side switch
+         (Pololu #2810, 2–20 V / 6 A) between <code>X1-1</code> and <code>XL6009 IN+</code> and drive that from
+         D7 as well. <em>Open question either way: the on-board MOSFET's current rating. Here it carries only the
+         3.3 V sensor load — tens of mA — so it is almost certainly fine, but read the part number off the board
+         before you ever put a battery rail through it.</em></p>
+      <p><strong>3. Battery sensing is on-board.</strong> A0 sits on a 2 × 470 kΩ divider; you do not add your own.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">TABLE 02</span>Bus addresses</h2>
+    <p>Every device on a shared bus needs a unique address. The values below match the sketch —
+       change either side to suit, but keep them in sync.</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Device</th><th>Bus</th><th>Address</th><th>Supply</th><th>Warm-up before read</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>DS18B20 temperature</td><td><b>1-Wire</b></td><td>single device — index 0, no addressing</td><td><code>X3-1</code></td><td>750 ms conversion (12-bit)</td></tr>
+          <tr><td>DO — DFRobot SEN0680</td><td>RS485</td><td><code>0x02</code></td><td>+12 V rail</td><td>~5 s (optics)</td></tr>
+          <tr><td>Turbidity — Y511-A</td><td>RS485</td><td><code>0x03</code></td><td>+12 V rail</td><td>~30 s (wiper sweep) — read every 4th cycle</td></tr>
+          <tr><td>Atlas EZO-pH</td><td>I²C</td><td><code>0x63</code></td><td>3.3 V</td><td>900 ms per <code>R</code></td></tr>
+          <tr><td>Atlas EZO-EC</td><td>I²C</td><td><code>0x64</code></td><td>3.3 V</td><td>900 ms per <code>R</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">DRAWING 04</span>Protection — how PTC, SS34 and SMBJ connect</h2>
+    <p>Two parts sit <strong>in series</strong> in the positive line, one sits <strong>in parallel</strong> across the
+       rail. Polarity of the two diodes is the whole point — fit either one backwards and you get
+       no output at all, or no protection at all.</p>
+
+    <figure>
+      <div class="canvas">
+        <svg viewBox="0 0 920 400" role="img"
+             aria-label="Protection schematic. From the battery positive terminal, a PTC fuse and then an SS34 Schottky diode are wired in series, the diode cathode facing away from the battery toward the load. At the output node an SMBJ5.0A transient voltage suppressor is wired in parallel to ground, with its cathode facing the positive rail. The battery negative connects directly to the ground rail.">
+          <defs>
+            <marker id="cur" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--rail12)"/>
+            </marker>
+          </defs>
+          <g font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">
+
+            <!-- ===== battery symbol ===== -->
+            <g stroke="var(--rail12)" stroke-width="2">
+              <line x1="110" y1="110" x2="110" y2="165"/>
+            </g>
+            <g stroke="currentColor" stroke-width="2">
+              <line x1="90"  y1="165" x2="130" y2="165"/>
+              <line x1="99"  y1="175" x2="121" y2="175"/>
+              <line x1="90"  y1="185" x2="130" y2="185"/>
+              <line x1="99"  y1="195" x2="121" y2="195"/>
+            </g>
+            <line x1="110" y1="195" x2="110" y2="300" stroke="var(--ink-3)" stroke-width="2"/>
+            <text x="138" y="162" fill="var(--rail12)" font-size="14">+</text>
+            <text x="138" y="200" fill="var(--ink-3)" font-size="14">−</text>
+            <text x="110" y="240" text-anchor="middle" fill="var(--ink-3)" font-size="11">Battery</text>
+            <text x="110" y="256" text-anchor="middle" fill="var(--ink-3)" font-size="11">3.0–4.2 V</text>
+
+            <!-- ===== positive line ===== -->
+            <g stroke="var(--rail12)" stroke-width="2">
+              <line x1="110" y1="110" x2="200" y2="110"/>
+              <line x1="246" y1="110" x2="320" y2="110"/>
+              <line x1="342" y1="110" x2="700" y2="110"/>
+            </g>
+
+            <!-- PTC symbol: resistor box with diagonal -->
+            <rect x="200" y="99" width="46" height="22" rx="1" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/>
+            <line x1="205" y1="117" x2="241" y2="103" stroke="currentColor" stroke-width="1.6"/>
+            <text x="223" y="86" text-anchor="middle" font-size="12">PTC</text>
+            <text x="223" y="142" text-anchor="middle" fill="var(--ink-3)" font-size="10">2.6 A / 6 V</text>
+            <text x="223" y="156" text-anchor="middle" fill="var(--ink-3)" font-size="10">not polarised</text>
+
+            <!-- SS34 diode symbol -->
+            <polygon points="320,98 320,122 342,110" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <line x1="342" y1="96" x2="342" y2="124" stroke="currentColor" stroke-width="2.4"/>
+            <text x="331" y="84" text-anchor="middle" font-size="12">SS34</text>
+            <text x="316" y="142" text-anchor="end" fill="var(--ink-3)" font-size="10">anode</text>
+            <text x="348" y="142" fill="var(--ink-3)" font-size="10">cathode = printed ring</text>
+            <text x="348" y="156" fill="var(--ink-3)" font-size="10">ring points AWAY from battery</text>
+
+            <!-- current direction -->
+            <line x1="420" y1="80" x2="500" y2="80" stroke="var(--rail12)" stroke-width="1.6" marker-end="url(#cur)"/>
+            <text x="460" y="70" text-anchor="middle" fill="var(--rail12)" font-size="10">normal current flow</text>
+
+            <!-- junction + output -->
+            <circle cx="480" cy="110" r="4" fill="var(--rail12)"/>
+            <circle cx="700" cy="110" r="5" fill="var(--surface)" stroke="var(--rail12)" stroke-width="2"/>
+            <text x="716" y="106" fill="var(--rail12)">+VBATT</text>
+            <text x="716" y="124" fill="var(--ink-3)" font-size="10">→ X1-1 · boost IN+ · board VIN</text>
+
+            <!-- ===== TVS shunt ===== -->
+            <line x1="480" y1="110" x2="480" y2="192" stroke="var(--rail12)" stroke-width="2"/>
+            <path d="M 464 182 L 464 192 L 496 192 L 496 202" fill="none" stroke="currentColor" stroke-width="2.4"/>
+            <polygon points="468,214 492,214 480,192" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <line x1="480" y1="214" x2="480" y2="300" stroke="var(--ink-3)" stroke-width="2"/>
+            <text x="512" y="188" font-size="12">SMBJ5.0A</text>
+            <text x="512" y="204" fill="var(--ink-3)" font-size="10">cathode (ring) UP, to +</text>
+            <text x="512" y="218" fill="var(--ink-3)" font-size="10">anode DOWN, to GND</text>
+            <text x="512" y="232" fill="var(--ink-3)" font-size="10">reverse-biased = blocks normally</text>
+
+            <!-- ===== ground rail ===== -->
+            <line x1="110" y1="300" x2="700" y2="300" stroke="var(--ink-3)" stroke-width="2.6"/>
+            <line x1="300" y1="300" x2="300" y2="322" stroke="var(--ink-3)" stroke-width="2"/>
+            <g stroke="var(--ink-3)" stroke-width="2.2">
+              <line x1="282" y1="322" x2="318" y2="322"/>
+              <line x1="288" y1="329" x2="312" y2="329"/>
+              <line x1="294" y1="336" x2="306" y2="336"/>
+            </g>
+            <text x="300" y="360" text-anchor="middle" fill="var(--ink-3)" font-size="11">GND / X1-2</text>
+            <text x="560" y="286" fill="var(--ink-3)" font-size="10">the negative line is never interrupted</text>
+          </g>
+        </svg>
+      </div>
+      <figcaption>
+        <b>Series</b> — PTC then SS34, in that order: the fuse closest to the energy source protects the diode
+        behind it. <b>Parallel</b> — the SMBJ sits across the rail after the diode, so it clamps whatever reaches
+        the boost converter and the MCU. If the SMBJ ever conducts hard, the PTC upstream trips, which is
+        the intended chain of events.
+      </figcaption>
+    </figure>
+
+    <div class="note">
+      <h3>Getting the two diodes the right way round</h3>
+      <p><strong>SS34 (series).</strong> The printed ring marks the cathode. It faces the <em>load</em>. Fitted
+         backwards, nothing downstream powers up at all — an easy fault to spot. Test: with the battery
+         connected the correct way, you should measure roughly battery voltage minus 0.5 V at
+         <code>+VBATT</code>.</p>
+      <p><strong>SMBJ5.0A (parallel).</strong> The ring marks the cathode and faces <em>+VBATT</em>. Fitted
+         backwards it becomes a plain forward-biased diode across your battery — it will conduct
+         immediately, get hot, and trip the PTC. Test: in circuit and un-powered, a diode-mode meter
+         should read open from <code>+VBATT</code> to GND in one direction and a diode drop in the other.</p>
+      <p><strong>PTC.</strong> Not polarised — fit it either way round.</p>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">DRAWING 05</span>Full power schematic</h2>
+    <p>Discrete parts drawn as component symbols, ready-made modules as boxes with named pins. Every
+       positive and negative conductor is drawn. <strong>Wires that cross without a filled dot are not
+       connected</strong> — only a dot means a junction.</p>
+
+    <figure>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 560" role="img"
+             aria-label="Full power schematic in classic symbols. A photovoltaic panel feeds a charge controller with separate positive and negative wires, with a transient suppressor to ground on the positive line. The battery hangs between the positive node and ground. In series follow a PTC fuse and an SS34 diode to the VBATT rail, which carries a second transient suppressor to ground. VBATT feeds the WaziSense board and, on a lower branch, an XL6009 boost converter, an opto-isolated high-side switch controlled by pin D7, a 1000 microfarad capacitor, and the plus 12 volt switched rail. All negative conductors run to one ground rail.">
+          <g font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">
+
+            <!-- ===== PV panel symbol ===== -->
+            <rect x="40" y="68" width="78" height="58" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <g stroke="currentColor" stroke-width="1">
+              <line x1="58"  y1="126" x2="78"  y2="68"/>
+              <line x1="78"  y1="126" x2="98"  y2="68"/>
+              <line x1="98"  y1="126" x2="118" y2="68"/>
+            </g>
+            <g stroke="var(--rail12)" stroke-width="1.3">
+              <line x1="18" y1="46" x2="40" y2="62"/>
+              <line x1="36" y1="42" x2="54" y2="60"/>
+            </g>
+            <text x="79" y="146" text-anchor="middle" fill="var(--ink-3)" font-size="10">Solar 6 V</text>
+
+            <!-- PV to charge controller -->
+            <line x1="118" y1="86"  x2="180" y2="86"  stroke="var(--rail12)" stroke-width="2"/>
+            <line x1="118" y1="112" x2="180" y2="112" stroke="var(--ink-3)" stroke-width="2"/>
+            <text x="132" y="80" fill="var(--rail12)" font-size="10">+</text>
+            <text x="132" y="126" fill="var(--ink-3)" font-size="10">−</text>
+
+            <rect x="180" y="68" width="118" height="58" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.5"/>
+            <text x="239" y="92"  text-anchor="middle" font-size="11">Charge ctrl</text>
+            <text x="239" y="108" text-anchor="middle" fill="var(--ink-3)" font-size="10">MPPT module</text>
+
+            <!-- solar TVS -->
+            <circle cx="150" cy="86" r="3.5" fill="var(--rail12)"/>
+            <line x1="150" y1="86" x2="150" y2="180" stroke="var(--rail12)" stroke-width="1.6"/>
+            <path d="M 136 172 L 136 180 L 164 180 L 164 188" fill="none" stroke="currentColor" stroke-width="2"/>
+            <polygon points="140,200 160,200 150,180" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            <line x1="150" y1="200" x2="150" y2="500" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <text x="172" y="186" font-size="10">TVS</text>
+            <text x="172" y="199" fill="var(--ink-3)" font-size="9">solar input</text>
+
+            <!-- controller out -->
+            <line x1="298" y1="86"  x2="360" y2="86"  stroke="var(--rail12)" stroke-width="2"/>
+            <line x1="298" y1="112" x2="325" y2="112" stroke="var(--ink-3)" stroke-width="2"/>
+            <line x1="325" y1="112" x2="325" y2="500" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <text x="308" y="80" fill="var(--rail12)" font-size="10">+</text>
+            <text x="331" y="130" fill="var(--ink-3)" font-size="10">−</text>
+
+            <!-- ===== battery ===== -->
+            <circle cx="360" cy="86" r="3.5" fill="var(--rail12)"/>
+            <line x1="360" y1="86" x2="360" y2="140" stroke="var(--rail12)" stroke-width="2"/>
+            <g stroke="currentColor" stroke-width="2">
+              <line x1="342" y1="140" x2="378" y2="140"/>
+              <line x1="350" y1="150" x2="370" y2="150"/>
+              <line x1="342" y1="160" x2="378" y2="160"/>
+              <line x1="350" y1="170" x2="370" y2="170"/>
+            </g>
+            <line x1="360" y1="170" x2="360" y2="500" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <text x="384" y="138" fill="var(--rail12)" font-size="12">+</text>
+            <text x="384" y="176" fill="var(--ink-3)" font-size="12">−</text>
+            <text x="392" y="200" fill="var(--ink-3)" font-size="10">18650 1–2× ∥</text>
+
+            <!-- ===== PTC + SS34 in series ===== -->
+            <line x1="360" y1="86" x2="410" y2="86" stroke="var(--rail12)" stroke-width="2"/>
+            <rect x="410" y="76" width="44" height="20" rx="1" fill="var(--surface)" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="415" y1="93" x2="449" y2="79" stroke="currentColor" stroke-width="1.5"/>
+            <text x="432" y="66" text-anchor="middle" font-size="10">PTC</text>
+
+            <line x1="454" y1="86" x2="500" y2="86" stroke="var(--rail12)" stroke-width="2"/>
+            <polygon points="500,75 500,97 520,86" fill="none" stroke="currentColor" stroke-width="1.7"/>
+            <line x1="520" y1="73" x2="520" y2="99" stroke="currentColor" stroke-width="2.2"/>
+            <text x="510" y="64" text-anchor="middle" font-size="10">SS34</text>
+
+            <!-- VBATT node + rail -->
+            <line x1="520" y1="86" x2="940" y2="86" stroke="var(--rail12)" stroke-width="2"/>
+            <circle cx="580" cy="86" r="3.5" fill="var(--rail12)"/>
+            <text x="800" y="76" fill="var(--rail12)" font-size="11">+VBATT  (X1-1)</text>
+
+            <!-- VBATT TVS -->
+            <line x1="580" y1="86" x2="580" y2="170" stroke="var(--rail12)" stroke-width="1.6"/>
+            <path d="M 566 162 L 566 170 L 594 170 L 594 178" fill="none" stroke="currentColor" stroke-width="2"/>
+            <polygon points="570,190 590,190 580,170" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            <line x1="580" y1="190" x2="580" y2="500" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <text x="602" y="176" font-size="10">SMBJ5.0A</text>
+
+            <!-- ===== board ===== -->
+            <circle cx="688" cy="86" r="3.5" fill="var(--rail12)"/>
+            <path d="M 688 86 L 688 175 L 700 175" fill="none" stroke="var(--rail12)" stroke-width="2"/>
+            <rect x="700" y="150" width="240" height="92" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.5"/>
+            <text x="714" y="172" font-family="IBM Plex Sans Condensed, sans-serif" font-size="13" font-weight="700" fill="var(--ink)">WaziSenseV2</text>
+            <text x="714" y="192" fill="var(--ink-3)" font-size="10">VIN · GND · SP1 (D6) · SP2 (D7) · A0</text>
+            <text x="694" y="170" text-anchor="end" fill="var(--rail12)" font-size="9">VIN</text>
+            <line x1="820" y1="242" x2="820" y2="500" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <text x="826" y="262" fill="var(--ink-3)" font-size="10">− GND</text>
+            <line x1="940" y1="215" x2="972" y2="215" stroke="var(--rail33)" stroke-width="2"/>
+            <text x="946" y="208" fill="var(--rail33)" font-size="9">SP1 +3V3 sw → X3-1</text>
+
+            <!-- ===== boost branch ===== -->
+            <circle cx="640" cy="86" r="3.5" fill="var(--rail12)"/>
+            <path d="M 640 86 L 640 330 L 120 330 L 120 380" fill="none" stroke="var(--rail12)" stroke-width="2"/>
+            <text x="400" y="324" fill="var(--rail12)" font-size="10">+VBATT to boost</text>
+
+            <rect x="120" y="362" width="116" height="56" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.5"/>
+            <text x="178" y="384" text-anchor="middle" font-size="11">XL6009</text>
+            <text x="178" y="399" text-anchor="middle" fill="var(--ink-3)" font-size="10">3.7 → 12 V</text>
+            <line x1="178" y1="418" x2="178" y2="500" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <text x="184" y="440" fill="var(--ink-3)" font-size="10">−</text>
+
+            <line x1="236" y1="380" x2="290" y2="380" stroke="var(--rail12)" stroke-width="2"/>
+            <rect x="290" y="362" width="126" height="56" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.5"/>
+            <text x="353" y="384" text-anchor="middle" font-size="11">High-side sw</text>
+            <text x="353" y="399" text-anchor="middle" fill="var(--ink-3)" font-size="10">22 A opto module</text>
+            <line x1="353" y1="418" x2="353" y2="500" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <text x="359" y="440" fill="var(--ink-3)" font-size="10">−</text>
+
+            <!-- 12 V rail -->
+            <line x1="416" y1="380" x2="940" y2="380" stroke="var(--rail12)" stroke-width="2.4"/>
+            <circle cx="480" cy="380" r="3.5" fill="var(--rail12)"/>
+            <text x="700" y="370" fill="var(--rail12)" font-size="11">+12 V switched  (X2-1) → probes</text>
+
+            <!-- bulk capacitor, polarised -->
+            <circle cx="540" cy="380" r="3.5" fill="var(--rail12)"/>
+            <line x1="540" y1="380" x2="540" y2="410" stroke="var(--rail12)" stroke-width="1.6"/>
+            <line x1="522" y1="410" x2="558" y2="410" stroke="currentColor" stroke-width="2.2"/>
+            <path d="M 522 422 Q 540 431 558 422" fill="none" stroke="currentColor" stroke-width="2.2"/>
+            <line x1="540" y1="426" x2="540" y2="500" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <text x="514" y="404" text-anchor="end" fill="var(--rail12)" font-size="11">+</text>
+            <text x="566" y="412" font-size="10">1000 µF</text>
+            <text x="566" y="425" fill="var(--ink-3)" font-size="9">25 V, polarised</text>
+
+            <!-- 12 V rail control: D7 through "Sensor Power 2" into the opto input -->
+            <line x1="750" y1="242" x2="750" y2="300" stroke="var(--rail33)" stroke-width="1.6"/>
+            <line x1="750" y1="300" x2="300" y2="300" stroke="var(--rail33)" stroke-width="1.6"/>
+            <circle cx="340" cy="300" r="3.5" fill="var(--rail33)"/>
+            <line x1="340" y1="300" x2="340" y2="362" stroke="var(--rail33)" stroke-width="1.6"/>
+            <text x="560" y="292" fill="var(--rail33)" font-size="10">D7 → "Sensor Power 2" → opto IN+</text>
+
+            <!-- the opto return: the control side needs its own ground leg -->
+            <line x1="300" y1="300" x2="300" y2="316" stroke="var(--rail33)" stroke-width="1.6"/>
+            <text x="294" y="330" text-anchor="end" fill="var(--ink-3)" font-size="9">opto IN− → GND</text>
+            <line x1="300" y1="316" x2="270" y2="316" stroke="var(--ink-3)" stroke-width="1.4"/>
+            <line x1="270" y1="316" x2="270" y2="500" stroke="var(--ink-3)" stroke-width="1.4"/>
+            <text x="116" y="296" fill="var(--ink-3)" font-size="9">no gate pull-down: the opto LED itself defines OFF</text>
+
+            <!-- ===== ground rail ===== -->
+            <line x1="40" y1="500" x2="940" y2="500" stroke="var(--ink-3)" stroke-width="3"/>
+            <line x1="660" y1="500" x2="660" y2="518" stroke="var(--ink-3)" stroke-width="2"/>
+            <g stroke="var(--ink-3)" stroke-width="2.2">
+              <line x1="644" y1="518" x2="676" y2="518"/>
+              <line x1="650" y1="525" x2="670" y2="525"/>
+              <line x1="656" y1="532" x2="664" y2="532"/>
+            </g>
+            <text x="40" y="548" fill="var(--ink-3)" font-size="10">GND / X1-2 — every negative conductor lands here. Star-point at the battery minus.</text>
+          </g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i class="swatch sw12"></i>positive</span>
+        <span><i class="swatch swg"></i>negative / GND</span>
+        <span><i class="swatch sw33"></i>control / 3.3 V</span>
+        <span>● junction — crossing without a dot is <em>not</em> connected</span>
+      </div>
+      <figcaption>
+        The two suppressors are drawn as avalanche diodes (the bent cathode bar) because that is what they
+        are: reverse-biased and non-conducting until the rail exceeds their breakdown. The bulk capacitor is
+        drawn polarised — straight plate positive, curved plate negative. The control side of the opto module
+        is a two-wire circuit: <b>D7</b> into <code>IN+</code> and a ground leg into <code>IN−</code>. D7 on its
+        own does nothing.
+      </figcaption>
+    </figure>
+  </section>
+
+  <hr>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">DRAWING 06</span>Terminal-block view</h2>
+    <p>The same circuit as Drawing 05, redrawn the way it is physically built: as blocks landing on two
+       terminal strips. Use this one at the bench for routing and labelling — <strong>X1</strong> for the
+       battery domain, <strong>X2</strong> for the switched 12 V / RS485 domain, <strong>X3</strong> for the
+       switched 3.3 V domain.</p>
+
+    <figure>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 500" role="img"
+             aria-label="Detailed power schematic. Solar panel positive goes through a TVS node to the charge controller, then to the battery, then in series through a PTC fuse and an SS34 diode to the protected VBATT node. VBATT feeds the WaziSense board VIN and the XL6009 boost converter, whose output passes through a high-side switch and a 1000 microfarad capacitor to the plus 12 volt sensor rail. Every negative connection drops to one common ground rail at the bottom.">
+          <g font-family="IBM Plex Mono, monospace" font-size="11.5" fill="currentColor">
+
+            <!-- ===== row 1: generation + protection ===== -->
+            <g stroke="currentColor" stroke-width="1.3" fill="none">
+              <rect x="30"  y="72" width="100" height="58" rx="2"/>
+              <rect x="200" y="72" width="120" height="58" rx="2"/>
+              <rect x="390" y="72" width="100" height="58" rx="2"/>
+            </g>
+            <text x="80"  y="96"  text-anchor="middle">Solar</text>
+            <text x="80"  y="112" text-anchor="middle" fill="var(--ink-3)" font-size="10">6 V 5–10 W</text>
+            <text x="260" y="96"  text-anchor="middle">Charge ctrl</text>
+            <text x="260" y="112" text-anchor="middle" fill="var(--ink-3)" font-size="10">MPPT</text>
+            <text x="440" y="96"  text-anchor="middle">Battery</text>
+            <text x="440" y="112" text-anchor="middle" fill="var(--ink-3)" font-size="10">18650 1–2× ∥</text>
+
+            <!-- + path row 1 -->
+            <g stroke="var(--rail12)" stroke-width="2">
+              <line x1="130" y1="101" x2="200" y2="101"/>
+              <line x1="320" y1="101" x2="390" y2="101"/>
+              <line x1="490" y1="101" x2="530" y2="101"/>
+              <line x1="584" y1="101" x2="600" y2="101"/>
+              <line x1="654" y1="101" x2="712" y2="101"/>
+            </g>
+            <text x="152" y="94" fill="var(--rail12)">+ SOL</text>
+            <text x="336" y="94" fill="var(--rail12)">+ BAT</text>
+
+            <!-- PTC + SS34 in series -->
+            <g stroke="currentColor" stroke-width="1.3" fill="var(--surface)">
+              <rect x="530" y="88" width="54" height="26" rx="2"/>
+              <rect x="600" y="88" width="54" height="26" rx="2"/>
+            </g>
+            <text x="557" y="105" text-anchor="middle" font-size="10">PTC</text>
+            <text x="627" y="105" text-anchor="middle" font-size="10">SS34</text>
+            <text x="557" y="78" text-anchor="middle" fill="var(--ink-3)" font-size="10">2.6 A</text>
+            <text x="627" y="78" text-anchor="middle" fill="var(--ink-3)" font-size="10">rev.-pol.</text>
+
+            <!-- VBATT node -->
+            <circle cx="712" cy="101" r="3.5" fill="var(--rail12)"/>
+            <text x="722" y="94" fill="var(--rail12)">+VBATT  (X1-1)</text>
+
+            <!-- TVS drops -->
+            <g stroke="currentColor" stroke-width="1.3" fill="var(--surface)">
+              <rect x="152" y="140" width="26" height="24" rx="2"/>
+              <rect x="676" y="140" width="26" height="24" rx="2"/>
+            </g>
+            <line x1="165" y1="101" x2="165" y2="140" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="165" y1="164" x2="165" y2="440" stroke="currentColor" stroke-width="1.2"/>
+            <circle cx="165" cy="101" r="3" fill="var(--rail12)"/>
+            <text x="184" y="156" font-size="10">TVS solar</text>
+            <line x1="689" y1="101" x2="689" y2="140" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="689" y1="164" x2="689" y2="440" stroke="currentColor" stroke-width="1.2"/>
+            <circle cx="689" cy="101" r="3" fill="var(--rail12)"/>
+            <text x="708" y="156" font-size="10">SMBJ5.0A</text>
+
+            <!-- − drops from row 1 -->
+            <g stroke="var(--ink-3)" stroke-width="1.6">
+              <line x1="80"  y1="130" x2="80"  y2="440"/>
+              <line x1="260" y1="130" x2="260" y2="440"/>
+              <line x1="440" y1="130" x2="440" y2="440"/>
+            </g>
+            <text x="86"  y="150" fill="var(--ink-3)">− SOL</text>
+            <text x="266" y="150" fill="var(--ink-3)">−</text>
+            <text x="446" y="150" fill="var(--ink-3)">− BAT</text>
+
+            <!-- ===== branch to board ===== -->
+            <line x1="712" y1="101" x2="712" y2="196" stroke="var(--rail12)" stroke-width="2"/>
+            <line x1="712" y1="196" x2="770" y2="196" stroke="var(--rail12)" stroke-width="2"/>
+            <circle cx="712" cy="196" r="3.5" fill="var(--rail12)"/>
+            <rect x="770" y="168" width="180" height="86" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+            <text x="786" y="190" font-family="IBM Plex Sans Condensed, sans-serif" font-size="13" font-weight="700" fill="var(--ink)">WaziSenseV2</text>
+            <text x="786" y="210" fill="var(--ink-3)" font-size="10">VIN · SP1 (D6) · SP2 (D7) · A0</text>
+            <text x="758" y="192" text-anchor="end" fill="var(--rail12)" font-size="10">VIN</text>
+            <line x1="860" y1="254" x2="860" y2="440" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <text x="866" y="274" fill="var(--ink-3)">− GND</text>
+            <!-- switched 3.3 V out of "Sensor Power 1", gated by D6 -->
+            <line x1="950" y1="228" x2="972" y2="228" stroke="var(--rail33)" stroke-width="2"/>
+            <text x="948" y="248" fill="var(--rail33)" font-size="10" text-anchor="end">SP1 +3V3 sw (D6)</text>
+            <text x="948" y="261" fill="var(--ink-3)" font-size="10" text-anchor="end">→ X3-1</text>
+
+            <!-- ===== row 3: boost + switch + 12 V rail ===== -->
+            <path d="M 712 196 L 712 268 L 100 268 L 100 330" stroke="var(--rail12)" stroke-width="2" fill="none"/>
+            <text x="360" y="262" fill="var(--rail12)">+VBATT to boost</text>
+
+            <g stroke="currentColor" stroke-width="1.3" fill="none">
+              <rect x="100" y="302" width="120" height="56" rx="2"/>
+              <rect x="288" y="302" width="130" height="56" rx="2"/>
+            </g>
+            <text x="160" y="326" text-anchor="middle">XL6009</text>
+            <text x="160" y="342" text-anchor="middle" fill="var(--ink-3)" font-size="10">3.7 → 12 V</text>
+            <text x="353" y="326" text-anchor="middle">High-side sw</text>
+            <text x="353" y="342" text-anchor="middle" fill="var(--ink-3)" font-size="10">22 A opto module</text>
+
+            <g stroke="var(--rail12)" stroke-width="2">
+              <line x1="220" y1="330" x2="288" y2="330"/>
+              <line x1="418" y1="330" x2="500" y2="330"/>
+              <line x1="500" y1="330" x2="950" y2="330"/>
+            </g>
+            <text x="228" y="322" fill="var(--rail12)" font-size="10">+12 V raw</text>
+            <circle cx="500" cy="330" r="3.5" fill="var(--rail12)"/>
+            <text x="640" y="322" fill="var(--rail12)">+12 V switched  (X2-1)  →  probes</text>
+
+            <!-- bulk cap -->
+            <line x1="560" y1="330" x2="560" y2="362" stroke="var(--rail12)" stroke-width="1.6"/>
+            <circle cx="560" cy="330" r="3" fill="var(--rail12)"/>
+            <g stroke="var(--rail12)" stroke-width="2">
+              <line x1="542" y1="362" x2="578" y2="362"/>
+              <line x1="542" y1="370" x2="578" y2="370"/>
+            </g>
+            <line x1="560" y1="370" x2="560" y2="440" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <text x="586" y="360" font-size="10">1000 µF</text>
+            <text x="586" y="374" fill="var(--ink-3)" font-size="10">watch polarity</text>
+
+            <!-- − drops row 3 -->
+            <g stroke="var(--ink-3)" stroke-width="1.6">
+              <line x1="140" y1="358" x2="140" y2="440"/>
+              <line x1="330" y1="358" x2="330" y2="440"/>
+            </g>
+            <text x="146" y="378" fill="var(--ink-3)">−</text>
+            <text x="336" y="378" fill="var(--ink-3)">−</text>
+
+            <!-- 12 V rail control: D7 -> "Sensor Power 2" -> opto IN+ -->
+            <path d="M 800 254 L 800 286 L 384 286 L 384 302" stroke="var(--rail33)" stroke-width="1.6"
+                  stroke-dasharray="5 4" fill="none"/>
+            <text x="440" y="280" fill="var(--rail33)" font-size="10">SP2 (D7) → opto IN+</text>
+            <line x1="410" y1="302" x2="410" y2="290" stroke="var(--ink-3)" stroke-width="1.4"/>
+            <line x1="410" y1="290" x2="440" y2="290" stroke="var(--ink-3)" stroke-width="1.4"/>
+            <line x1="440" y1="290" x2="440" y2="440" stroke="var(--ink-3)" stroke-width="1.4"/>
+            <text x="446" y="304" fill="var(--ink-3)" font-size="10">IN−</text>
+
+            <!-- ===== GND rail ===== -->
+            <line x1="30" y1="440" x2="960" y2="440" stroke="var(--ink-3)" stroke-width="3"/>
+            <text x="30" y="466" fill="var(--ink-3)" font-size="11">GND / X1-2 — one common node. Star-point it at the battery minus, not daisy-chained.</text>
+          </g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i class="swatch sw12"></i>positive (+)</span>
+        <span><i class="swatch swg"></i>negative (−) / GND</span>
+        <span><i class="swatch sw33"></i>3.3 V / control</span>
+      </div>
+      <figcaption>
+        Series order on the positive side is fixed: <b>battery → PTC → SS34 → VBATT</b>. The PTC sits first so
+        it protects everything behind it; the TVS sits after the diode so it clamps what reaches the boost
+        input. The 12 V switch is opto-isolated, so its control side is an LED that needs <em>both</em> legs
+        wired: <code>IN+</code> from the "Sensor Power 2" terminal and <code>IN−</code> to ground. With D7 low
+        the LED is dark and the rail is off — no pull-down needed anywhere in this design.
+      </figcaption>
+    </figure>
+  </section>
+
+  <hr>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">DRAWING 07</span>Sensor bus fan-out — X2</h2>
+    <p>Each RS485 probe takes <strong>four separate conductors</strong>: two for power, two for data. All eight
+       land on the same four terminals of block X2.</p>
+
+    <figure>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 400" role="img"
+             aria-label="Terminal block X2 has four terminals: plus 12 volt switched, ground, RS485 A and RS485 B. Eight wires fan out from these four terminals, four to each of the two probes: dissolved oxygen and Y511-A turbidity. Temperature is not on this bus. No termination resistor is fitted at the probes; the single 120 ohm terminator sits at the transceiver.">
+          <g font-family="IBM Plex Mono, monospace" font-size="11.5" fill="currentColor">
+
+            <!-- terminal block X2 -->
+            <rect x="60" y="60" width="150" height="240" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+            <text x="135" y="48" text-anchor="middle" font-family="IBM Plex Sans Condensed, sans-serif" font-size="13" font-weight="700" fill="var(--ink)">Terminal block X2</text>
+
+            <g stroke="currentColor" stroke-width="1.1" fill="none">
+              <rect x="76" y="80"  width="118" height="44" rx="2"/>
+              <rect x="76" y="134" width="118" height="44" rx="2"/>
+              <rect x="76" y="188" width="118" height="44" rx="2"/>
+              <rect x="76" y="242" width="118" height="44" rx="2"/>
+            </g>
+            <text x="88" y="107" fill="var(--rail12)">X2-1  +12 V</text>
+            <text x="88" y="161" fill="var(--ink-3)">X2-2  GND</text>
+            <text x="88" y="215" fill="var(--data)">X2-3  A</text>
+            <text x="88" y="269" fill="var(--data)">X2-4  B</text>
+
+            <!-- probe boxes -->
+            <g stroke="currentColor" stroke-width="1.3" fill="none">
+              <rect x="700" y="56" width="230" height="66" rx="2"/>
+              <rect x="700" y="152" width="230" height="66" rx="2"/>
+            </g>
+            <text x="716" y="80">DO — DFRobot SEN0680</text>
+            <text x="716" y="98" fill="var(--ink-3)" font-size="10">addr 0x02 · 10–30 V</text>
+            <text x="716" y="110" fill="var(--ink-3)" font-size="10">V+ · V− · A · B</text>
+            <text x="716" y="176">Y511-A turbidity</text>
+            <text x="716" y="194" fill="var(--ink-3)" font-size="10">addr 0x03 · 5–12 V · wiper</text>
+            <text x="716" y="206" fill="var(--ink-3)" font-size="10">V+ · V− · A · B</text>
+            <text x="700" y="272" fill="var(--ink-3)" font-size="10">temperature is not on this bus —</text>
+            <text x="700" y="286" fill="var(--ink-3)" font-size="10">bare 3-wire RTD via MAX31865 on SPI (Table 07b)</text>
+
+            <!-- 4 wires x 2 probes -->
+            <!-- +12 V -->
+            <g stroke="var(--rail12)" stroke-width="1.8" fill="none">
+              <path d="M 194 96 L 300 96 L 300 68 L 700 68"/>
+              <path d="M 194 100 L 320 100 L 320 164 L 700 164"/>
+            </g>
+            <!-- GND -->
+            <g stroke="var(--ink-3)" stroke-width="1.8" fill="none">
+              <path d="M 194 150 L 380 150 L 380 82 L 700 82"/>
+              <path d="M 194 154 L 400 154 L 400 178 L 700 178"/>
+            </g>
+            <!-- A -->
+            <g stroke="var(--data)" stroke-width="1.8" fill="none">
+              <path d="M 194 204 L 460 204 L 460 96 L 700 96"/>
+              <path d="M 194 208 L 480 208 L 480 192 L 700 192"/>
+            </g>
+            <!-- B -->
+            <g stroke="var(--data)" stroke-width="1.8" stroke-dasharray="7 3" fill="none">
+              <path d="M 194 258 L 540 258 L 540 110 L 700 110"/>
+              <path d="M 194 262 L 560 262 L 560 206 L 700 206"/>
+            </g>
+
+            <text x="300" y="46" fill="var(--rail12)" font-size="10">2 × V+</text>
+            <text x="380" y="130" fill="var(--ink-3)" font-size="10">2 × V−</text>
+            <text x="462" y="240" fill="var(--data)" font-size="10">2 × A</text>
+            <text x="546" y="336" fill="var(--data)" font-size="10">2 × B (dashed)</text>
+
+            <!-- probes are deliberately unterminated -->
+            <text x="930" y="252" text-anchor="end" fill="var(--ink-3)" font-size="10">no terminator at the probes —</text>
+            <text x="930" y="264" text-anchor="end" fill="var(--ink-3)" font-size="10">the single 120 Ω sits at the transceiver</text>
+
+            <text x="60" y="370" fill="var(--ink-3)" font-size="11">Probe lead colours are vendor-specific — always confirm against the probe's own datasheet before crimping.</text>
+          </g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i class="swatch sw12"></i>V+ (12 V)</span>
+        <span><i class="swatch swg"></i>V− (GND)</span>
+        <span><i class="swatch swd"></i>RS485 A / B</span>
+      </div>
+      <figcaption>
+        Eight conductors total from X2 to the probes. <b>No terminator goes at the probes</b> — the single
+        120 Ω sits at the transceiver (Drawing 02). Because the probe leads are moulded pigtails they are
+        electrically stubs whichever way you route them; at 9600 baud that is harmless, so bring them all
+        back to X2 in the dry enclosure rather than building a junction near the water.
+      </figcaption>
+    </figure>
+  </section>
+
+  <hr>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">DRAWING 08</span>I²C chain — EZO-pH and EZO-EC</h2>
+    <p>Four wires leave the board and both channels hang off the same four: <span class="mono pin">A4</span>
+       and <span class="mono pin">A5</span> for the bus, <code>X3-1</code> and <code>X1-2</code> for the supply.
+       Each EZO circuit then sits <strong>behind its own isolator</strong>, which is what keeps the EC probe's
+       AC excitation current out of the pH electrode. Beyond the barrier there is no shared node at all — the
+       two isolated sides are separate floating islands.</p>
+
+    <p><em>Building without isolators for now? Drawing 09 and Table 08b are the variant for that — use one
+       set or the other, never both.</em></p>
+
+    <figure>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 620" role="img"
+             aria-label="I2C wiring detail. Four nets leave the WaziSense board and the X3 terminal block: SDA from pin A4, SCL from pin A5, switched 3.3 volts from X3-1 and ground from X1-2. All four run as a shared bus to two identical isolator modules, one for the pH channel and one for the conductivity channel. Each isolator has an isolation barrier across it; on the far side an isolated supply, ground, SDA and SCL feed one EZO circuit. The EZO-pH sits at address 0x63 with a BNC pH probe, the EZO-EC at address 0x64 with a two-lead conductivity probe. Each isolated ground is marked as a floating net that must never be bonded to X1-2 or to the other one.">
+          <g font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">
+
+            <!-- ===== source: board + X3 ===== -->
+            <rect x="20" y="44" width="180" height="164" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+            <text x="34" y="68" font-family="IBM Plex Sans Condensed, sans-serif" font-size="13" font-weight="700" fill="var(--ink)">WaziSense v2</text>
+            <text x="34" y="84" fill="var(--ink-3)" font-size="10">+ X3 terminal block</text>
+            <text x="192" y="116" text-anchor="end" fill="var(--data)">A4  SDA</text>
+            <text x="192" y="144" text-anchor="end" fill="var(--data)">A5  SCL</text>
+            <text x="192" y="172" text-anchor="end" fill="var(--rail33)">X3-1  +3V3 sw</text>
+            <text x="192" y="200" text-anchor="end" fill="var(--ink-3)">X1-2  GND</text>
+
+            <text x="210" y="60" fill="var(--danger)" font-size="10">Do not assume the pull-ups: A4/A5 to 3V3 must MEASURE ~4.7 kΩ.</text>
+            <text x="210" y="74" fill="var(--danger)" font-size="10">I2C_J is documented closed but has been found OPEN — then fit</text>
+            <text x="210" y="88" fill="var(--danger)" font-size="10">2 × 4.7 kΩ from A4 and A5 to X3-1 yourself.</text>
+
+            <!-- ===== the four shared nets ===== -->
+            <line x1="200" y1="112" x2="880" y2="112" stroke="var(--data)" stroke-width="2"/>
+            <line x1="200" y1="140" x2="880" y2="140" stroke="var(--data)" stroke-width="2"/>
+            <line x1="200" y1="168" x2="880" y2="168" stroke="var(--rail33)" stroke-width="2"/>
+            <line x1="200" y1="196" x2="880" y2="196" stroke="var(--ink-3)" stroke-width="2"/>
+            <text x="886" y="116" fill="var(--data)" font-size="10">SDA</text>
+            <text x="886" y="144" fill="var(--data)" font-size="10">SCL</text>
+            <text x="886" y="172" fill="var(--rail33)" font-size="10">+3V3</text>
+            <text x="886" y="200" fill="var(--ink-3)" font-size="10">GND</text>
+
+            <!-- ===== drops into isolator 1 (pH) ===== -->
+            <g stroke="var(--data)" stroke-width="1.6">
+              <line x1="320" y1="112" x2="320" y2="250"/>
+              <line x1="350" y1="140" x2="350" y2="250"/>
+            </g>
+            <line x1="430" y1="168" x2="430" y2="250" stroke="var(--rail33)" stroke-width="1.6"/>
+            <line x1="462" y1="196" x2="462" y2="250" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <circle cx="320" cy="112" r="3.5" fill="var(--data)"/>
+            <circle cx="350" cy="140" r="3.5" fill="var(--data)"/>
+            <circle cx="430" cy="168" r="3.5" fill="var(--rail33)"/>
+            <circle cx="462" cy="196" r="3.5" fill="var(--ink-3)"/>
+
+            <!-- ===== drops into isolator 2 (EC) ===== -->
+            <g stroke="var(--data)" stroke-width="1.6">
+              <line x1="660" y1="112" x2="660" y2="250"/>
+              <line x1="690" y1="140" x2="690" y2="250"/>
+            </g>
+            <line x1="770" y1="168" x2="770" y2="250" stroke="var(--rail33)" stroke-width="1.6"/>
+            <line x1="802" y1="196" x2="802" y2="250" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <circle cx="660" cy="112" r="3.5" fill="var(--data)"/>
+            <circle cx="690" cy="140" r="3.5" fill="var(--data)"/>
+            <circle cx="770" cy="168" r="3.5" fill="var(--rail33)"/>
+            <circle cx="802" cy="196" r="3.5" fill="var(--ink-3)"/>
+
+            <!-- ===== isolator 1 ===== -->
+            <rect x="300" y="250" width="190" height="120" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+            <text x="395" y="276" text-anchor="middle">Isolator · pH</text>
+            <text x="395" y="292" text-anchor="middle" fill="var(--ink-3)" font-size="10">DC/DC + capacitive</text>
+            <line x1="300" y1="316" x2="490" y2="316" stroke="var(--danger)" stroke-width="1.6" stroke-dasharray="7 5"/>
+            <text x="496" y="320" fill="var(--danger)" font-size="10">isolation barrier</text>
+            <text x="395" y="340" text-anchor="middle" fill="var(--ink-3)" font-size="10">isolated side</text>
+            <text x="395" y="358" text-anchor="middle" font-size="9">ISO_SDA  ISO_SCL  ISO_VCC  ISO_GND</text>
+
+            <!-- ===== isolator 2 ===== -->
+            <rect x="640" y="250" width="190" height="120" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+            <text x="735" y="276" text-anchor="middle">Isolator · EC</text>
+            <text x="735" y="292" text-anchor="middle" fill="var(--ink-3)" font-size="10">DC/DC + capacitive</text>
+            <line x1="640" y1="316" x2="830" y2="316" stroke="var(--danger)" stroke-width="1.6" stroke-dasharray="7 5"/>
+            <text x="836" y="320" fill="var(--danger)" font-size="10">isolation barrier</text>
+            <text x="735" y="340" text-anchor="middle" fill="var(--ink-3)" font-size="10">isolated side</text>
+            <text x="735" y="358" text-anchor="middle" font-size="9">ISO_SDA  ISO_SCL  ISO_VCC  ISO_GND</text>
+
+            <!-- ===== isolator -> EZO, channel 1 ===== -->
+            <g stroke="var(--data)" stroke-width="1.6">
+              <line x1="330" y1="370" x2="330" y2="420"/>
+              <line x1="362" y1="370" x2="362" y2="420"/>
+            </g>
+            <line x1="428" y1="370" x2="428" y2="420" stroke="var(--rail33)" stroke-width="1.6"/>
+            <line x1="460" y1="370" x2="460" y2="420" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <line x1="460" y1="400" x2="505" y2="400" stroke="var(--danger)" stroke-width="1.3"/>
+            <circle cx="510" cy="400" r="4" fill="none" stroke="var(--danger)" stroke-width="1.4"/>
+            <text x="518" y="404" fill="var(--danger)" font-size="9">ISO_GND floats</text>
+
+            <!-- ===== isolator -> EZO, channel 2 ===== -->
+            <g stroke="var(--data)" stroke-width="1.6">
+              <line x1="670" y1="370" x2="670" y2="420"/>
+              <line x1="702" y1="370" x2="702" y2="420"/>
+            </g>
+            <line x1="768" y1="370" x2="768" y2="420" stroke="var(--rail33)" stroke-width="1.6"/>
+            <line x1="800" y1="370" x2="800" y2="420" stroke="var(--ink-3)" stroke-width="1.6"/>
+            <line x1="800" y1="400" x2="845" y2="400" stroke="var(--danger)" stroke-width="1.3"/>
+            <circle cx="850" cy="400" r="4" fill="none" stroke="var(--danger)" stroke-width="1.4"/>
+            <text x="858" y="404" fill="var(--danger)" font-size="9">floats too</text>
+
+            <!-- ===== EZO circuits ===== -->
+            <rect x="300" y="420" width="190" height="80" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+            <text x="395" y="450" text-anchor="middle" font-family="IBM Plex Sans Condensed, sans-serif" font-size="14" font-weight="700" fill="var(--ink)">EZO-pH</text>
+            <text x="395" y="470" text-anchor="middle" fill="var(--ink-3)" font-size="11">I²C 0x63</text>
+            <text x="395" y="489" text-anchor="middle" fill="var(--ink-3)" font-size="9">3.3–5 V · ~1 s boot · 900 ms per read</text>
+
+            <rect x="640" y="420" width="190" height="80" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+            <text x="735" y="450" text-anchor="middle" font-family="IBM Plex Sans Condensed, sans-serif" font-size="14" font-weight="700" fill="var(--ink)">EZO-EC</text>
+            <text x="735" y="470" text-anchor="middle" fill="var(--ink-3)" font-size="11">I²C 0x64</text>
+            <text x="735" y="489" text-anchor="middle" fill="var(--ink-3)" font-size="9">3.3–5 V · ~1 s boot · 900 ms per read</text>
+
+            <!-- ===== probes ===== -->
+            <line x1="395" y1="500" x2="395" y2="540" stroke="currentColor" stroke-width="1.8"/>
+            <rect x="381" y="540" width="28" height="16" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+            <text x="395" y="578" text-anchor="middle" font-size="11">pH probe · BNC</text>
+            <text x="395" y="592" text-anchor="middle" fill="var(--ink-3)" font-size="9">shell → EZO probe GND (isolated)</text>
+
+            <g stroke="currentColor" stroke-width="1.8">
+              <line x1="718" y1="500" x2="718" y2="548"/>
+              <line x1="752" y1="500" x2="752" y2="548"/>
+            </g>
+            <text x="735" y="578" text-anchor="middle" font-size="11">EC probe K=1.0</text>
+            <text x="735" y="592" text-anchor="middle" fill="var(--ink-3)" font-size="9">two leads, not polarised</text>
+
+            <!-- ===== warning ===== -->
+            <text x="20" y="612" fill="var(--danger)" font-size="11">The two ISO_GND nets are separate floating islands — never bonded to each other, and never to X1-2.</text>
+          </g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i class="swatch swd"></i>SDA / SCL</span>
+        <span><i class="swatch sw33"></i>+3.3 V switched</span>
+        <span><i class="swatch swg"></i>GND</span>
+        <span>● junction — a crossing without a dot is <em>not</em> connected</span>
+      </div>
+      <figcaption>
+        Both channels share all four nets on the MCU side, which is why <b>only two wires go to the board</b>
+        no matter how many EZO circuits you add. The isolators are what make that safe: without them the pH
+        electrode and the EC electrode share a return path through the water, and the pH reading walks
+        every time EC measures. Note that the pH probe's BNC <b>shell</b> lands in the isolated domain, not on
+        <code>X1-2</code> — bonding it to enclosure ground is the single easiest way to undo the isolation you
+        just paid for. Exact pin names vary between isolator boards; match them to your silkscreen and keep
+        the netlist in Table 08 as the reference.
+      </figcaption>
+    </figure>
+
+    <div class="note">
+      <h3>EZO circuits arrive in UART mode, not I²C</h3>
+      <p>This is the step that costs people an evening. <strong>Every EZO circuit ships configured for
+         UART.</strong> Wired onto an I²C bus in that state it is simply silent — no ACK, no error, nothing that
+         distinguishes it from a broken solder joint or a dead board. Switch each circuit over
+         <em>before</em> it goes anywhere near the isolator.</p>
+      <p><strong>Hardware route.</strong> Atlas documents this in every EZO datasheet under "Manual switching to
+         I2C": power the circuit down, disconnect the data lines, short the <code>PRB</code> pad to
+         <code>TX</code>, power up, wait for the LED to change colour, power down, remove the short. Follow the
+         steps in <em>your</em> circuit's datasheet rather than from memory — pad naming and LED colours differ
+         between EZO generations.</p>
+      <p><strong>Software route.</strong> With a USB-serial adapter at <code>9600 8N1</code>, send
+         <code>I2C,99</code> to the pH circuit and <code>I2C,100</code> to the EC circuit. Each switches
+         immediately and stops answering on UART, so there is no going back without the hardware procedure.</p>
+      <p><strong>The LED tells you which mode a circuit is in.</strong> <b>Green = UART</b>,
+         <b>blue = I²C</b> — that is the colour change the switching procedure asks you to wait for. A
+         <em>blinking</em> green is worse than a steady one: it means the circuit is in the factory
+         continuous-streaming mode and is transmitting about once a second. Because the EZO's
+         <code>TX</code> pin <em>is</em> one of the two bus lines, a single circuit left in UART mode drags the
+         clock line down at every burst and jams I²C for everything else. Both circuits must show blue before
+         you enable <code>ENABLE_PH</code> / <code>ENABLE_EC</code>. Confirm the colours against your own
+         datasheet's LED table — they differ between EZO generations. Once the node is deployed, turn the LEDs
+         off with <code>L,0</code>: a few mA each is worth having back on a solar node.</p>
+
+      <p>99 and 100 decimal are <code>0x63</code> and <code>0x64</code> — the factory I²C defaults, already
+         distinct, and already what the sketch expects. There is no address to change and no conflict to
+         resolve. <strong>Do one circuit at a time</strong>, with only that circuit connected.</p>
+      <p><strong>While the UART is open anyway</strong>, turn off EZO-EC's extra output fields:
+         <code>O,TDS,0</code>, <code>O,S,0</code>, <code>O,SG,0</code>. By default it answers
+         <code>EC,TDS,SAL,SG</code> as CSV and the sketch's <code>atof()</code> silently takes the first field.
+         That happens to be the one you want, so it works either way — but a single-value response is one
+         less thing to reason about when a reading looks wrong.</p>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">DRAWING 09</span>I²C chain <em>without</em> isolation — variant</h2>
+    <p>The same two circuits with the isolators left out. The wiring gets simpler: both EZO boards hang
+       straight off <span class="mono pin">A4</span>, <span class="mono pin">A5</span>, <code>X3-1</code> and
+       <code>X1-2</code>, and the netlist loses eight wires. What you buy with that saving is the loop drawn
+       in red below — <strong>read this drawing for the loop, not for the wiring</strong>, because the wiring is
+       the easy part.</p>
+
+    <figure>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 660" role="img"
+             aria-label="The non-isolated variant. Both EZO circuits connect directly to board pins A4 and A5 and to the X3-1 and X1-2 supply terminals, with no isolation barrier anywhere. A closed interference loop is highlighted in red and numbered in four steps: the EC electrodes drive alternating current into the water, that current spreads through the water past the pH cell, the pH reference electrode sits inside the resulting field so the error enters the pH measurement there, and the loop closes back through the ground that both circuits share. A ghosted dotted line marks where the isolation barrier of Drawing 08 would have sat.">
+          <defs>
+            <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--danger)"/>
+            </marker>
+          </defs>
+
+          <g font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">
+
+            <!-- ===== source: board + X3 ===== -->
+            <rect x="20" y="44" width="180" height="164" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+            <text x="34" y="68" font-family="IBM Plex Sans Condensed, sans-serif" font-size="13" font-weight="700" fill="var(--ink)">WaziSense v2</text>
+            <text x="34" y="84" fill="var(--ink-3)" font-size="10">+ X3 terminal block</text>
+            <text x="192" y="116" text-anchor="end" fill="var(--data)">A4  SDA</text>
+            <text x="192" y="144" text-anchor="end" fill="var(--data)">A5  SCL</text>
+            <text x="192" y="172" text-anchor="end" fill="var(--rail33)">X3-1  +3V3 sw</text>
+            <text x="192" y="200" text-anchor="end" fill="var(--danger)">X1-2  GND</text>
+
+            <!-- ===== the four shared nets ===== -->
+            <line x1="200" y1="112" x2="880" y2="112" stroke="var(--data)" stroke-width="2"/>
+            <line x1="200" y1="140" x2="880" y2="140" stroke="var(--data)" stroke-width="2"/>
+            <line x1="200" y1="168" x2="880" y2="168" stroke="var(--rail33)" stroke-width="2"/>
+            <line x1="200" y1="196" x2="880" y2="196" stroke="var(--ink-3)" stroke-width="2"/>
+            <text x="886" y="116" fill="var(--data)" font-size="10">SDA</text>
+            <text x="886" y="144" fill="var(--data)" font-size="10">SCL</text>
+            <text x="886" y="172" fill="var(--rail33)" font-size="10">+3V3</text>
+            <text x="886" y="200" fill="var(--ink-3)" font-size="10">GND</text>
+
+            <!-- ===== the shared ground carries the return current ===== -->
+            <line x1="802" y1="196" x2="466" y2="196" stroke="var(--danger)" stroke-width="3.4" marker-end="url(#arw)"/>
+            <text x="634" y="186" text-anchor="middle" fill="var(--danger)" font-size="10">return current — both circuits share this node</text>
+
+            <!-- ===== drops to EZO-pH ===== -->
+            <g stroke="var(--data)" stroke-width="1.6">
+              <line x1="320" y1="112" x2="320" y2="250"/>
+              <line x1="350" y1="140" x2="350" y2="250"/>
+            </g>
+            <line x1="430" y1="168" x2="430" y2="250" stroke="var(--rail33)" stroke-width="1.6"/>
+            <line x1="462" y1="196" x2="462" y2="250" stroke="var(--danger)" stroke-width="2.2"/>
+            <circle cx="320" cy="112" r="3.5" fill="var(--data)"/>
+            <circle cx="350" cy="140" r="3.5" fill="var(--data)"/>
+            <circle cx="430" cy="168" r="3.5" fill="var(--rail33)"/>
+            <circle cx="462" cy="196" r="3.5" fill="var(--danger)"/>
+
+            <!-- ===== drops to EZO-EC ===== -->
+            <g stroke="var(--data)" stroke-width="1.6">
+              <line x1="660" y1="112" x2="660" y2="250"/>
+              <line x1="690" y1="140" x2="690" y2="250"/>
+            </g>
+            <line x1="770" y1="168" x2="770" y2="250" stroke="var(--rail33)" stroke-width="1.6"/>
+            <line x1="802" y1="196" x2="802" y2="250" stroke="var(--danger)" stroke-width="2.2"/>
+            <circle cx="660" cy="112" r="3.5" fill="var(--data)"/>
+            <circle cx="690" cy="140" r="3.5" fill="var(--data)"/>
+            <circle cx="770" cy="168" r="3.5" fill="var(--rail33)"/>
+            <circle cx="802" cy="196" r="3.5" fill="var(--danger)"/>
+
+            <!-- ===== where the barrier would have been ===== -->
+            <line x1="280" y1="228" x2="850" y2="228" stroke="var(--ink-3)" stroke-width="1.2" stroke-dasharray="2 6"/>
+            <text x="565" y="222" text-anchor="middle" fill="var(--ink-3)" font-size="10">the isolation barrier of Drawing 08 would sit here — there is none</text>
+
+            <!-- ===== EZO circuits ===== -->
+            <rect x="300" y="250" width="190" height="94" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+            <text x="395" y="280" text-anchor="middle" font-family="IBM Plex Sans Condensed, sans-serif" font-size="14" font-weight="700" fill="var(--ink)">EZO-pH</text>
+            <text x="395" y="300" text-anchor="middle" fill="var(--ink-3)" font-size="11">I²C 0x63</text>
+            <text x="395" y="320" text-anchor="middle" fill="var(--danger)" font-size="10">GND = X1-2</text>
+            <text x="395" y="337" text-anchor="middle" fill="var(--ink-3)" font-size="9">read this one first</text>
+
+            <rect x="640" y="250" width="190" height="94" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+            <text x="735" y="280" text-anchor="middle" font-family="IBM Plex Sans Condensed, sans-serif" font-size="14" font-weight="700" fill="var(--ink)">EZO-EC</text>
+            <text x="735" y="300" text-anchor="middle" fill="var(--ink-3)" font-size="11">I²C 0x64</text>
+            <text x="735" y="320" text-anchor="middle" fill="var(--danger)" font-size="10">GND = X1-2</text>
+            <text x="735" y="337" text-anchor="middle" fill="var(--ink-3)" font-size="9">asleep while pH is read</text>
+
+            <!-- ===== probe leads ===== -->
+            <line x1="395" y1="344" x2="395" y2="440" stroke="currentColor" stroke-width="1.8"/>
+            <text x="404" y="380" fill="var(--ink-3)" font-size="10">BNC: core + shell</text>
+            <g stroke="currentColor" stroke-width="1.8">
+              <line x1="718" y1="344" x2="718" y2="440"/>
+              <line x1="752" y1="344" x2="752" y2="440"/>
+            </g>
+            <text x="762" y="380" fill="var(--ink-3)" font-size="10">2 leads</text>
+
+            <!-- ===== the water ===== -->
+            <rect x="240" y="448" width="660" height="132" rx="4" fill="var(--surface-2)" stroke="var(--rail33)" stroke-width="1.2" stroke-dasharray="6 4"/>
+            <text x="256" y="470" fill="var(--rail33)" font-size="10">lake water · order 100 µS/cm — the shared conductor nobody draws</text>
+
+            <!-- pH cell -->
+            <line x1="395" y1="440" x2="395" y2="496" stroke="currentColor" stroke-width="1.8"/>
+            <circle cx="395" cy="505" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <text x="395" y="545" text-anchor="middle" font-size="10">pH glass + Ag/AgCl ref</text>
+
+            <!-- EC cell -->
+            <g stroke="currentColor" stroke-width="1.8">
+              <line x1="718" y1="440" x2="718" y2="500"/>
+              <line x1="752" y1="440" x2="752" y2="500"/>
+            </g>
+            <g stroke="currentColor" stroke-width="4">
+              <line x1="718" y1="500" x2="718" y2="534"/>
+              <line x1="752" y1="500" x2="752" y2="534"/>
+            </g>
+            <text x="735" y="556" text-anchor="middle" font-size="10">EC electrodes K=1.0</text>
+
+            <!-- current through the water -->
+            <path d="M 690 520 C 610 566, 500 566, 412 524" fill="none" stroke="var(--danger)"
+                  stroke-width="2.2" stroke-dasharray="7 4" marker-end="url(#arw)"/>
+
+            <!-- ===== numbered steps ===== -->
+            <g font-size="11" font-weight="700">
+              <circle cx="782" cy="474" r="10" fill="var(--danger)"/>
+              <text x="782" y="478" text-anchor="middle" fill="var(--bg)">1</text>
+              <circle cx="556" cy="566" r="10" fill="var(--danger)"/>
+              <text x="556" y="570" text-anchor="middle" fill="var(--bg)">2</text>
+              <circle cx="356" cy="505" r="10" fill="var(--danger)"/>
+              <text x="356" y="509" text-anchor="middle" fill="var(--bg)">3</text>
+              <circle cx="634" cy="196" r="10" fill="var(--danger)"/>
+              <text x="634" y="200" text-anchor="middle" fill="var(--bg)">4</text>
+            </g>
+
+            <!-- ===== step legend ===== -->
+            <text x="20" y="614" fill="var(--danger)" font-size="11">① EC drives AC into the water   ② the field spreads past the pH cell   ③ the reference electrode reads it as signal   ④ the loop closes through the shared GND</text>
+            <text x="20" y="636" fill="var(--ink-3)" font-size="10">Break the loop at any single point and the error goes away. One isolator on the pH channel is the cheapest place to break it.</text>
+          </g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i class="swatch swd"></i>SDA / SCL</span>
+        <span><i class="swatch sw33"></i>+3.3 V switched</span>
+        <span><i class="swatch swg"></i>GND</span>
+        <span style="color:var(--danger)">—— the interference loop</span>
+      </div>
+      <figcaption>
+        Compare this against Drawing 08: the wiring is <b>strictly simpler</b> — nothing but four shared nets and
+        two probe connections — and that is the entire attraction. The cost is that <code>ISO_GND</code> no
+        longer exists: both EZO grounds <em>are</em> <code>X1-2</code>, so the path from the EC electrodes back
+        to the pH reference is closed through the board. The pH circuit measures ~59 mV per pH decade at an
+        electrode impedance of 100 MΩ to 1 GΩ, which is why it is the victim and EC is not.
+      </figcaption>
+    </figure>
+
+    <div class="note">
+      <h3>Running it this way on purpose</h3>
+      <p>This variant is a legitimate starting point — you have to wire it anyway to test it, and the isolator
+         drops in later without touching the probe side or the layout. Two things make it as good as it can be:</p>
+      <p><strong>Order the reads.</strong> pH before EC, always. The sketch already does this in
+         <code>readAllSensors()</code>, so there is nothing to change — just do not reorder them.</p>
+      <p><strong>Put EC to sleep for the pH read.</strong> Send <code>Sleep</code> to <code>0x64</code>, read pH,
+         then wake EC with any command and read it. That removes the driven AC term — step ① above — which is
+         the dominant one.</p>
+      <p><strong>What stays.</strong> Even unpowered, the EC electrodes remain galvanically tied to
+         <code>X1-2</code>, so the loop still exists; it is simply no longer driven. What survives is a DC
+         galvanic offset between dissimilar metals in the water — Ag/AgCl against graphite or steel. Smaller
+         than the AC term, and only real isolation removes it.</p>
+      <p><strong>Decide it with a measurement, not a guess.</strong> Both probes in one beaker at roughly
+         100 µS/cm (dilute tap water — neat tap water is often 300–600 µS/cm and an unfairly harsh test).
+         Take 20 pH readings in each of three states: EC probe <em>out</em> of the water; EC probe in, circuit
+         asleep; EC probe in, circuit measuring in a tight loop. The first-to-second gap is the galvanic
+         offset, the second-to-third gap the AC term. Under ~0.05 pH total, ignore it. Over ~0.1 pH, fit the
+         isolator.</p>
+      <p><strong>One rule either way:</strong> calibrate in the same configuration you measure in. Calibrating
+         unisolated and then fitting an isolator (or the reverse) folds the offset into the calibration, where
+         it is much harder to see.</p>
+      <p><strong>Both EZO circuits share <code>X3</code>, and that is not a limitation here.</strong> The obvious
+         thought is to cut power to the EC circuit while pH is read — impossible, since one <code>D6</code>
+         gates the whole rail. It also would not help: unpowered, the EC electrodes stay galvanically tied to
+         <code>X1-2</code> through the dead front-end, so step ④ survives either way. Power-down and
+         <code>Sleep</code> both remove the drive and neither breaks the loop, and <code>Sleep</code> is the
+         better of the two because it wakes on the next transaction instead of costing another ~1 s boot inside
+         every measurement window. In I²C mode the circuit cannot initiate anything at all, so reading pH
+         before the EC circuit is ever addressed is already most of the answer — the continuous-streaming
+         default in the datasheet is a UART feature and does not apply. If you ever <em>did</em> want the EC
+         supply switched separately, <code>D5</code> is free and a small high-side load switch in its
+         <code>VCC</code> leg costs about €2. It is not worth fitting.</p>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">TABLE 03</span>Netlist — power generation and protection</h2>
+    <p>Three terminal blocks: <strong>X1</strong> = battery domain (1 = +VBATT, 2 = GND),
+       <strong>X2</strong> = switched 12 V and RS485 (1 = +12 V, 2 = GND, 3 = A, 4 = B),
+       <strong>X3</strong> = switched 3.3 V (1 = +3V3&nbsp;sw, 2 = GND). X3 is fed from the "Sensor Power 1"
+       terminal and is therefore <em>dead between measurements</em> — the whole point of gating it.</p>
+
+    <p><strong>X3 is a name, not a part you have to buy.</strong> If you are not fitting a separate strip,
+       <code>X3-1</code> simply <em>is</em> the "Sensor Power 1" <b>+</b> terminal and <code>X3-2</code> its
+       <b>−</b>; the labels exist so the netlists can name a node. And note what <code>X3-1</code> is
+       <em>not</em>: the <span class="mono pin">D6</span> pin itself is the GPIO that drives the MOSFET gate
+       <em>inside</em> the board — nothing external ever connects to it. Everything in these tables that says
+       <code>X3-1</code> lands on the switched output terminal, alongside the DS18B20 supply and its
+       pull-up.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Net</th><th>From</th><th>To</th><th>Wire</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><code>SOL+</code></td><td>Solar panel <b>+</b></td><td>Charge controller <code>SOLAR+</code></td><td>red 0.75 mm²</td><td>TVS to GND at this node</td></tr>
+          <tr><td><code>SOL−</code></td><td>Solar panel <b>−</b></td><td>Charge controller <code>SOLAR−</code></td><td>black 0.75 mm²</td><td>common with GND</td></tr>
+          <tr><td>—</td><td>TVS cathode (banded end)</td><td><code>SOL+</code></td><td>—</td><td>anode → GND</td></tr>
+          <tr><td><code>BAT+</code></td><td>Charge controller <code>BAT+</code></td><td>Battery pack <b>+</b></td><td>red 0.75 mm²</td><td></td></tr>
+          <tr><td><code>BAT−</code></td><td>Charge controller <code>BAT−</code></td><td>Battery pack <b>−</b></td><td>black 0.75 mm²</td><td>= GND star point</td></tr>
+          <tr><td><code>VB1</code></td><td>Battery <b>+</b></td><td>PTC terminal 1</td><td>red</td><td>PTC first in the chain</td></tr>
+          <tr><td><code>VB2</code></td><td>PTC terminal 2</td><td>SS34 <b>anode</b></td><td>red</td><td>diode direction matters</td></tr>
+          <tr><td><code>VBATT</code></td><td>SS34 <b>cathode</b> (banded)</td><td><code>X1-1</code></td><td>red</td><td>protected rail</td></tr>
+          <tr><td>—</td><td>SMBJ5.0A cathode</td><td><code>X1-1</code></td><td>—</td><td>anode → <code>X1-2</code></td></tr>
+          <tr><td><code>GND</code></td><td>Battery <b>−</b></td><td><code>X1-2</code></td><td>black</td><td>single star point</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">TABLE 04</span>Netlist — board and 3.3 V domain</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Net</th><th>From</th><th>To</th><th>Wire</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><code>VBATT</code></td><td><code>X1-1</code></td><td>WaziSense <code>VIN</code></td><td>red</td><td></td></tr>
+          <tr><td><code>GND</code></td><td><code>X1-2</code></td><td>WaziSense <code>GND</code></td><td>black</td><td></td></tr>
+          <tr><td><code>3V3SW</code></td><td>"Sensor Power 1" <b>+</b> (gated by <code>D6</code>)</td><td><code>X3-1</code></td><td>orange</td><td>switched 3.3 V: transceiver, MAX31865, RS485 bias, EZO isolators, DS18B20</td></tr>
+          <tr><td><code>GND</code></td><td><code>X1-2</code></td><td><code>X3-2</code></td><td>black</td><td>the "Sensor Power 1" <b>−</b> terminal is this same node — ground is never switched</td></tr>
+          <tr><td><code>VSENSE</code></td><td>— nothing to wire —</td><td>WaziSense <code>A0</code></td><td>—</td><td><b>on-board</b> 2 × 470 kΩ divider (<code>BATT%</code> jumper). Do not add your own.</td></tr>
+          <tr><td><code>ANT</code></td><td>WaziSense antenna port</td><td>SMA bulkhead → λ/2 dipole</td><td>coax pigtail</td><td>seal the outside joint with self-amalgamating tape</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">TABLE 05</span>Netlist — 12 V rail and gating</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Net</th><th>From</th><th>To</th><th>Wire</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><code>VBATT</code></td><td><code>X1-1</code></td><td>XL6009 <code>IN+</code></td><td>red</td><td>confirm the module accepts 3 V input</td></tr>
+          <tr><td><code>GND</code></td><td><code>X1-2</code></td><td>XL6009 <code>IN−</code></td><td>black</td><td></td></tr>
+          <tr><td><code>V12RAW</code></td><td>XL6009 <code>OUT+</code></td><td>Switch <code>VIN</code></td><td>red</td><td>set trimpot to 12 V before connecting probes</td></tr>
+          <tr><td><code>GND</code></td><td><code>X1-2</code></td><td>Switch <code>GND</code></td><td>black</td><td></td></tr>
+          <tr><td><code>V12SW</code></td><td>Switch <code>VOUT</code></td><td><code>X2-1</code></td><td>red</td><td>the switched rail</td></tr>
+          <tr><td><code>GND</code></td><td><code>X1-2</code></td><td><code>X2-2</code></td><td>black</td><td>ground is <em>never</em> switched</td></tr>
+          <tr><td><code>CAP+</code></td><td>1000 µF <b>+</b></td><td><code>X2-1</code></td><td>red</td><td>polarity — reversed electrolytics vent</td></tr>
+          <tr><td><code>CAP−</code></td><td>1000 µF <b>−</b></td><td><code>X2-2</code></td><td>black</td><td></td></tr>
+          <tr><td><code>RAIL12_EN</code></td><td>"Sensor Power 2" <b>+</b> (gated by <code>D7</code>)</td><td>Opto module <code>IN+</code></td><td>white</td><td>3.3 V logic level, well inside the module's 3.3–12 V control range</td></tr>
+          <tr><td><code>RAIL12_RTN</code></td><td><code>X1-2</code></td><td>Opto module <code>IN−</code></td><td>black</td><td>the control side is an LED and needs its own return — <code>D7</code> alone does nothing</td></tr>
+          <tr><td colspan="5"><b>Why the boost itself is not gated:</b> H1 has to sit on 3.3 V for the transceiver's sake, so the "Sensor Power" terminals no longer carry the battery voltage the XL6009 needs at its input. The converter therefore runs continuously and only its 12 V <em>output</em> is switched. To gate it as well, add a second high-side switch (Pololu #2810, 2–20 V / 6 A) between <code>X1-1</code> and <code>XL6009 IN+</code> and drive that from <code>D7</code> too.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">TABLE 06</span>Netlist — RS485 transceiver</h2>
+    <p>Four wires to the module, four out of it. This is an <strong>auto-direction</strong> board — there is
+       no <code>DE</code> or <code>RE</code> pin to wire, and the sketch has no direction-control code.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Net</th><th>From</th><th>To</th><th>Wire</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><code>RS_RX</code></td><td>WaziSense <code>D3</code></td><td>Module <code>RXD</code></td><td>green</td><td>SoftwareSerial RX</td></tr>
+          <tr><td><code>RS_TX</code></td><td>WaziSense <code>D4</code></td><td>Module <code>TXD</code></td><td>blue</td><td>SoftwareSerial TX</td></tr>
+          <tr><td>—</td><td colspan="4"><b>No <code>DE</code> / <code>RE</code> wire.</b> The module breaks out only <code>RXD</code>, <code>TXD</code>, <code>GND</code> and <code>3.3 V</code>, and switches the driver internally from activity on <code>TXD</code>. <code>D5</code> stays free.</td></tr>
+          <tr><td><code>3V3SW</code></td><td><code>X3-1</code></td><td>Module <code>3.3 V</code></td><td>orange</td><td><b>3.3 V part — 3.0–3.6 V is a hard limit.</b> Never feed it from the battery rail.</td></tr>
+          <tr><td><code>GND</code></td><td><code>X1-2</code></td><td>Module <code>GND</code></td><td>black</td><td></td></tr>
+          <tr><td><code>RS485_A</code></td><td>Module <code>A</code></td><td><code>X2-3</code></td><td>yellow</td><td></td></tr>
+          <tr><td><code>RS485_B</code></td><td>Module <code>B</code></td><td><code>X2-4</code></td><td>green</td><td></td></tr>
+          <tr><td>—</td><td>120 Ω</td><td><code>X2-3</code> ↔ <code>X2-4</code></td><td>—</td><td><b>the only terminator</b> — none at the probes</td></tr>
+          <tr><td>—</td><td>680 Ω</td><td><code>X2-3</code> → <code>X3-1</code></td><td>—</td><td>fail-safe bias, pull-up — matched to a single 120 Ω</td></tr>
+          <tr><td>—</td><td>680 Ω</td><td><code>X2-4</code> → <code>X1-2</code></td><td>—</td><td>fail-safe bias, pull-down — gives 268 mV idle</td></tr>
+          <tr><td>—</td><td>Cable shield</td><td>Enclosure ground</td><td>drain wire</td><td><b>enclosure end only</b>, far end open</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <h3>The one thing an auto-direction module costs you</h3>
+      <p>Losing the <code>DE</code> wire is convenient, but it moves a decision from software into a circuit you
+         cannot see. Two designs are sold under the same four-pin pinout:</p>
+      <p><strong>Receiver permanently enabled.</strong> <code>RE</code> is tied to ground, so while the module
+         transmits it also hands your own frame straight back to <code>RXD</code>. Every Modbus request is
+         followed by an 8-byte echo before the slave's reply arrives, and the master has to swallow it.</p>
+      <p><strong>Receiver muted while transmitting.</strong> <code>RE</code> follows <code>DE</code>, no echo appears,
+         and swallowing 8 bytes that never come would eat the start of the real reply instead.</p>
+      <p>Both are common and the silkscreen rarely says which you have, so the sketch exposes it as a single
+         flag: <code>#define RS485_ECHOES_OWN_TX 1</code>. Establish it once on the bench — if every read times
+         out or the log fills with "bad header", flip the flag and try again. This is the <em>only</em> difference
+         between the two module types as far as the firmware is concerned.</p>
+      <p><strong>If replies come back truncated</strong> rather than absent, the module's turnaround RC is holding
+         the driver on into the first bits of the response. At 9600 baud that is unlikely, but the fix is a
+         module with <code>DE</code> broken out — which is why <code>D5</code> is worth leaving free.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">TABLE 07</span>Netlist — probes on the bus</h2>
+    <p>Repeat these four wires for <strong>each</strong> of the two RS485 probes — eight conductors in total.
+       Temperature is <strong>not on this bus</strong> — the DS18B20 has its own 1-Wire line, see
+       Table 09.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Net</th><th>From</th><th>To — DO 0x02</th><th>To — Y511-A 0x03</th></tr></thead>
+        <tbody>
+          <tr><td><code>V12SW</code></td><td><code>X2-1</code></td><td>probe <code>V+</code></td><td>probe <code>V+</code></td></tr>
+          <tr><td><code>GND</code></td><td><code>X2-2</code></td><td>probe <code>V−</code></td><td>probe <code>V−</code></td></tr>
+          <tr><td><code>RS485_A</code></td><td><code>X2-3</code></td><td>probe <code>A</code></td><td>probe <code>A</code></td></tr>
+          <tr><td><code>RS485_B</code></td><td><code>X2-4</code></td><td>probe <code>B</code></td><td>probe <code>B</code></td></tr>
+          <tr><td>—</td><td>termination</td><td colspan="2"><b>none at the probes</b> — the single 120 Ω sits at the transceiver (Table 06)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">TABLE 07b</span>Netlist — PT1000 via MAX31865 (SPI) <em>— alternative, not fitted</em></h2>
+    <p style="color:var(--danger)"><strong>This is not the temperature path in the current build.</strong>
+       The node uses a DS18B20 on 1-Wire instead — see <strong>Table 09</strong>. Keep this table for the
+       upgrade: the PT1000 probe is already on hand, only the MAX31865 board is missing.</p>
+    <p>The probe supplied is a <strong>bare 3-wire RTD</strong> (2 × red + 1 × white), not a Modbus device, so it
+       gets its own front-end on the SPI bus. The RTD itself needs no supply — it is a resistor. That also means
+       it does <em>not</em> belong on the RS485 bus, and it does not take a Modbus address.</p>
+
+    <p><strong>Order the PT1000 board, not the PT100 board.</strong> The two are physically identical and differ
+       only in the reference resistor: <b>Adafruit #3648</b> carries the 4300 Ω (marking <code>4301</code>) that a
+       PT1000 needs, <b>#3328</b> carries 430 Ω for a PT100. DigiKey stocks #3648 as <code>1528-2432-ND</code>
+       at roughly $15, and RS Components carries it too — both ship into Germany. Fitting the wrong one puts
+       every reading out by about a factor of ten, and no software setting rescues it.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Net</th><th>From</th><th>To</th><th>Wire</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><code>3V3SW</code></td><td><code>X3-1</code></td><td>MAX31865 <code>VIN</code></td><td>orange</td><td>3.3 V part, matches WaziSense logic</td></tr>
+          <tr><td><code>GND</code></td><td><code>X1-2</code></td><td>MAX31865 <code>GND</code></td><td>black</td><td></td></tr>
+          <tr><td><code>SCK</code></td><td>WaziSense <code>D13</code></td><td>MAX31865 <code>CLK</code></td><td>short lead</td><td>shared with the radio</td></tr>
+          <tr><td><code>MISO</code></td><td>WaziSense <code>D12</code></td><td>MAX31865 <code>SDO</code></td><td>short lead</td><td>shared with the radio</td></tr>
+          <tr><td><code>MOSI</code></td><td>WaziSense <code>D11</code></td><td>MAX31865 <code>SDI</code></td><td>short lead</td><td>shared with the radio</td></tr>
+          <tr><td><code>RTD_CS</code></td><td>WaziSense <code>A1</code></td><td>MAX31865 <code>CS</code></td><td>white</td><td>its own chip select</td></tr>
+          <tr><td><code>RTD_A</code></td><td>PT1000 <b>red</b></td><td>terminal at the paired end (1 of 2)</td><td>—</td><td rowspan="3">Set the breakout's solder jumper to <b>3-wire</b>. The two same-colour leads go to the two terminals at one end, the odd-coloured lead to the other.</td></tr>
+          <tr><td><code>RTD_A2</code></td><td>PT1000 <b>red</b></td><td>terminal at the paired end (2 of 2)</td><td>—</td></tr>
+          <tr><td><code>RTD_B</code></td><td>PT1000 <b>white</b></td><td>terminal at the single end</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <h3>Two ways to get zero readings out of a perfectly good RTD</h3>
+      <p><strong>Reference resistor.</strong> <code>RREF</code> must be <strong>4300 Ω</strong> for a PT1000. Breakouts sold
+         for PT100 carry <strong>430 Ω</strong> — with that fitted the numbers are wrong by roughly a factor of ten
+         and no amount of software will fix it. Either buy the PT1000 variant or swap the resistor, and set
+         <code>RREF 4300.0</code> / <code>RNOMINAL 1000.0</code> in the sketch to match.</p>
+      <p><strong>Shared SPI, different modes.</strong> The RFM95W runs SPI mode 0, the MAX31865 mode 1, on the same
+         three wires. The Adafruit driver wraps its access in an SPI transaction so the two coexist — but if
+         temperatures come back as nonsense <em>while LoRa still works</em>, a stuck SPI mode is the first thing
+         to suspect. Verify with the multimeter first: <b>red ↔ red ≈ 0 Ω</b>, <b>red ↔ white ≈ 1078 Ω at 20 °C</b>.</p>
+      <p><strong>And a third, specific to the gated rail.</strong> The MAX31865 now sits on the switched 3.3 V, so
+         it loses its configuration register every cycle. <code>rtd.begin(MAX31865_3WIRE)</code> therefore runs
+         inside <code>readPT1000()</code> after the rail comes up, <em>not</em> once in <code>setup()</code> —
+         initialising it in <code>setup()</code> would configure a chip that is not powered yet, and every reading
+         afterwards would be a fault code.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">TABLE 08</span>Netlist — I²C, isolators and EZO circuits</h2>
+    <p>Wire this block <strong>twice</strong> — once for pH, once for EC. Each isolator creates its own floating
+       supply and ground. If only one isolator is fitted, see the priority note below: <strong>the pH channel is
+       the one that must have it.</strong> For the variant with no isolators at all, use
+       <strong>Table 08b</strong> instead of this table.</p>
+
+    <div class="note">
+      <h3>The isolators are a separate purchase — and one of the two is mandatory</h3>
+      <p>EZO circuits do not ship with isolation. You need <strong>one isolator per channel you want protected</strong>,
+         and the two channels are not equally at risk:</p>
+      <p><strong>pH — mandatory.</strong> Atlas's own pH datasheet is explicit: the circuit is sensitive enough to
+         read micro-voltages bleeding into the water from other equipment, "which is why the power and data lines
+         need to be electrically isolated". A pH channel sharing a ground with an EC probe in the same water is
+         the textbook case.</p>
+      <p><strong>EC — optional.</strong> The EC circuit is the <em>aggressor</em>, not the victim: it drives AC
+         excitation current through the water, and its own reading barely cares about the resulting potentials.
+         Isolating the pH already breaks the galvanic loop between the two. A second isolator on EC is
+         belt-and-braces, not a prerequisite.</p>
+      <p>Nothing else in this build adds a galvanic path through the water — the DO probe is a sealed optical
+         RS485 device and the DS18B20 is a sealed digital probe, so neither electrode-couples to the pH
+         cell. The same held for the PT1000 it replaces.</p>
+      <p><strong>Which part.</strong> The <b>Basic EZO Inline Voltage Isolator (BE-IVI)</b> is the one this drawing
+         assumes: 14 × 20 mm, 3.0–5.0 V in, an isolated 3.9 V out, UART/I²C/SMBus to 1 MHz, ~20 mA at 3.3 V. It
+         sits purely between the MCU and the EZO circuit and <em>does not touch the probe connection at all</em>.</p>
+      <p><strong>Watch the probe connector if you buy a carrier board instead.</strong> The
+         <b>Electrically Isolated EZO Carrier Board (ISCCB-2)</b> bundles carrier + isolation on one 56 × 32 mm
+         board, but its probe connector is a <b>female SMA</b>. Atlas pH probes are normally <b>BNC</b>, so that
+         route can need an adapter the inline isolator never asks for. Check your own probe's connector before
+         ordering.</p>
+      <p><strong>Budget the current.</strong> Each isolator draws ~20 mA at 3.3 V while its rail is up — that is
+         not negligible next to the EZO circuits themselves. It only flows during a measurement window because
+         everything on <code>X3</code> is gated by <code>D6</code>. The BE-IVI also breaks out an <code>EN</code>
+         pin for its own power-saving mode, which this design does not need: cutting the whole rail is stronger.</p>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Net</th><th>From</th><th>To</th><th>Wire</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><code>3V3SW</code></td><td><code>X3-1</code></td><td>Isolator <code>VCC</code> (MCU side)</td><td>orange</td><td></td></tr>
+          <tr><td><code>GND</code></td><td><code>X1-2</code></td><td>Isolator <code>GND</code> (MCU side)</td><td>black</td><td></td></tr>
+          <tr><td><code>SDA</code></td><td>WaziSense <code>A4</code></td><td>Isolator <code>SDA</code> (MCU side)</td><td>blue</td><td>both isolators share this net</td></tr>
+          <tr><td><code>SCL</code></td><td>WaziSense <code>A5</code></td><td>Isolator <code>SCL</code> (MCU side)</td><td>white</td><td>both isolators share this net</td></tr>
+          <tr><td>—</td><td colspan="4"><b>I²C pull-ups: measure first, do not assume.</b> The manual says WaziSense v2 carries 2 × 4.7 kΩ to 3.3 V via the <code>I2C_J</code> jumper, closed from the factory — <b>but this has been found OPEN on a real board</b> (<code>A4</code>/<code>A5</code> to 3V3 measured 5.9 MΩ). Check it: <code>A4</code>–<code>3V3</code> and <code>A5</code>–<code>3V3</code> must read <b>~4.7 kΩ</b>. If they read megohms, fit your own <b>2 × 4.7 kΩ from <code>A4</code> and <code>A5</code> to <code>X3-1</code></b>. If they read 4.7 kΩ, fit nothing — a second pair in parallel gives ~2.35 kΩ and overloads the bus.</td></tr>
+          <tr><td><code>ISO_VCC</code></td><td>Isolator <code>VCC</code> (isolated side)</td><td>EZO <code>VCC</code></td><td>short lead</td><td>floating supply</td></tr>
+          <tr><td><code>ISO_GND</code></td><td>Isolator <code>GND</code> (isolated side)</td><td>EZO <code>GND</code></td><td>short lead</td><td><b>must not touch <code>X1-2</code></b></td></tr>
+          <tr><td><code>ISO_SDA</code></td><td>Isolator <code>SDA</code> (isolated side)</td><td>EZO <code>SDA</code></td><td>short lead</td><td></td></tr>
+          <tr><td><code>ISO_SCL</code></td><td>Isolator <code>SCL</code> (isolated side)</td><td>EZO <code>SCL</code></td><td>short lead</td><td></td></tr>
+          <tr><td><code>PH_IN</code></td><td>pH probe BNC centre</td><td>EZO-pH probe <code>IN</code></td><td>coax core</td><td>keep this lead short</td></tr>
+          <tr><td><code>PH_SHD</code></td><td>pH probe BNC shell</td><td>EZO-pH probe <code>GND</code></td><td>coax shield</td><td>isolated domain, not <code>X1-2</code></td></tr>
+          <tr><td><code>EC_1</code></td><td>EC probe conductor 1</td><td>EZO-EC probe pin 1</td><td>—</td><td>EC probe leads are not polarised</td></tr>
+          <tr><td><code>EC_2</code></td><td>EC probe conductor 2</td><td>EZO-EC probe pin 2</td><td>—</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">TABLE 08b</span>Netlist — I²C <em>without</em> isolation (variant)</h2>
+    <p>Use this <strong>instead of</strong> Table 08, not alongside it. <strong>Twelve wires instead of
+       twenty</strong> — eight MCU-side taps plus four probe conductors, against the isolated version's eight
+       MCU-side, eight isolated-side and four probe. The probe connections are identical either way, so
+       fitting an isolator later means inserting one module into the four MCU-side nets of that channel and
+       nothing else. See Drawing 09 for what you are accepting in exchange.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Net</th><th>From</th><th>To</th><th>Wire</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><code>3V3SW</code></td><td><code>X3-1</code></td><td>EZO <code>VCC</code> — <b>both</b></td><td>orange</td><td>EZO circuits accept 3.3–5 V</td></tr>
+          <tr><td><code>GND</code></td><td><code>X1-2</code></td><td>EZO <code>GND</code> — <b>both</b></td><td>black</td><td><b>the shared node the loop closes through.</b> There is no <code>ISO_GND</code> in this variant.</td></tr>
+          <tr><td><code>SDA</code></td><td>WaziSense <code>A4</code></td><td>EZO <code>SDA</code> — <b>both</b></td><td>blue</td><td></td></tr>
+          <tr><td><code>SCL</code></td><td>WaziSense <code>A5</code></td><td>EZO <code>SCL</code> — <b>both</b></td><td>white</td><td></td></tr>
+          <tr><td><code>SDA_PU</code></td><td>4.7 kΩ</td><td><code>A4</code> → <code>X3-1</code></td><td>—</td><td rowspan="2"><b>Only if <code>I2C_J</code> is open</b> — measure <code>A4</code>/<code>A5</code> to 3V3 first, as in Table 08. Megohms means no pull-up and I²C cannot work at all: the TWI hardware waits for SCL to rise before it can even issue a START, so a missing pull-up hangs the Wire library outright.</td></tr>
+          <tr><td><code>SCL_PU</code></td><td>4.7 kΩ</td><td><code>A5</code> → <code>X3-1</code></td><td>—</td></tr>
+          <tr><td><code>PH_IN</code></td><td>pH probe BNC centre</td><td>EZO-pH probe <code>IN</code></td><td>coax core</td><td>keep this lead short</td></tr>
+          <tr><td><code>PH_SHD</code></td><td>pH probe BNC shell</td><td>EZO-pH probe <code>GND</code></td><td>coax shield</td><td>in this variant that <em>is</em> <code>X1-2</code> — the difference from Table 08 is here</td></tr>
+          <tr><td><code>EC_1</code></td><td>EC probe conductor 1</td><td>EZO-EC probe pin 1</td><td>—</td><td>EC probe leads are not polarised</td></tr>
+          <tr><td><code>EC_2</code></td><td>EC probe conductor 2</td><td>EZO-EC probe pin 2</td><td>—</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Everything else in this document is unchanged: the rail gating on <code>D6</code>, the ~1 s EZO boot
+       time in <code>RAIL33_SETTLE_MS</code>, and the UART → I²C protocol switch each circuit still needs
+       before it will answer at all.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">TABLE 09</span>Netlist — DS18B20 temperature <em>— fitted</em></h2>
+    <p><strong>This is the temperature sensor in the current build.</strong> Four wires, no front-end board, no
+       chip select, nothing on SPI. Water temperature lands on <strong>uplink channel 1</strong> either way, so
+       swapping back to the PT1000 later needs no change on the WaziCloud side.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Net</th><th>From</th><th>To</th><th>Wire</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><code>3V3SW</code></td><td><code>X3-1</code></td><td>DS18B20 <code>VDD</code></td><td>red</td><td></td></tr>
+          <tr><td><code>GND</code></td><td><code>X1-2</code></td><td>DS18B20 <code>GND</code></td><td>black</td><td></td></tr>
+          <tr><td><code>OW_DATA</code></td><td>WaziSense <code>A2</code></td><td>DS18B20 <code>DQ</code></td><td>yellow</td><td>D9 is the radio's RESET — not usable</td></tr>
+          <tr><td>—</td><td>4.7 kΩ</td><td><code>OW_DATA</code> → <code>X3-1</code></td><td>—</td><td><b>mandatory</b> 1-Wire pull-up — unlike the I²C ones, this resistor you <em>do</em> fit. To <code>X3-1</code>, not the board's permanent 3V3, or it feeds a dead sensor between measurements.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <h3>Three ways a DS18B20 reads wrong</h3>
+      <p><strong>No pull-up, no bus.</strong> Without the 4.7 kΩ the data line never returns high and the sensor
+         is simply absent — the library reports <code>-127 °C</code>
+         (<code>DEVICE_DISCONNECTED_C</code>). That is the first thing to check if temperature fails while
+         everything else works.</p>
+      <p><strong>Exactly 85.0 °C is not a temperature.</strong> It is the DS18B20's power-on reset value, and you
+         read it when the conversion has not finished or the supply is marginal. Since the rail is gated by
+         <code>D6</code>, a too-short settling time produces precisely this. The sketch's sanity band
+         (−20 °C to +60 °C) rejects both −127 and +85, so a rejected reading shows as <code>FAIL</code> rather
+         than as plausible-looking data.</p>
+      <p><strong>Do not use parasite power.</strong> Cheap sealed probes are sometimes wired for it, with
+         <code>VDD</code> tied to <code>GND</code>. Give the sensor its own <code>VDD</code> from
+         <code>X3-1</code>: parasite mode is marginal during the 750 ms conversion and pointless here, since you
+         are already running a ground wire to the probe.</p>
+      <p><strong>Check the lead colours against a meter, not against a colour convention.</strong> Sealed
+         DS18B20 probes commonly use red = <code>VDD</code>, black = <code>GND</code>, yellow =
+         <code>DQ</code>, but blue/white variants exist. If the probe has a bare drain wire, land it on
+         <code>X1-2</code> at the enclosure end only, like the RS485 shield.</p>
+      <p><strong>What you give up against the PT1000:</strong> ±0.5 °C instead of ±0.1 °C. Irrelevant for the pH
+         temperature compensation; for EC it is roughly ±1 % of reading, since conductivity drifts about 2 % per
+         °C. Acceptable for a test deployment — worth revisiting before the data is used for anything
+         regulatory.</p>
+    </div>
+  </section>
+
+  <div class="note">
+    <h3>The isolated grounds are not grounds</h3>
+    <p>Each EZO circuit sits behind its own isolator, so <code>ISO_GND</code> for pH and <code>ISO_GND</code> for
+       EC are <strong>two separate floating nets</strong> — neither of them is <code>X1-2</code>. Connecting either one
+       to the main ground, or to each other, restores exactly the path the isolators exist to break, and the pH
+       reading will start drifting whenever EC measures. When you check continuity during assembly, an open
+       circuit between <code>ISO_GND</code> and <code>X1-2</code> is the <em>correct</em> result.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">NOTES</span>Before you power it up</h2>
+    <ul class="checks">
+      <li><span class="n">01</span><div><strong>Set the RS485 addresses one probe at a time.</strong> Both probes
+        arrive on a factory default address and you cannot assume the two defaults differ. Connect a single
+        probe, set its address, disconnect, repeat. Two devices answering at once produces corrupted frames
+        that look exactly like a wiring fault.</div></li>
+      <li><span class="n">02</span><div><strong>Switch the positive line, never ground.</strong> This holds for
+        <em>both</em> gated rails. The two RS485 probes share their ground with the transceiver as the bus
+        reference; gating the ground side breaks that reference and the bus fails in ways that are hard to
+        trace. The WaziSense "Sensor Power" blocks are high-side by design, so this comes for free — just do
+        not be tempted to interrupt an X1-2 leg anywhere.</div></li>
+      <li><span class="n">02b</span><div><strong>Bring the rails up in order: 3.3 V first, then 12 V.</strong> The
+        transceiver has to be alive and its fail-safe bias established before the probes start driving the bus.
+        Power down in reverse. The sketch does this in <code>rails33On()</code> / <code>rails12On()</code> /
+        <code>railsOff()</code>; the 3.3 V settling delay is 1.2 s because the Atlas EZO circuits need about a
+        second to boot.</div></li>
+      <li><span class="n">03</span><div><strong>Confirm the XL6009 input range.</strong> Some variants start at 5 V, not 3 V.
+        You are feeding it from a 3.0–4.2 V cell, so verify the low end and set the output trimpot to
+        12 V <em>before</em> connecting any probe.</div></li>
+      <li><span class="n">04</span><div><strong>Isolate pH from EC.</strong> Both electrodes sit in the same water and the EC
+        probe injects AC current into it. Without galvanic isolation between the two EZO circuits, the pH
+        reading drifts whenever EC measures. Atlas sells isolated carrier boards for exactly this case.</div></li>
+      <li><span class="n">05</span><div><strong>Ground the cable shield at one end only.</strong> The enclosure end.
+        Grounding both ends turns the shield into a ground loop.</div></li>
+      <li><span class="n">06</span><div><strong>Desolder the module power LEDs — the ungated ones especially.</strong>
+        Anything on X3 is dead between measurements, so its LED costs almost nothing. The
+        <strong>XL6009</strong> is the one that matters: it is not gated in this build, so its LED and its
+        quiescent current run 24 h a day at 1–5 mA, which on a solar node is comparable to the MCU's own
+        sleep current.</div></li>
+      <li><span class="n">07</span><div><strong>Bring the buses up separately.</strong> Use the <code>ENABLE_*</code> flags at the
+        top of the sketch to test one sensor at a time before wiring the full bus.</div></li>
+      <li><span class="n">08</span><div><strong>Set the RS485 echo flag before you trust a timeout.</strong> With an
+        auto-direction module, <code>RS485_ECHOES_OWN_TX</code> being wrong looks exactly like a broken bus. Settle
+        it on the first probe you connect — see the note under Table 06.</div></li>
+      <li><span class="n">09</span><div><strong>Measure the I²C pull-ups before you trust them.</strong>
+        <code>A4</code>–<code>3V3</code> and <code>A5</code>–<code>3V3</code> must read <b>~4.7 kΩ</b>. The manual
+        says <code>I2C_J</code> ships closed, but it has been found <b>open</b> — 5.9 MΩ on both lines. A missing
+        pull-up is not a soft failure: the TWI hardware releases SCL and waits for it to rise before it can
+        issue a START, so it waits forever and the sketch stops dead with no message. If the jumper is open,
+        fit <b>2 × 4.7 kΩ from <code>A4</code>/<code>A5</code> to <code>X3-1</code></b> — the switched rail, so the
+        pull-ups power up and down with the devices they serve rather than leaking into unpowered
+        inputs.</div></li>
+      <li><span class="n">10</span><div><strong>Power gating replaces the EZO sleep command.</strong> The circuits lose
+        power entirely between readings, so nothing needs to be told to sleep. Their calibration lives in their
+        own EEPROM and survives — but each one needs its ~1 s boot time before it will answer.</div></li>
+    </ul>
+  </section>
+
+  <div class="note">
+    <h3>Register maps still need verifying</h3>
+    <p>The wiring above is settled, but the Modbus <strong>register numbers, data format and scaling</strong> in
+       the sketch's <code>MODBUS SENSOR MAP</code> block are placeholders. Check each against its own
+       datasheet before trusting a reading. Useful symptom: if a value comes back as nonsense
+       <em>while the CRC passes</em>, the register is probably right and the word order is wrong — switch
+       that sensor between <code>FMT_FLOAT_ABCD</code> and <code>FMT_FLOAT_CDAB</code>.</p>
+  </div>
+
+</div>

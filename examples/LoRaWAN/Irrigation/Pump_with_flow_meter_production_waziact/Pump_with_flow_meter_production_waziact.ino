@@ -7,31 +7,33 @@
 WaziDev wazidev;
 
 unsigned char LoRaWANKeys[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF, 0x67, 0x0D, 0x19, 0x5B, 0x5A, 0xED, 0x55, 0x25};
-unsigned char devAddr[4] = {0x26, 0x01, 0x1D, 0xE1};
+unsigned char devAddr[4] = {0x26, 0x01, 0x1D, 0xEE};
 
-const int interval = 3000;
+const int interval = 3000;                              // interval of LoRa downlink time
 const int relayPin = 7;
 
+// Parameters for Flowmeter
 volatile int NumPulses = 0;
 const int FlowMeterSensorDataPin = 5;
 const int FlowMeterSensorPowerPin = 6;
-volatile float factor_conversion = 0.2;         // estimated for DN50
-//const float factor_conversion = 5.625;        // for DN20
-float volume = 0;
+volatile float factor_conversion = 0.2;                // estimated for DN50
+//const float factor_conversion = 5.625;               // for DN20
+volatile float volume = 0.0;
 long dt = 0;
 long t0 = 0;
 volatile float amountWater = 0.0;
-volatile float amount_given = 0.0;              // for confirmation
+volatile float amount_given = 0.0;                    // for confirmation
 
 
-int previousState = LOW;
+int previousState = LOW;                              // relay is always off
 unsigned long startTime = 0;
 const unsigned long samplingTime = 1000;
 
-const long MAX_IRRIGATION_TIME = 10000;//1800000; // 30min
-const long REST_PERIOD = 5000;//1800000;         // 30min for pump 
+// Overheat protection for pumps, max operation time and rest time
+const long MAX_IRRIGATION_TIME = 7200000;//1800000;   // 2h or 30min    DEBUG
+const long REST_PERIOD = 1800000;                     // 30min for pump DEBUG
 
-const int sleep_sec = 60;//1800; // Time in sec in sleep mode DEBUG
+const int sleep_sec = 900; // Time in sec in sleep mode DEBUG
 
 // unsigned long lastTransmissionTime = 0;
 // const unsigned long interval_vcc = 3000;//3600000; // 60 minutes in milliseconds //DEBUG
@@ -150,7 +152,7 @@ int irrigate(float amount) {
     Serial.print(amount, 3);
     Serial.println(F(" m³"));
 
-    while (volume < amount) {
+    while (volume <= amount) {
         if (millis() - startIrrigationTime >= MAX_IRRIGATION_TIME) {
             Serial.println(F("Max irrigation time reached. Pausing irrigation."));
             digitalWrite(relayPin, LOW);
@@ -246,8 +248,11 @@ uint8_t uplink() {
 
     // Send a confirmation
     if (amount_given != 0.0) {
-      serialPrintf(("Amount given in last irrigation %d m³.\n"), amount_given);
-      xlpp.addAnalogInput(5, amount_given);
+      Serial.print(F("Amount given in last irrigation "));
+      Serial.print(amount_given, 3);
+      Serial.println(F(" m³."));
+      xlpp.addAnalogInput(5, amount_given); 
+      // Keeping channel 5 is crutial for the system to work -> will later fetch the flow meters device with channel 5 for confirmation 
     }
     amount_given = 0.0;
 

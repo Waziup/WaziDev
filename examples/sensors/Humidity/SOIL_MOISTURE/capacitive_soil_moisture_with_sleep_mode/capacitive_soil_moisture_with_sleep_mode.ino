@@ -7,9 +7,9 @@
 WaziDev wazidev;
 
 unsigned char LoRaWANKeys[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF, 0x67, 0x0D, 0x19, 0x5B, 0x5A, 0xED, 0x55, 0x25};
-unsigned char devAddr[4] = {0x26, 0x01, 0x1D, 0xC8};
+unsigned char devAddr[4] = {0x26, 0x01, 0x1B, 0xC2};
 
-const int sleep_sec = 1800;//1800 // Time in sec in sleep mode DEBUG
+const int sleep_sec = 1800; //1800 // Time in sec in sleep mode DEBUG
 
 const int ledPin = 8;
 const int totalBlinks = 20;
@@ -19,16 +19,16 @@ const int finalDelay = 10;
 XLPP xlpp(40);
 
 // Define the analog pin for the soil moisture sensor
-const int moisturePin = A0;
+const int moisturePin = A1;
 
 // Define the digital pin to supply power to the sensor
-const int sensorPowerPin = 5;
+const int sensorPowerPin = 3;
 
 // Variable to store the sensor value
 int sensorValue;
 
 // Replace these with your calibration values
-const int dryValue = 160;  
+const int dryValue = 145;  
 const int wetValue = 0;
 
 void blink_led() {

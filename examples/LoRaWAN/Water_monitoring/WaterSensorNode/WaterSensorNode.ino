@@ -94,7 +94,7 @@
 // MODBUS_RETRIES, and the turbidity wiper wait alone is 30 s.
 #define ENABLE_PT1000     0     // MAX31865 + 3-wire PT1000 (SPI) - not fitted
 #define ENABLE_DO         1     // RS485 0x01 - SEN0680, registers verified
-#define ENABLE_TURBIDITY  0     // RS485  - probe not connected yet
+#define ENABLE_TURBIDITY  1     // RS485  - probe not connected yet
 // Both circuits were switched from UART to I2C on 2026-09-07 and verified
 // with I2CScan: 0x63 and 0x64 both ACK, and SDA's driven-low residual fell
 // from 2177 mV to 12 mV - an I2C pin is open-drain and never drives high,
@@ -132,12 +132,37 @@ unsigned char LoRaWANKeys[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF,
 unsigned char devAddr[4]      = {0x26, 0x01, 0x1B, 0xEE};
 
 const int interval  = 3000;   // downlink RX window (ms)
-int       sleep_sec = 900;    // 15 min base cycle; downlink-settable
+int       sleep_sec = 1800;   // 30 min base cycle; downlink-settable
 
-// Turbidity is the slowest and hungriest reading (~30 s wiper sweep). The
-// Requirements table asks for turbidity every 60 min on a 15 min base cycle,
-// so it is read every 4th cycle. Set to 1 to read it every time.
-const uint8_t TURBIDITY_EVERY_N_CYCLES = 4;
+// ---------------------------------------------------------------------------
+//  ENERGY BUDGET, measured and calculated for the 30 min cycle
+//
+//    measurement window  ~50 s at ~90 mA   ->  1.25 mAh
+//    LoRa transmit       2.4 s at ~120 mA  ->  0.08 mAh
+//    sleep               1750 s            ->  1.94 mAh   <-- the big one
+//                                              ---------
+//    per cycle                                  3.3 mAh
+//    48 cycles/day                            ~158 mAh/day
+//
+//  The sleep figure is NOT the MCU. LowPower.powerDown with ADC and BOD off
+//  leaves the ATmega drawing microamps. It is the XL6009 boost converter,
+//  which is not gated and therefore idles 24 h a day at roughly 3-5 mA. That
+//  single component is about 59 % of the whole budget - more than every
+//  measurement put together.
+//
+//  Software cannot fix it. The fix is a high-side switch in the boost's INPUT
+//  (Pololu #2810, 2-20 V / 6 A) driven from D7, which also makes the
+//  opto-isolated module on the output redundant: if the converter is off, the
+//  12 V rail does not exist. That takes the budget to about 65 mAh/day.
+//
+//  What IS fixed in software below: three delays that cost awake time and buy
+//  nothing (3 s before transmit, 200 samples for one battery reading, 2 s
+//  around the sleep call).
+// ---------------------------------------------------------------------------
+
+// Turbidity is the slowest reading. The requirement is hourly, and the base
+// cycle is now 30 min, so every 2nd cycle. Set to 1 to read it every time.
+const uint8_t TURBIDITY_EVERY_N_CYCLES = 1;
 uint8_t       cycleCount = 0;
 
 // ---------------------------------------------------------------------------
@@ -183,33 +208,66 @@ DallasTemperature ds18b20(&oneWire);
 // ---------------------------------------------------------------------------
 //  MODBUS SENSOR MAP   <<<<<  VERIFY AGAINST THE DATASHEETS  >>>>>
 //    FMT_FLOAT_ABCD : IEEE-754 float, 2 registers, high word first
-//    FMT_FLOAT_CDAB : IEEE-754 float, 2 registers, word-swapped (common)
+//    FMT_FLOAT_CDAB : IEEE-754 float, 2 registers, word-swapped
+//    FMT_FLOAT_DCBA : IEEE-754 float, 2 registers, ALL FOUR BYTES REVERSED
 //    FMT_INT_SCALED : single 16-bit register * SCALE
+//
 //  If a value is garbage but the CRC passes, the register is probably right
-//  and the WORD ORDER is wrong -> try the other float format.
+//  and the byte order is wrong. Try all of them - and note that two devices
+//  on the SAME bus can disagree: the SEN0680 is ABCD, the Y511-A is DCBA.
+//
+//  DCBA is why a Yosemitech reading looked like nonsense at first. Its bytes
+//  arrive as 10 5C CA 41, which is the float 41 CA 5C 10 = 25.29 read
+//  backwards. A vendor writing "little-endian" may mean word-swapped (CDAB)
+//  or fully reversed (DCBA); only the plausible number tells you which.
 // ---------------------------------------------------------------------------
 #define FMT_FLOAT_ABCD   0
 #define FMT_FLOAT_CDAB   1
 #define FMT_INT_SCALED   2
+#define FMT_FLOAT_DCBA   3
 
-// 4800 is the SEN0680's FACTORY DEFAULT, not a choice - DFRobot ships it at
-// 4800 8N1. The whole bus therefore runs at 4800 for now, which is fine: it
-// only makes the timing analysis behind the single 120 Ohm terminator more
-// forgiving (208 us per bit instead of 104).
+// TWO DEVICES, TWO BAUD RATES, NO RECONFIGURATION.
 //
-// When the Y511-A arrives, one of the two has to move so both match. Either
-// write 9600 into the SEN0680's register 0x07D1, or set the Y511-A to 4800 -
-// check its factory default first and change whichever is the odd one out.
-const uint32_t RS485_BAUD        = 4800;
+// The SEN0680 ships at 4800 8N1. The Y511-A is 9600 8N1 and stays silent at
+// 4800 - tested, 45 s of nothing, then found immediately at 9600. So one of
+// them would normally have to be reconfigured to match the other.
+//
+// It does not. SoftwareSerial can change rate at runtime, and the two sensors
+// are never read at the same instant anyway, so the bus rate is switched
+// before addressing each one. Both keep their factory settings, and in
+// particular the SEN0680's baud register 0x07D1 is left alone - DFRobot does
+// not document what value selects which rate, and a wrong guess could land it
+// at 57600 or 115200 where SoftwareSerial on a 16 MHz AVR cannot reach it.
+//
+// The rate difference also separates the two devices even though both are on
+// factory address 0x01: a frame sent at the wrong rate arrives as framing
+// garbage with a broken CRC, and Modbus requires a valid CRC before a slave
+// acts. Moving the Y511-A to its own address is still worth doing later as
+// hygiene (register 0x3000, documented) - but nothing needs it to work.
+const uint32_t DO_BAUD           = 4800;     // SEN0680, factory
+const uint32_t TURB_BAUD         = 9600;     // Y511-A, fixed
+
+uint32_t rs485CurrentBaud = 0;               // 0 = not begun yet
+
+void rs485SetBaud(uint32_t baud) {
+  if (baud == rs485CurrentBaud) return;
+  if (rs485CurrentBaud) rs485.end();
+  rs485.begin(baud);
+  rs485CurrentBaud = baud;
+  delay(20);                                 // let the receiver settle
+}
 const uint16_t MODBUS_TIMEOUT_MS = 1000;
 const uint8_t  MODBUS_RETRIES    = 3;
 
-// Auto-direction modules usually tie RE permanently low, which means the
-// receiver stays on while you transmit and you read your own frame back.
-// Both behaviours exist, so this has to be established once on the bench:
-//   - set to 1, and if every read times out, set it to 0 (and vice versa).
-// A wrong setting looks like "no response" or a stream of CRC errors.
-#define RS485_ECHOES_OWN_TX   1
+// SETTLED ON THE BENCH, 2026-09-08. This module does NOT echo: it disables
+// its receiver while transmitting, so nothing comes back but the slave's
+// reply. Raw scan showed exactly 9 bytes, "01 03 04 40 D4 C1 62 7F B2", with
+// no copy of our own 8-byte request in front of it.
+//
+// This was set to 1 for two days and that is what hid the sensor: the discard
+// window swallowed the reply as if it were an echo, and every read reported
+// "Modbus timeout". Do not change it back without re-running RS485Scan.
+#define RS485_ECHOES_OWN_TX   0
 
 // --- DFRobot SEN0680 dissolved oxygen -------------------------------------
 //  VERIFIED against wiki.dfrobot.com/sen0680 - no longer placeholders.
@@ -232,6 +290,26 @@ const uint8_t  DO_ADDR           = 0x01;
 const uint16_t DO_REG            = 0x0002;   // concentration in mg/L
 const uint8_t  DO_FMT            = FMT_FLOAT_ABCD;
 const float    DO_SCALE          = 1.0;      // already mg/L
+
+// Confirmed on the wire, not just from the wiki. A register sweep read two
+// registers from every address, so the windows overlap and the raw values can
+// be reconstructed:
+//    0x0000-01  3F51 0872  ->  0.8165        saturation, as a FRACTION
+//    0x0002-03  40D4 A131  ->  6.64 mg/L     concentration
+//    0x0004-05  41CC F9FF  ->  25.62 degC    temperature
+//    0x0006-09  ~17.2                        internal, undocumented
+//    0x000A+    all zero                     unused
+// Cross-check: saturation at 25.6 degC is about 8.2 mg/L, and 6.64/8.2 =
+// 0.81 - the same 0.8165 the first register reports. The decode is
+// self-consistent, so ABCD is right; CDAB gives -0.0000 or ovf on every
+// register that holds a real value.
+
+// The DO sensor measures water temperature anyway, at the probe tip. Free to
+// read - it is two registers further on - and it cross-checks the DS18B20,
+// which sits in a different spot. Two independent temperatures that disagree
+// is a fault you want to see in the data rather than discover later.
+#define ENABLE_DO_TEMP  1
+const uint16_t DO_TEMP_REG       = 0x0004;
 
 //  ####################################################################
 //  ##  ATMOSPHERIC PRESSURE COMPENSATION - register 0x1022           ##
@@ -258,19 +336,80 @@ const float    DO_SCALE          = 1.0;      // already mg/L
 //  are paying for awake time you do not need.
 const uint16_t DO_WARMUP_MS      = 30000;
 
-// --- Yosemitech Y511-A turbidity (self-cleaning) ---
-//  STILL PLACEHOLDERS - not yet verified against the Y511-A manual. Check the
-//  address, baud rate, register numbers and word order before enabling it,
-//  exactly as was done for the SEN0680 above. Its factory baud rate also
-//  decides whether it or the SEN0680 has to be reconfigured to match.
-const uint8_t  TURB_ADDR         = 0x03;
-const uint16_t TURB_REG          = 0x2600;
-const uint8_t  TURB_FMT          = FMT_FLOAT_CDAB;
-const float    TURB_SCALE        = 1.0;      // NTU
+// --- Yosemitech Y511-A turbidity (self-cleaning) ---------------------------
+//  Registers from the EnviroDIY YosemitechModbus library; byte order and the
+//  value layout confirmed on the wire at 9600 8N1.
+//
+//  Supply      DC 12-24 V, source must manage >500 mA for the wiper motor.
+//              0.2 W idle, 0.6 W wiping. Keep the boost at ~13.5 V: 12 V is
+//              the MINIMUM and the 10 m cable drops some of it.
+//  Registers   0x2600-01  temperature, degC        <-- 25.29 measured
+//              0x2602-03  turbidity, NTU           <-- 6.13 measured
+//              0x2500     start measurement        0x2E00  stop
+//              0x3100     activate brush           0x3200  brush interval, min
+//              0x3000     slave address            0x1100  calibration K and B
+//  Format      float, ALL BYTES REVERSED -> FMT_FLOAT_DCBA. Not the same as
+//              the SEN0680 on the same bus, which is ABCD.
+//
+//  Which pair is which is inferred, not documented: 25.29 matched the ambient
+//  temperature that both DO units independently reported (25.05 and 25.62).
+//  Confirm it in water: stir in a little milk or silt and turbidity must jump
+//  while temperature stays put. If they swap, exchange the two registers.
+// Left at the factory address. The baud difference is what separates it from
+// the SEN0680, so no write is needed. If you do move it to 0x03 via register
+// 0x3000 for cleanliness, change this to match.
+const uint8_t  TURB_ADDR         = 0x01;
+const uint16_t TURB_REG          = 0x2602;   // turbidity, NTU
+const uint8_t  TURB_FMT          = FMT_FLOAT_DCBA;
+const float    TURB_SCALE        = 1.0;      // already NTU
+const uint16_t TURB_TEMP_REG     = 0x2600;   // its own temperature, degC
+
+//  Command registers. These are used to build the frames in
+//  turbActivateBrush() and turbStartMeasurement(), so changing one here does
+//  change what goes on the wire - see the YOSEMITECH COMMAND FRAMES block
+//  further down for the bytes, the replies, and why the framing is unusual.
+const uint16_t TURB_BRUSH_REG    = 0x3100;   // activateBrush,    fn 0x10
+const uint16_t TURB_START_REG    = 0x2500;   // startMeasurement, fn 0x03
 const uint8_t  TURB_NEEDS_START  = 1;
-const uint16_t TURB_START_REG    = 0x2500;
-const uint16_t TURB_START_VALUE  = 0x0001;
-const uint16_t TURB_WARMUP_MS    = 30000;    // wiper sweep + optics settle
+const uint16_t TURB_WARMUP_MS    = 35000;    // brush sweep + optics settle
+
+//  ####################################################################
+//  ##  THE BRUSH IS COMMANDED, NOT SCHEDULED                         ##
+//  ##                                                                ##
+//  ##  The Y511-A does have an automatic brush interval, and on this  ##
+//  ##  unit register 0x3200 reads 0x001E - THIRTY MINUTES. (Note the  ##
+//  ##  byte order: Yosemitech sends 16-bit values little-endian too,  ##
+//  ##  so the bytes 1E 00 are 30, not 7680.)                          ##
+//  ##                                                                ##
+//  ##  It is useless here regardless, because that timer only counts  ##
+//  ##  while the sensor is POWERED, and this node powers it for under ##
+//  ##  a minute per hour - it would take 30 hours of service to       ##
+//  ##  accumulate 30 minutes of power-on time. It is also the         ##
+//  ##  explanation for the one sweep seen during bench work: the      ##
+//  ##  probe sat continuously powered for well over 30 minutes during ##
+//  ##  the RS485 debugging.                                           ##
+//  ##                                                                ##
+//  ##  So the sweep is commanded before every turbidity reading.      ##
+//  ##  Anti-fouling is the entire reason this sensor was chosen over  ##
+//  ##  a cheaper one, and a reading through a fouled window is worth  ##
+//  ##  nothing - so the default is to brush every time rather than to ##
+//  ##  save wiper cycles.                                            ##
+//  ####################################################################
+#define TURB_BRUSH_BEFORE_READ   1
+
+//  Diagnostic pause, off. It answered its question: the wiper does not move
+//  while the rail simply sits powered, so power-up is not a trigger. Set it
+//  to 1 again for the next sensor that needs the same question asked.
+#define TURB_TRIGGER_PROBE       0
+const uint16_t TURB_PROBE_MS     = 15000;
+
+//  Every Nth turbidity reading gets a sweep. 1 = every reading, which at an
+//  hourly turbidity interval is 24 sweeps a day. Energy is not the concern -
+//  a 10 s sweep at 0.6 W is 6 J, so 24 of them are 0.04 Wh - but mechanical
+//  wear might be, and Yosemitech does not publish a wiper lifetime. Raise
+//  this only if you have asked them and know the number.
+const uint8_t  TURB_BRUSH_EVERY_N = 2;
+uint8_t        turbReadCount = 0;
 
 // Rail settling times.
 //   3.3 V: the EZO circuits need roughly a second to boot after power-up.
@@ -329,12 +468,14 @@ void sleep(int sec_to_sleep) {
   Serial.print(F("Will sleep now for approximately "));
   Serial.print(sec_to_sleep);
   Serial.println(F(" seconds."));
-  delay(1000);
+
+  // Serial.flush() instead of delay(1000): it waits for exactly as long as
+  // the last characters need to leave the UART, rather than a fixed second.
+  Serial.flush();
 
   for (int i = 0; i < sec_to_sleep / 8; i++) {
     LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
   }
-  delay(1000);
   Serial.println(F("--------------------------------------------------"));
   Serial.print(sec_to_sleep);
   Serial.println(F(" seconds have passed. Performing task..."));
@@ -477,6 +618,70 @@ bool modbusWriteRegister(uint8_t slave, uint16_t reg, uint16_t value) {
   return (got == 8);
 }
 
+// ===========================================================================
+//  YOSEMITECH COMMAND FRAMES
+//
+//  Several Yosemitech actions are triggered by frames that are NOT valid
+//  Modbus: the register-COUNT field is 0x0000. A standard read or write to
+//  the same register is a different frame on the wire and gets ignored, which
+//  is exactly why earlier attempts at 0x3100 did nothing at all.
+//
+//  Verified on the wire, 2026-09-09, with the wiper watched:
+//
+//    activateBrush     01 10 31 00 00 00 00 74 94
+//                   -> 01 10 31 00 00 00 CE F5      MOVES THE WIPER
+//
+//    startMeasurement  01 03 25 00 00 00 4E C6
+//                   -> 01 03 00 20 F0               accepted, no sweep
+//
+//  So the register was right all along and only the framing was wrong. And
+//  the guess that startMeasurement sweeps as a side effect was wrong: it does
+//  not. The sweep seen during earlier bench work was almost certainly the
+//  sensor's own interval timer in 0x3200, which could actually elapse while
+//  the probe sat powered on the desk for minutes at a time - something it
+//  never gets to do in service.
+// ===========================================================================
+bool rs485RawCommand(const uint8_t *payload, uint8_t len) {
+  uint8_t f[12];
+  memcpy(f, payload, len);
+  uint16_t crc = modbusCRC(f, len);
+  f[len]     = crc & 0xFF;
+  f[len + 1] = (crc >> 8) & 0xFF;
+
+  rs485Flush();
+  rs485.write(f, len + 2);
+  rs485.flush();
+  delay(2);
+  rs485DiscardEcho(len + 2);
+
+  // The acknowledgement's shape differs per command, so this only checks
+  // that something came back rather than parsing it.
+  uint8_t got = 0;
+  unsigned long t0 = millis();
+  while (got < 24 && (millis() - t0) < 300) {
+    if (rs485.available()) { rs485.read(); got++; }
+  }
+  return got > 0;
+}
+
+bool turbActivateBrush() {
+  // addr, fn 0x10, register, count 0x0000, byte-count 0x00
+  const uint8_t f[7] = {TURB_ADDR, 0x10,
+                        (uint8_t)(TURB_BRUSH_REG >> 8),
+                        (uint8_t)(TURB_BRUSH_REG & 0xFF),
+                        0x00, 0x00, 0x00};
+  return rs485RawCommand(f, 7);
+}
+
+bool turbStartMeasurement() {
+  // addr, fn 0x03, register, count 0x0000
+  const uint8_t f[6] = {TURB_ADDR, 0x03,
+                        (uint8_t)(TURB_START_REG >> 8),
+                        (uint8_t)(TURB_START_REG & 0xFF),
+                        0x00, 0x00};
+  return rs485RawCommand(f, 6);
+}
+
 float modbusReadValue(uint8_t slave, uint16_t reg, uint8_t fmt, float scale) {
   uint16_t r[2];
 
@@ -488,8 +693,18 @@ float modbusReadValue(uint8_t slave, uint16_t reg, uint8_t fmt, float scale) {
   if (!modbusReadRegisters(slave, reg, 2, r)) return NAN;
 
   uint32_t raw;
-  if (fmt == FMT_FLOAT_ABCD) raw = ((uint32_t)r[0] << 16) | r[1];
-  else                       raw = ((uint32_t)r[1] << 16) | r[0];   // CDAB
+  if (fmt == FMT_FLOAT_ABCD) {
+    raw = ((uint32_t)r[0] << 16) | r[1];
+  } else if (fmt == FMT_FLOAT_DCBA) {
+    // Every byte reversed, not just the words. The registers arrive
+    // big-endian on the wire, so pull them apart and rebuild backwards.
+    uint8_t b0 = (uint8_t)(r[0] >> 8), b1 = (uint8_t)(r[0] & 0xFF);
+    uint8_t b2 = (uint8_t)(r[1] >> 8), b3 = (uint8_t)(r[1] & 0xFF);
+    raw = ((uint32_t)b3 << 24) | ((uint32_t)b2 << 16) |
+          ((uint32_t)b1 << 8)  |  (uint32_t)b0;
+  } else {
+    raw = ((uint32_t)r[1] << 16) | r[0];                            // CDAB
+  }
 
   float f;
   memcpy(&f, &raw, 4);
@@ -600,19 +815,23 @@ float ezoRead(uint8_t addr) {
 // ===========================================================================
 //  SENSOR READ FUNCTIONS
 // ===========================================================================
-float readVolts() {
-  int j = 0;
-  float vcc_reg = 0;
-  for (j = 0; j < 100; j++) { vcc_reg += vcc.Read_Volts(); delay(5); }
-  vcc_reg /= j;
+// 16 samples each, not 100. The original 200 samples with 5 ms between them
+// cost a full second of awake time to average away noise that 16 samples
+// already handle - the ADC's own repeatability is far better than the
+// uncalibrated divider factor below, so more averaging buys nothing.
+const uint8_t BATT_SAMPLES = 16;
 
-  int i = 0;
+float readVolts() {
+  float vcc_reg = 0;
+  for (uint8_t j = 0; j < BATT_SAMPLES; j++) { vcc_reg += vcc.Read_Volts(); delay(2); }
+  vcc_reg /= BATT_SAMPLES;
+
   float last_vcc = 0;
-  for (i = 0; i < 100; i++) {
+  for (uint8_t i = 0; i < BATT_SAMPLES; i++) {
     last_vcc += ((analogRead(batt_pin) * (vcc_reg / 1023.0)) * 3.83);
-    delay(5);
+    delay(2);
   }
-  last_vcc /= i;
+  last_vcc /= BATT_SAMPLES;
 
   Serial.print(F("Battery: "));
   Serial.print(last_vcc, 2);
@@ -665,9 +884,35 @@ void readAllSensors(bool doTurbidity) {
   // --- kick off turbidity first: its wiper is by far the slowest step ---
 #if ENABLE_TURBIDITY
   unsigned long turbStart = 0;
-  if (doTurbidity && TURB_NEEDS_START) {
-    Serial.println(F("Turbidity: start measurement + wiper"));
-    modbusWriteRegister(TURB_ADDR, TURB_START_REG, TURB_START_VALUE);
+  if (doTurbidity) {
+
+#if TURB_TRIGGER_PROBE
+    // Nothing is sent during this window. If the wiper moves here, the rail
+    // coming up is what triggers it and no command is needed at all.
+    Serial.print(F("Turbidity: silent pause, no command sent - "));
+    Serial.print(TURB_PROBE_MS / 1000);
+    Serial.println(F(" s. Does the wiper move NOW?"));
+    Serial.flush();
+    delay(TURB_PROBE_MS);
+    Serial.println(F("Turbidity: pause over, sending commands from here on"));
+#endif
+
+    rs485SetBaud(TURB_BAUD);
+
+#if TURB_BRUSH_BEFORE_READ
+    if (TURB_BRUSH_EVERY_N <= 1 || (turbReadCount % TURB_BRUSH_EVERY_N) == 0) {
+      Serial.print(F("Turbidity: brush sweep ("));
+      Serial.print(turbActivateBrush() ? F("acknowledged") : F("NO REPLY"));
+      Serial.println(F(") - ~10 s"));
+    }
+    turbReadCount++;
+#endif
+
+    if (TURB_NEEDS_START) {
+      Serial.print(F("Turbidity: start measurement ("));
+      Serial.print(turbStartMeasurement() ? F("acknowledged") : F("NO REPLY"));
+      Serial.println(F(")"));
+    }
     turbStart = millis();
   }
 #endif
@@ -711,18 +956,50 @@ void readAllSensors(bool doTurbidity) {
 #if ENABLE_DO
   Serial.println(F("DO: warming up optics..."));
   delay(DO_WARMUP_MS);
+  rs485SetBaud(DO_BAUD);
   v_do = modbusReadValue(DO_ADDR, DO_REG, DO_FMT, DO_SCALE);
   Serial.print(F("Dissolved oxygen: "));
   if (isnan(v_do)) Serial.println(F("FAIL"));
   else { Serial.print(v_do, 2); Serial.println(F(" mg/L")); }
+
+#if ENABLE_DO_TEMP
+  float t3 = modbusReadValue(DO_ADDR, DO_TEMP_REG, DO_FMT, 1.0);
+  if (t3 > -20.0 && t3 < 60.0) v_temp2 = t3;      // same sanity band as above
+  Serial.print(F("Temperature (DO probe): "));
+  if (isnan(v_temp2)) Serial.println(F("FAIL"));
+  else {
+    Serial.print(v_temp2, 2);
+    Serial.print(F(" degC"));
+    if (!isnan(v_temp)) {
+      Serial.print(F("   (DS18B20 differs by "));
+      Serial.print(fabs(v_temp2 - v_temp), 2);
+      Serial.print(F(" K)"));
+    }
+    Serial.println();
+  }
+#endif
 #endif
 
   // --- pH and EC, temperature-compensated ---
 #if ENABLE_PH
   ezoSetTemperature(EZO_PH_ADDR, v_temp);
   v_ph = ezoRead(EZO_PH_ADDR);
+
+  // ezoRead() only returns NAN when the I2C exchange itself failed. If the
+  // circuit answers with something atof() cannot parse, atof() returns 0.0 -
+  // and 0.0 is a number, so it would go out as a valid pH reading. It is not
+  // one: the EZO measures from 0.001 upwards and lake water never comes near
+  // it. Same idea as the DS18B20 bands, which reject -127 and +85.
+  if (!isnan(v_ph) && (v_ph < 0 || v_ph > 14.0)) {
+    Serial.print(F("pH: rejected "));
+    Serial.print(v_ph, 2);
+    Serial.println(F(" - outside 0.5..14, treating as no reading"));
+    v_ph = NAN;
+  }
+
   Serial.print(F("pH: "));
-  if (isnan(v_ph)) Serial.println(F("FAIL")); else Serial.println(v_ph, 2);
+  if (isnan(v_ph)) Serial.println(F("FAIL (no probe attached?)"));
+  else Serial.println(v_ph, 2);
 #endif
 
 #if ENABLE_EC
@@ -745,6 +1022,7 @@ void readAllSensors(bool doTurbidity) {
         delay(remaining);
       }
     }
+    rs485SetBaud(TURB_BAUD);
     v_turb = modbusReadValue(TURB_ADDR, TURB_REG, TURB_FMT, TURB_SCALE);
     Serial.print(F("Turbidity: "));
     if (isnan(v_turb)) Serial.println(F("FAIL"));
@@ -767,16 +1045,25 @@ void readAllSensors(bool doTurbidity) {
 //    ch 2  Battery          addVoltage
 //    ch 3  pH               addAnalogInput   direct (0..14)
 //    ch 4  Dissolved oxygen addAnalogInput   direct mg/L (0..20)
-//    ch 5  Conductivity     addAnalogInput   *** sent in mS/cm ***
+//    ch 5  Conductivity     addAnalogInput   *** sent as uS/cm / 100 ***
 //    ch 6  Turbidity        addAnalogInput   *** sent as NTU/10 ***
-//    ch 7  2nd temperature  addTemperature   only sent when BOTH a PT1000
-//                                             and a DS18B20 are fitted, as a
-//                                             cross-check. Absent in this build.
+//    ch 7  2nd temperature  addTemperature   the SEN0680's own temperature,
+//                                             measured at the DO probe tip.
+//                                             A cross-check on ch 1, which is
+//                                             the DS18B20 in a different spot.
 //
 //  !! LPP_ANALOG_INPUT is a signed 2-byte value with 0.01 resolution, so its
 //  !! range is only +/-327.67. EC in uS/cm and turbidity up to 1000 NTU would
 //  !! OVERFLOW - hence the scaling. The WaziCloud decoder must undo it:
-//  !!    EC_uS = ch5 * 1000 ;  NTU = ch6 * 10
+//  !!    EC_uS = ch5 * 100 ;  NTU = ch6 * 10
+//  !!
+//  !! The two divisors are chosen from the SENSORS' accuracy, not for tidiness.
+//  !!   EC  /100  -> 1 uS/cm steps, up to 32767 uS/cm. Dividing by 1000 instead
+//  !!               would give 10 uS/cm steps, and Lake Victoria sits near
+//  !!               100 uS/cm where the EZO-EC is accurate to about 2 uS/cm -
+//  !!               the format would have been 5x coarser than the sensor.
+//  !!   NTU /10   -> 0.1 NTU steps, up to 3276 NTU. Already finer than the
+//  !!               Y511-A's +/-5 % or 0.3 NTU, so no reason to go further.
 //  Channels whose read failed (or that were skipped) are simply omitted.
 //  Channel 1 always carries the water temperature, whichever sensor produced
 //  it - so swapping PT1000 for DS18B20 does not change the decoder.
@@ -791,12 +1078,15 @@ uint8_t uplink() {
 
   if (!isnan(v_ph))    xlpp.addAnalogInput(3, v_ph);
   if (!isnan(v_do))    xlpp.addAnalogInput(4, v_do);
-  if (!isnan(v_ec))    xlpp.addAnalogInput(5, v_ec / 1000.0);   // uS/cm -> mS/cm
+  if (!isnan(v_ec))    xlpp.addAnalogInput(5, v_ec / 100.0);    // uS/cm / 100
   if (!isnan(v_turb))  xlpp.addAnalogInput(6, v_turb / 10.0);   // NTU  -> NTU/10
   if (!isnan(v_temp2)) xlpp.addTemperature(7, v_temp2);
 
+  // The 3 s delay that used to sit here came from the WaziDev example and
+  // served nothing: the radio is already initialised and the rails are
+  // already down by this point, so it was three seconds of the MCU simply
+  // waiting. Removed.
   serialPrintf(("LoRaWAN send ... "));
-  delay(3000);
   uint8_t e = wazidev.sendLoRaWAN(xlpp.buf, xlpp.len);
   if (e != 0) {
     serialPrintf(("Err %d\n"), e);
@@ -904,7 +1194,7 @@ void setup() {
   digitalWrite(MAX31865_CS, HIGH);        // deselect before the radio inits
 #endif
 
-  rs485.begin(RS485_BAUD);
+  rs485SetBaud(DO_BAUD);        // rate is re-selected before each sensor
 
   Wire.begin();                           // A4/A5, pull-ups are on-board
 

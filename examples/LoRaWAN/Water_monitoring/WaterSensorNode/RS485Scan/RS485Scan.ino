@@ -68,17 +68,25 @@ const uint8_t  N_BAUDS = sizeof(BAUDS) / sizeof(BAUDS[0]);
 //    SEN0680 (verified) :  4800, 0x01, register 0x0002
 //    Y511-A  (factory)  :  9600, 0x01, register unknown -> use SWEEP_REGISTERS
 // ---------------------------------------------------------------------------
-#define AIM_BAUD        9600
+#define AIM_BAUD        4800     // Y511-A: fixed 9600 8N1, 4800 for SEN0680
 #define AIM_ADDR        0x01
-uint16_t PROBE_REG   = 0x0002;            // not const: the sweep moves it
+uint16_t PROBE_REG   = 0x2600;            // Y511-A values; sweep moves it
 const uint8_t  PROBE_COUNT = 2;           // two registers = one float
 
 // A device whose register map you do not have will answer on some registers
 // and stay silent (or return an exception) on all the others. Sweeping two
 // narrow windows finds the live ones in well under a minute. Set to 0 to skip.
 #define SWEEP_REGISTERS 1
-const uint16_t SWEEP_FROM[] = {0x0000, 0x2600};   // window starts
-const uint16_t SWEEP_LEN    = 0x14;               // 20 registers per window
+// Yosemitech register areas, from the EnviroDIY library - not guesses:
+//   0x2600  values + temperature (5 registers)   0x2500  start measurement
+//   0x3000  slave address                        0x3100  activate brush
+//   0x1400  serial number, 14 ASCII characters
+// Sweeping 0x2600 pins down which pair is turbidity and which is temperature;
+// sweeping 0x1400 returns readable ASCII, which confirms the device identity.
+// NOTE: Yosemitech floats are LITTLE-endian, so the plausible column here is
+// CDAB - the opposite of the SEN0680.
+const uint16_t SWEEP_FROM[] = {0x2600, 0x1400};   // window starts
+const uint16_t SWEEP_LEN    = 0x0A;               // 10 registers per window
 const uint8_t  N_WINDOWS    = sizeof(SWEEP_FROM) / sizeof(SWEEP_FROM[0]);
 
 // A device that answers at all answers fast. 150 ms is plenty at 4800 baud
@@ -139,22 +147,34 @@ void probe(uint8_t slave) {
   }
 }
 
+// All FOUR byte permutations, not two. Showing only ABCD and CDAB once hid a
+// Yosemitech reading completely: its floats arrive fully byte-reversed, so
+// 10 5C CA 41 is 41 CA 5C 10 = 25.29 - which neither of the two columns
+// produced. "Little-endian" in a vendor datasheet can mean word-swapped OR
+// fully reversed, so print them all and let the plausible number speak.
+void showAs(const __FlashStringHelper *name, uint32_t raw) {
+  float f;
+  memcpy(&f, &raw, 4);
+  Serial.print(F("      as "));
+  Serial.print(name);
+  Serial.print(F(": "));
+  if (isnan(f) || isinf(f)) Serial.println(F("not a number"));
+  else Serial.println(f, 4);
+}
+
 void decodeFloat(const uint8_t *d) {
-  uint32_t abcd = ((uint32_t)d[0] << 24) | ((uint32_t)d[1] << 16) |
-                  ((uint32_t)d[2] << 8)  |  (uint32_t)d[3];
-  uint32_t cdab = ((uint32_t)d[2] << 24) | ((uint32_t)d[3] << 16) |
-                  ((uint32_t)d[0] << 8)  |  (uint32_t)d[1];
-  float fa, fc;
-  memcpy(&fa, &abcd, 4);
-  memcpy(&fc, &cdab, 4);
-
-  Serial.print(F("      as ABCD (big endian): "));
-  if (isnan(fa) || isinf(fa)) Serial.println(F("not a number"));
-  else Serial.println(fa, 4);
-
-  Serial.print(F("      as CDAB (word-swap) : "));
-  if (isnan(fc) || isinf(fc)) Serial.println(F("not a number"));
-  else Serial.println(fc, 4);
+  showAs(F("ABCD (big endian)  "),
+         ((uint32_t)d[0] << 24) | ((uint32_t)d[1] << 16) |
+         ((uint32_t)d[2] << 8)  |  (uint32_t)d[3]);
+  showAs(F("CDAB (word swap)   "),
+         ((uint32_t)d[2] << 24) | ((uint32_t)d[3] << 16) |
+         ((uint32_t)d[0] << 8)  |  (uint32_t)d[1]);
+  showAs(F("DCBA (all reversed)"),
+         ((uint32_t)d[3] << 24) | ((uint32_t)d[2] << 16) |
+         ((uint32_t)d[1] << 8)  |  (uint32_t)d[0]);
+  showAs(F("BADC (byte swap)   "),
+         ((uint32_t)d[1] << 24) | ((uint32_t)d[0] << 16) |
+         ((uint32_t)d[3] << 8)  |  (uint32_t)d[2]);
 }
 
 // Returns true if this looks like a real device reply.
@@ -226,7 +246,7 @@ void setup() {
 
   Serial.println();
   Serial.println(F("=================================================="));
-  Serial.println(F(" RS485 / Modbus raw scan"));
+  Serial.println(F(" RS485 / Modbus raw scan v2"));
   Serial.println(F("=================================================="));
 
   digitalWrite(RAIL33_EN, HIGH);

@@ -225,6 +225,9 @@
   ul.checks strong { color: var(--ink); font-weight: 600; }
 
   hr { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+  a { color: var(--rail33); }
+  a:focus-visible { outline: 2px solid var(--rail33); outline-offset: 2px; }
 </style>
 
 <div class="sheet">
@@ -234,11 +237,15 @@
       <h1>Water Sensor Node — Wiring</h1>
       <p>Assembly reference for the KijaniSpace LoRaWAN water-quality station: five probes across
          three buses, two GPIO-gated supply rails, WaziSenseV2 controller.</p>
+      <p style="margin-top:8px">Once it is wired, <a href="https://claude.ai/code/artifact/9b0e4e42-cd48-49e8-866a-8cd6c51f4d88">Water Node
+         Bring-Up</a> is the companion runbook: which script to run in which order, and the
+         measurable result that has to be true at each stage before the next one can be
+         trusted.</p>
     </div>
     <div class="meta">
       SITE&nbsp;&nbsp;<b>Lake Victoria / fish farm</b><br>
       MCU&nbsp;&nbsp;&nbsp;<b>WaziSenseV2 (ATmega328P)</b><br>
-      RADIO&nbsp;<b>SX1272 · EU868 · SF12</b><br>
+      RADIO&nbsp;<b>SX1276 · EU868 · SF12</b><br>
       SKETCH&nbsp;<b>WaterSensorNode.ino</b>
     </div>
   </header>
@@ -340,7 +347,7 @@
             <text x="32" y="400" fill="currentColor">D6 3V3-EN  D7 12V-EN  D8 LED  A0 VBAT</text>
 
             <line x1="16" y1="414" x2="300" y2="414" stroke="var(--border-2)" stroke-width="1"/>
-            <text x="32" y="438">SX1272 radio</text>
+            <text x="32" y="438">SX1276 radio</text>
             <text x="32" y="456" fill="var(--ink-3)" font-size="11">EU868 · SF12 · ABP</text>
             <!-- antenna -->
             <line x1="230" y1="446" x2="272" y2="446" stroke="currentColor" stroke-width="1.6"/>

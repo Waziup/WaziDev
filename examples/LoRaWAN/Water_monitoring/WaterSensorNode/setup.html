@@ -1,0 +1,843 @@
+<title>KijaniSpace Node Bring-Up</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --bg:        #F6F9FA;
+    --surface:   #FFFFFF;
+    --surface-2: #EBF1F3;
+    --border:    #D2DEE3;
+    --border-2:  #B9CAD1;
+    --ink:       #15242A;
+    --ink-2:     #485D67;
+    --ink-3:     #7B9099;
+    --rail12:    #B45F09;
+    --rail33:    #0D6E88;
+    --data:      #6D3BD1;
+    --pass:      #1B6B4A;
+    --pass-bg:   #E8F3ED;
+    --pass-bd:   #A9CFBC;
+    --note-bg:   #FBF3E6;
+    --note-bd:   #E3C79C;
+    --danger:    #A32C24;
+    --danger-bg: #FBEDEB;
+    --danger-bd: #E2B4AE;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:        #0D1517;
+      --surface:   #162226;
+      --surface-2: #1D2C31;
+      --border:    #2B3F46;
+      --border-2:  #3D555E;
+      --ink:       #E3ECEF;
+      --ink-2:     #A2B6BE;
+      --ink-3:     #728A93;
+      --rail12:    #EFA243;
+      --rail33:    #46B7D2;
+      --data:      #A98CF7;
+      --pass:      #5CC594;
+      --pass-bg:   #10241C;
+      --pass-bd:   #26493A;
+      --note-bg:   #221B10;
+      --note-bd:   #47381E;
+      --danger:    #F08A80;
+      --danger-bg: #241312;
+      --danger-bd: #4A2724;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg:        #0D1517;
+    --surface:   #162226;
+    --surface-2: #1D2C31;
+    --border:    #2B3F46;
+    --border-2:  #3D555E;
+    --ink:       #E3ECEF;
+    --ink-2:     #A2B6BE;
+    --ink-3:     #728A93;
+    --rail12:    #EFA243;
+    --rail33:    #46B7D2;
+    --data:      #A98CF7;
+    --pass:      #5CC594;
+    --pass-bg:   #10241C;
+    --pass-bd:   #26493A;
+    --note-bg:   #221B10;
+    --note-bd:   #47381E;
+    --danger:    #F08A80;
+    --danger-bg: #241312;
+    --danger-bd: #4A2724;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  /* ---- title block ---- */
+  .titleblock {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    padding: 22px 24px;
+    align-items: end;
+  }
+  .titleblock h1 {
+    font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.7rem, 4vw, 2.4rem);
+    line-height: 1.1;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .titleblock p { margin: 0; color: var(--ink-2); max-width: 62ch; }
+  .meta {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    color: var(--ink-3);
+    text-align: right;
+    line-height: 1.8;
+    white-space: nowrap;
+  }
+  .meta b { color: var(--ink-2); font-weight: 500; }
+
+  h2 {
+    font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+    font-weight: 700;
+    font-size: 1.4rem;
+    margin: 0;
+    letter-spacing: -0.005em;
+    text-wrap: balance;
+  }
+  h3 {
+    font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+    font-weight: 600;
+    font-size: 1.02rem;
+    margin: 0 0 8px;
+  }
+  p { margin: 0 0 14px; max-width: 70ch; color: var(--ink-2); }
+  p:last-child { margin-bottom: 0; }
+  p strong, li strong { color: var(--ink); font-weight: 600; }
+  section > p, section > div { }
+
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.86em;
+  }
+  code { background: var(--surface-2); padding: 1px 5px; border-radius: 2px; }
+  a { color: var(--rail33); }
+
+  /* ---- the stage: number carries real sequence dependency ---- */
+  .stage {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: 74px 1fr;
+  }
+  .stage > .n {
+    border-right: 1px solid var(--border);
+    background: var(--surface-2);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--rail33);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 20px 0 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .stage > .body { padding: 20px 24px 22px; display: flex; flex-direction: column; gap: 14px; }
+  .stage .runs {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.82rem;
+    color: var(--ink-3);
+    letter-spacing: 0.02em;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+  }
+  .stage .runs b { color: var(--data); font-weight: 500; }
+
+  /* ---- gate: the observable criterion for moving on ---- */
+  .gate, .fail, .note {
+    border-left: 3px solid;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .gate { border-color: var(--pass);   background: var(--pass-bg);   }
+  .fail { border-color: var(--danger); background: var(--danger-bg); }
+  .note { border-color: var(--note-bd); background: var(--note-bg);  }
+  .gate .lbl, .fail .lbl, .note .lbl {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+  }
+  .gate .lbl { color: var(--pass);   }
+  .fail .lbl { color: var(--danger); }
+  .note .lbl { color: var(--rail12); }
+  .gate p, .fail p, .note p { color: var(--ink-2); max-width: 68ch; }
+
+  pre {
+    margin: 0;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+    overflow-x: auto;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.79rem;
+    line-height: 1.65;
+    color: var(--ink);
+  }
+  pre .c { color: var(--ink-3); }
+  pre .g { color: var(--pass); }
+  pre .r { color: var(--danger); }
+
+  /* ---- tables ---- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--border); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 0.88rem; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th {
+    font-family: "IBM Plex Sans Condensed", sans-serif;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  ul { margin: 0; padding-left: 20px; color: var(--ink-2); max-width: 70ch; }
+  li { margin-bottom: 7px; }
+  li:last-child { margin-bottom: 0; }
+
+  .lessons { display: flex; flex-direction: column; gap: 2px; }
+  .lesson {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .lesson h3 { margin: 0; color: var(--ink); }
+  .lesson p { margin: 0; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+  @media (max-width: 620px) {
+    .titleblock { grid-template-columns: 1fr; }
+    .meta { text-align: left; }
+    .stage { grid-template-columns: 1fr; }
+    .stage > .n {
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      justify-content: flex-start;
+      padding: 10px 20px;
+      font-size: 1.1rem;
+    }
+  }
+</style>
+
+<div class="sheet">
+
+  <header class="titleblock">
+    <div>
+      <h1>Water Node Bring-Up</h1>
+      <p>The order in which this node was actually made to work, and the observable result
+         that had to be true before each step could be trusted. Companion to
+         <a href="https://claude.ai/code/artifact/dbeeb51a-e120-48e9-a3ec-08dbad0b5dff">Water Sensor Node — Wiring</a>: that one says what connects
+         to what, this one says what to run and what you should see.</p>
+    </div>
+    <div class="meta">
+      SITE&nbsp;&nbsp;<b>Lake Victoria / fish farm</b><br>
+      MCU&nbsp;&nbsp;&nbsp;<b>WaziSense v2 (ATmega328P)</b><br>
+      RADIO&nbsp;<b>SX1276 · EU868 · SF12</b><br>
+      CYCLE&nbsp;<b>30 min · turbidity hourly</b>
+    </div>
+  </header>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <h2>Why the order matters</h2>
+    <p>Every stage below is a precondition for the next, and each has one measurable
+       criterion rather than an impression. That is not tidiness: the two longest delays in
+       this build both came from skipping a gate. An I²C scan ran for two days against a bus
+       that had no pull-up resistors, and a dissolved-oxygen sensor was declared faulty and
+       nearly returned under warranty while the actual cause — a wrongly set echo flag — sat
+       in the firmware.</p>
+    <p><strong>The rule that would have caught both: after fixing any suspected cause, re-run
+       the basic test before writing a new diagnostic.</strong> Three tools got written in the
+       gap where one repeated scan would have shown the sensor answering.</p>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <h2>The scripts</h2>
+    <p>All in <code>WaterSensorNode/</code>. Every diagnostic is read-only on the serial
+       monitor — nothing needs typing except the EZO bridge.</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Sketch</th><th>Answers</th><th>Stage</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>I2CScan/</code></td><td>Can this I²C bus work at all? Measures residual voltage in mV and rise time in µs per line, bit-banged so it cannot hang.</td><td class="num">1, 3</td></tr>
+          <tr><td><code>EZOSwitch/</code></td><td>Switches one EZO circuit from UART to I²C, picking the address from the circuit's own reply.</td><td class="num">3</td></tr>
+          <tr><td><code>EZOBridge/</code></td><td>A UART console to one EZO circuit over the existing SDA/SCL wires. Needed for calibration.</td><td class="num">3, 8</td></tr>
+          <tr><td><code>RS485Drive/</code></td><td>Does the node's own RS485 driver work? Two multimeter readings, no probe needed.</td><td class="num">4</td></tr>
+          <tr><td><code>RS485Pins/</code></td><td>Which board pin sits on the transceiver's output? Safe — no contention risk.</td><td class="num">4</td></tr>
+          <tr><td><code>RS485Turnaround/</code></td><td>How long does the module keep the bus after transmitting?</td><td class="num">4</td></tr>
+          <tr><td><code>RS485Scan/</code></td><td>Finds a Modbus device across baud rates, addresses and registers, and dumps raw bytes in all four byte orders.</td><td class="num">5</td></tr>
+          <tr><td><code>RS485Config/</code></td><td>Writes a device's address or baud rate. Refuses unless exactly one device is present.</td><td class="num">6</td></tr>
+          <tr><td><code>WaterSensorNode.ino</code></td><td>The firmware. Staged by <code>ENABLE_*</code> flags.</td><td class="num">2, 6, 7</td></tr>
+          <tr><td><code>decoder.js</code></td><td>Undoes the two payload scalings on the gateway side.</td><td class="num">7</td></tr>
+          <tr><td><code>add_decoder_to_wg.js</code></td><td>Wraps the decoder in a POST to the gateway's <code>codecs</code> endpoint. Copy the whole file into the browser console.</td><td class="num">7</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <h2>Before power</h2>
+
+    <div class="fail">
+      <span class="lbl">damage risk</span>
+      <p><strong>Attach the antenna before the board is ever powered.</strong> The firmware
+         transmits in its first cycle, at SF12 and full power. A radio driving into an open
+         port sees a full mismatch, and the reflected power can destroy the RFM95W's output
+         stage. This is the only item on this page that costs hardware.</p>
+    </div>
+
+    <div class="note">
+      <span class="lbl">preconditions</span>
+      <ul>
+        <li><strong>H1 jumper on 3.3 V.</strong> It sets both "Sensor Power" blocks at once, and
+            the RS485 transceiver's 3.0–3.6 V limit decides it — a full 18650 at 4.2 V is out
+            of spec for that part.</li>
+        <li><strong>Battery connected.</strong> USB alone cannot run this node: over USB the
+            battery domain at <code>X1-1</code> measured <b>2.836 V</b>, below the boost
+            converter's minimum input, so it stopped regulating and the 12 V rail read
+            <b>7.2 V</b>. Every Modbus device then looks identically dead on every baud rate.</li>
+        <li><strong>Boost set with a meter, before any probe is connected.</strong> 14 V. The
+            Y511-A's range is 12–24 V, so 12 V is its <em>minimum</em> and 10 m of cable plus
+            the wiper motor's inrush would pull it under.</li>
+        <li><strong>Serial monitor at 38400 baud.</strong> The IDE defaults to 9600 and shows
+            only garbage.</li>
+        <li>A bench supply on the 12 V rail is worth it for the ammeter alone — the current
+            reading separates "sensor dead" from "sensor alive but not talking". Limit it to
+            about 1 A: the Y511-A specifies a source able to deliver over 500 mA for the
+            wiper, so a 150 mA limit trips on the first sweep.</li>
+      </ul>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ==================== STAGE 1 ==================== -->
+  <div class="stage">
+    <div class="n">1</div>
+    <div class="body">
+      <h2>I²C bus integrity</h2>
+      <div class="runs"><b>I2CScan/</b> · nothing else connected</div>
+      <p>Before any device is on the bus, prove the bus can carry a signal. The scan is
+         bit-banged with a bounded wait on every edge, so it cannot block, and it measures
+         two numbers per line rather than sampling high or low once.</p>
+      <div class="gate">
+        <span class="lbl">gate</span>
+<pre>PHASE 1  line integrity
+  SCL (A5): idle=H  driven-low=12 mV  rise=3 us   <span class="g">ok</span>
+  SDA (A4): idle=H  driven-low=12 mV  rise=3 us   <span class="g">ok</span>
+  SDA/SCL: independent  ok
+PHASE 2  address scan 0x08..0x77
+  <span class="c">0 device(s) found.</span></pre>
+        <p>Zero devices is correct here — nothing is connected yet. What must be true is
+           <strong>both lines ok</strong>, with <code>driven-low</code> near 12 mV and
+           <code>rise</code> in single-digit microseconds.</p>
+      </div>
+      <div class="fail">
+        <span class="lbl">if it fails</span>
+        <p><code>rise=never</code> means the line floats: there is no pull-up. Measure
+           <code>A4</code>–3V3 and <code>A5</code>–3V3 — they must read about
+           <b>4.7 kΩ</b>. On this board the <code>I2C_J</code> jumper was <strong>open</strong>
+           despite the manual stating it ships closed, and both lines measured
+           <b>5.9 MΩ</b>. Two 4.7 kΩ resistors were fitted from <code>A4</code> and
+           <code>A5</code> to <code>X3-1</code> — the switched rail, so the pull-ups power up
+           and down with the devices they serve.</p>
+        <p>A missing I²C pull-up does not degrade gracefully. The TWI hardware releases SCL
+           and waits for it to rise before it can issue a START; with no pull-up it waits
+           forever, and on AVR cores before 1.8.1 there is no timeout. The symptom is a log
+           that simply stops mid-cycle with no message.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STAGE 2 ==================== -->
+  <div class="stage">
+    <div class="n">2</div>
+    <div class="body">
+      <h2>Temperature</h2>
+      <div class="runs"><b>WaterSensorNode.ino</b> · <code>ENABLE_DS18B20 1</code>, everything else <code>0</code></div>
+      <p>The simplest sensor first, and the only one with no protocol to configure. Four
+         wires: <code>VDD</code> and <code>GND</code> from <code>X3</code>, <code>DQ</code> to
+         <code>A2</code>, and a 4.7 kΩ pull-up from <code>DQ</code> to <code>X3-1</code>.</p>
+      <div class="gate">
+        <span class="lbl">gate</span>
+<pre>Temperature (DS18B20): <span class="g">24.25 degC</span></pre>
+        <p>A plausible room temperature, moving in its decimals between cycles.</p>
+      </div>
+      <div class="fail">
+        <span class="lbl">if it fails</span>
+        <p><strong>The pull-up goes to <code>+3V3</code>, not to <code>GND</code>.</strong>
+           1-Wire is open-drain: the sensor only ever pulls the line down, and the resistor is
+           the only thing that restores the idle-high state. Wired to ground it is a
+           pull-<em>down</em>, the line never rises, and the sensor is electrically invisible.
+           That mistake was made here and cost an evening.</p>
+        <p><b>−127 °C</b> is <code>DEVICE_DISCONNECTED</code>. Exactly <b>85.0 °C</b> is the
+           DS18B20's power-on reset value, which is what you read if the conversion has not
+           finished or the supply is marginal — relevant here because the rail is gated. The
+           firmware's sanity band of −20 to +60 °C rejects both, so a bad reading shows as
+           <code>FAIL</code> rather than as plausible data.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STAGE 3 ==================== -->
+  <div class="stage">
+    <div class="n">3</div>
+    <div class="body">
+      <h2>EZO circuits — one at a time</h2>
+      <div class="runs"><b>EZOSwitch/</b> then <b>I2CScan/</b> · one circuit's SDA+SCL at a time</div>
+      <p>Atlas EZO circuits ship in <strong>UART mode</strong>, not I²C. In that state they are
+         not merely silent on an I²C bus — their <code>TX</code> pin actively drives one of the
+         two bus lines, which jams it for everything else. So they must be switched before
+         they can be scanned.</p>
+      <div class="fail">
+        <span class="lbl">one at a time, and this one is hard to undo</span>
+        <p>Both circuits share the same two wires, and a mode-switch command is obeyed by
+           <strong>every</strong> circuit listening. Sending <code>I2C,99</code> with both
+           connected puts both at address <code>0x63</code>, after which neither can be
+           addressed individually and the only way back is the datasheet's hardware procedure
+           on both boards. <code>EZOSwitch</code> therefore refuses to act unless exactly one
+           circuit answers, and it reads the device type out of that reply so a swapped cable
+           cannot hand the pH circuit the EC address.</p>
+      </div>
+      <div class="gate">
+        <span class="lbl">gate</span>
+<pre>SCL (A5): idle=H  driven-low=12 mV  rise=0 us   <span class="g">ok</span>
+SDA (A4): idle=H  driven-low=12 mV  rise=0 us   <span class="g">ok</span>
+  <span class="g">0x63  ACK</span>   &lt;-- EZO-pH
+  <span class="g">0x64  ACK</span>   &lt;-- EZO-EC
+  2 device(s) found.</pre>
+        <p><strong>The number that proves it is <code>SDA driven-low</code>, not the LED
+           colour.</strong> Before the switch it read <b>2177 mV</b>: two UART transmitters
+           holding the line high against the AVR pulling it down. An I²C pin is open-drain and
+           can never drive high, so <b>12 mV</b> — the same as SCL — is the objective
+           confirmation. LED colours were misread twice during this build; the millivolts
+           were not.</p>
+      </div>
+      <div class="note">
+        <span class="lbl">wiring detail</span>
+        <p><strong>I²C goes straight through: SDA to SDA, SCL to SCL.</strong> Only UART is
+           crossed. The EZO pins are dual-function, so the same physical wires carry both —
+           which is also what lets <code>EZOBridge</code> talk UART to a circuit with no
+           rewiring at all.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STAGE 4 ==================== -->
+  <div class="stage">
+    <div class="n">4</div>
+    <div class="body">
+      <h2>RS485 — the node side, before any probe</h2>
+      <div class="runs"><b>RS485Drive/</b> · <b>RS485Pins/</b> · <b>RS485Turnaround/</b> · no probe connected</div>
+      <p>A silent Modbus device tells you nothing about which side is at fault, and "timeout"
+         is the same message for a wiring error, a wrong address and a dead sensor. These
+         three prove the node's own half first, so that everything found later is genuinely on
+         the probe's side.</p>
+      <div class="gate">
+        <span class="lbl">gate · bias network, measured with a meter</span>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Point</th><th>Calculated</th><th>Measured here</th></tr></thead>
+            <tbody>
+              <tr><td><code>A</code> to GND, idle</td><td class="num">1.784 V</td><td class="num">1.845 V</td></tr>
+              <tr><td><code>B</code> to GND, idle</td><td class="num">1.516 V</td><td class="num">1.520 V</td></tr>
+              <tr><td><code>A</code> − <code>B</code>, idle</td><td class="num">268 mV</td><td class="num">271 mV</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Those follow from the divider — 3.3 V across 680 Ω + 120 Ω + 680 Ω is 2.23 mA — so
+           matching them proves four things at once: the transceiver has its 3.3 V, both bias
+           resistors are on the correct rails, the 120 Ω terminator is across A–B, and A/B
+           actually reach the terminal block.</p>
+      </div>
+      <div class="gate">
+        <span class="lbl">gate · driver, receiver, turnaround</span>
+        <p><strong>Driver:</strong> while transmitting, <code>A</code>−<code>B</code> must go
+           <em>negative</em>. The passive bias network can only ever make A higher than B, so a
+           sign change is proof the driver is active — here it swung to <b>−0.675 V</b>.</p>
+        <p><strong>Receiver:</strong> <code>RS485Pins</code> must report <code>D3</code> driven
+           and <code>D4</code> floating. With a valid idle bus the transceiver's <code>RO</code>
+           output holds a logic HIGH, so the pin that recovers after being discharged is the
+           module's output. Reversed, the MCU's transmit pin would be fighting that output at
+           roughly 66 mA — above the ATmega328P's 40 mA per-pin maximum, which is why this is
+           tested in software rather than by swapping wires to see.</p>
+        <p><strong>Turnaround:</strong> under 3.5 character times — 7.3 ms at 4800 baud,
+           3.65 ms at 9600. Measured <b>2.06 ms</b>, very consistently. A slave only recognises
+           end-of-frame after 3.5 characters of silence and so cannot answer sooner, which
+           means anything below that has released the bus in time.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STAGE 5 ==================== -->
+  <div class="stage">
+    <div class="n">5</div>
+    <div class="body">
+      <h2>Each Modbus probe, alone</h2>
+      <div class="runs"><b>RS485Scan/</b> · one probe, the other's A/B <em>and</em> power disconnected</div>
+      <p>Both probes ship on address <code>0x01</code>, so they cannot be identified together.
+         Aim the scan with three constants at the top of the sketch and let it dump raw bytes;
+         the register sweep reads two registers from every address in a window, so the windows
+         overlap and the raw values can be reconstructed.</p>
+      <div class="gate">
+        <span class="lbl">gate · what each probe turned out to be</span>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th></th><th>DFRobot SEN0680 · oxygen</th><th>Yosemitech Y511-A · turbidity</th></tr></thead>
+            <tbody>
+              <tr><td>Baud</td><td class="num">4800 8N1</td><td class="num">9600 8N1 — silent at 4800</td></tr>
+              <tr><td>Address</td><td class="num">0x01</td><td class="num">0x01</td></tr>
+              <tr><td>Value register</td><td class="num">0x0002 · mg/L</td><td class="num">0x2602 · NTU</td></tr>
+              <tr><td>Temperature</td><td class="num">0x0004 · °C</td><td class="num">0x2600 · °C</td></tr>
+              <tr><td>Byte order</td><td class="num">ABCD · big endian</td><td class="num">DCBA · fully reversed</td></tr>
+              <tr><td>Ready after rail-on</td><td class="num">0.4 s</td><td class="num">0.4 s</td></tr>
+              <tr><td>Supply</td><td class="num">10–30 V · 10.6 mA</td><td class="num">12–24 V · 17 mA, 50 mA wiping</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>A CRC-valid reply where <strong>exactly one</strong> byte order gives a plausible
+           number identifies both the register and the format at once. One register is not
+           enough: at <code>0x2600</code> two permutations both looked sensible, and only
+           <code>0x2602</code> — nonsense in one of them — settled it.</p>
+      </div>
+      <div class="note">
+        <span class="lbl">the internal consistency check that confirmed the decode</span>
+        <p>The SEN0680 reported 6.64 mg/L at 25.6 °C, and its saturation register read 0.8165.
+           Oxygen saturation at 25.6 °C is about 8.2 mg/L, and 6.64 / 8.2 = 0.81 — the same
+           number. Two registers agreeing through physics is much stronger evidence than one
+           plausible-looking value.</p>
+      </div>
+      <div class="fail">
+        <span class="lbl">what a silent probe was, twice</span>
+        <p><strong>Neither time was it the sensor.</strong> First the 12 V rail was starved
+           because the node ran on USB. Then, with power fixed, the firmware's
+           <code>RS485_ECHOES_OWN_TX</code> was set to <code>1</code> while this module does
+           not echo — the discard window swallowed the reply and every read reported a
+           timeout. A unit was declared dead and a warranty claim drafted; it answered
+           normally when swapped back in later.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STAGE 6 ==================== -->
+  <div class="stage">
+    <div class="n">6</div>
+    <div class="body">
+      <h2>Both probes on one bus</h2>
+      <div class="runs"><b>WaterSensorNode.ino</b> · all <code>ENABLE_*</code> on · optionally <b>RS485Config/</b></div>
+      <p>The two probes' factory settings collide on address and differ on baud rate, which
+         normally means reconfiguring one of them. It does not here: <code>SoftwareSerial</code>
+         can change rate at runtime and the two are never read in the same instant, so the
+         firmware switches the bus rate before addressing each one. Both keep their factory
+         settings and <strong>nothing is written to either device</strong>.</p>
+      <p>The rate difference also separates them despite the shared address: a frame sent at
+         the wrong rate arrives as framing garbage with a broken CRC, and Modbus requires a
+         valid CRC before a slave acts. Moving the Y511-A to <code>0x03</code> via register
+         <code>0x3000</code> is still worth doing as hygiene — <code>RS485Config</code> does
+         it, and refuses unless exactly one device is present — but nothing needs it to work.</p>
+      <div class="gate">
+        <span class="lbl">gate</span>
+<pre>3.3 V sensor rail ON  (D6)
+12 V sensor rail ON   (D7)
+Turbidity: brush sweep (watch the wiper move)
+Turbidity: start measurement
+Temperature (DS18B20): <span class="g">24.25 degC</span>
+DO: warming up optics...
+Dissolved oxygen: <span class="g">7.76 mg/L</span>
+Temperature (DO probe): <span class="g">23.61 degC</span>   (DS18B20 differs by 0.64 K)
+pH: <span class="g">7.65</span>
+Conductivity: <span class="g">94.0 uS/cm</span>
+Turbidity: <span class="g">5.70 NTU</span>
+Both sensor rails OFF
+LoRaWAN send ... <span class="g">OK</span></pre>
+        <p>No <code>FAIL</code> line. The brush sweep is mechanical — watch or listen for it,
+           which is the only way to confirm the <code>0x3100</code> command framing is right.</p>
+      </div>
+      <div class="note">
+        <span class="lbl">why the brush is commanded and not scheduled</span>
+        <p>The Y511-A has an internal brush-interval register, and it is useless on this node:
+           that interval only counts while the sensor is <em>powered</em>, and here it is
+           powered for under a minute per hour. An interval of 60 minutes would never once
+           fire. So the sweep is triggered directly before every turbidity reading — anti-fouling
+           is the reason this sensor was chosen over a cheaper one, and a reading taken through
+           a fouled window is worth nothing.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STAGE 7 ==================== -->
+  <div class="stage">
+    <div class="n">7</div>
+    <div class="body">
+      <h2>Decoder on the gateway</h2>
+      <div class="runs"><b>add_decoder_to_wg.js</b> · <b>decoder.js</b> · WaziGate browser console</div>
+      <p>Two measurements do not fit the wire format. <code>LPP_ANALOG_INPUT</code> is a signed
+         two-byte value with 0.01 resolution, so its whole range is ±327.67 — conductivity in
+         µS/cm and turbidity up to 1000 NTU both overflow it. They are therefore scaled down
+         before transmission, and the gateway has to scale them back.</p>
+      <p>Without the decoder the portal shows the scaled numbers: a real <b>5.69 NTU</b>
+         appears as <b>0.56</b>. That is not an error — it is 5.69/10 truncated to the format's
+         0.01 step.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Ch</th><th>Quantity</th><th>Sent as</th><th>Decoder</th><th>Resolution</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td>Water temperature — DS18B20</td><td>°C</td><td>—</td><td class="num">0.1 °C</td></tr>
+            <tr><td class="num">2</td><td>Battery</td><td>V</td><td>—</td><td class="num">0.01 V</td></tr>
+            <tr><td class="num">3</td><td>pH</td><td>direct</td><td>—</td><td class="num">0.01</td></tr>
+            <tr><td class="num">4</td><td>Dissolved oxygen</td><td>mg/L</td><td>—</td><td class="num">0.01 mg/L</td></tr>
+            <tr><td class="num">5</td><td>Conductivity</td><td>µS/cm ÷ 100</td><td>× 100</td><td class="num">1 µS/cm</td></tr>
+            <tr><td class="num">6</td><td>Turbidity</td><td>NTU ÷ 10</td><td>× 10</td><td class="num">0.1 NTU</td></tr>
+            <tr><td class="num">7</td><td>Water temperature — DO probe</td><td>°C</td><td>—</td><td class="num">0.1 °C</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Both divisors come from the <strong>sensors'</strong> accuracy, not from round numbers.
+         1 µS/cm sits just under the EZO-EC's ±2 µS/cm near 100 µS/cm, where Lake Victoria
+         sits; dividing by 1000 instead would have made the format five times coarser than the
+         sensor. 0.1 NTU is already finer than the Y511-A's ±0.3 NTU, so there is no reason to
+         go further.</p>
+      <div class="note">
+        <span class="lbl">installing it</span>
+        <p>Nothing to assemble by hand — <code>add_decoder_to_wg.js</code> already contains the
+           decoder wrapped in a <code>POST</code> to the gateway's <code>codecs</code>
+           endpoint.</p>
+        <ol style="margin:0;padding-left:20px;color:var(--ink-2)">
+          <li>Copy the whole of <code>add_decoder_to_wg.js</code>.</li>
+          <li>Open the WaziGate UI, then its browser console — <code>F12</code>.</li>
+          <li>Paste and press Enter. The console prints the new codec's id.</li>
+          <li>Select the codec — <code>WaziUp-Water_Surveillance_Device</code> — on the device.</li>
+        </ol>
+        <p>The decoder body lives twice: as <code>decoder.js</code>, which is the readable and
+           testable copy, and inside the template literal in
+           <code>add_decoder_to_wg.js</code>, which is what actually gets uploaded.
+           <strong>Change one and you must change the other</strong> — a gateway silently
+           decoding an older channel map is a hard fault to spot from the portal, because the
+           numbers still look like numbers.</p>
+      </div>
+      <div class="gate">
+        <span class="lbl">gate</span>
+        <p>The portal shows turbidity in NTU and conductivity in µS/cm — not tenths and
+           hundredths. A channel whose sensor failed is <strong>absent</strong> from the
+           payload rather than zero, so do not fill gaps with zeros downstream: an oxygen
+           sensor that dropped out would then look like a fish kill.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STAGE 8 ==================== -->
+  <div class="stage">
+    <div class="n">8</div>
+    <div class="body">
+      <h2>Calibration — still open</h2>
+      <div class="runs"><b>EZOBridge/</b> · buffer solutions · a multimeter</div>
+      <p>Everything above proves the node reads and transmits. None of it makes the numbers
+         <em>true</em>. Until this stage is done the pH and EC figures are readings, not
+         measurements.</p>
+      <ul>
+        <li><strong>pH</strong> — <code>Cal,mid,7.00</code>, then <code>Cal,low,4.00</code>,
+            then <code>Cal,high,10.00</code>, with buffer solutions, via
+            <code>EZOBridge</code>. Mid first: it sets the offset the other two are measured
+            against.</li>
+        <li><strong>EC</strong> — dry calibration first, then a standard solution matched to the
+            K=1.0 cell.</li>
+        <li><strong>Battery voltage</strong> — two constants, in this order.
+            <code>VccCorrection</code> first: measure the real supply, compare with what
+            <code>vcc.Read_Volts()</code> reports, and set the ratio. Only then the
+            <code>3.83</code> divider factor. Reversed, the two errors compensate each other
+            and both stay wrong.</li>
+        <li><strong>Atmospheric pressure on the SEN0680</strong>, register <code>0x1022</code>.
+            Oxygen saturation follows the partial pressure of oxygen, and Lake Victoria sits at
+            about 1135 m where pressure is near 88 kPa instead of 101 — roughly 13 % lower.
+            Left at a sea-level default, every oxygen reading carries a systematic bias far
+            larger than the sensor's own ±3 % FS. The value's unit and scaling are not on
+            DFRobot's specification page, so look them up in the protocol document rather than
+            guessing. Salinity, <code>0x1020</code>, stays 0 for fresh water.</li>
+        <li><strong>Calibrate in the configuration you will measure in.</strong> Calibrating
+            without the pH isolator and then fitting one folds the offset into the calibration,
+            where it is far harder to see.</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <h2>What cost the most time</h2>
+    <p>Seven things, in the order they would have saved the most.</p>
+    <div class="lessons">
+      <div class="lesson">
+        <h3>Re-run the basic test after every fix, before writing a new tool</h3>
+        <p>The oxygen sensor was silent for two reasons in sequence — a starved 12 V rail, then
+           a wrongly aimed scan. Both were corrected, but nobody re-ran the scan afterwards:
+           three further diagnostic sketches got written in that gap, and the sensor had been
+           answering the whole time. A repeated basic test is cheaper than any new tool.</p>
+      </div>
+      <div class="lesson">
+        <h3>Measure the defaults a manual promises</h3>
+        <p>The WaziSense manual states the <code>I2C_J</code> jumper ships closed and the I²C
+           pull-ups are therefore fitted. On this board it was open and both lines read
+           <b>5.9 MΩ</b>. Re-reading the manual would have reproduced the wrong conclusion
+           indefinitely.</p>
+      </div>
+      <div class="lesson">
+        <h3>Judge every voltage under load</h3>
+        <p>No-load readings misled three separate times: a 12 V rail that read 12 V unloaded
+           and sagged to 7.2 V with a sensor on it; an I²C line that read idle-high but could
+           not be pulled low; documented 4.7 kΩ pull-ups that measured megohms.</p>
+      </div>
+      <div class="lesson">
+        <h3>Configure devices one at a time — some mistakes are one-way</h3>
+        <p>Two EZO circuits share two wires, and a mode-switch command reaches both. Two Modbus
+           probes ship on the same address. Every configuration tool here refuses to act unless
+           exactly one device answers, because the recovery from getting it wrong is a hardware
+           procedure on every affected board.</p>
+      </div>
+      <div class="lesson">
+        <h3>"Little-endian" is ambiguous — print all four byte orders</h3>
+        <p>A Yosemitech reading was invisible while the scanner showed only two permutations:
+           its floats arrive fully reversed, so <code>10 5C CA 41</code> is the float
+           <code>41 CA 5C 10</code> = 25.29. Both columns showed nonsense while the device was
+           answering perfectly. Two devices on the same bus here disagree — one ABCD, one DCBA.</p>
+      </div>
+      <div class="lesson">
+        <h3>A blocking library call looks exactly like a dead sensor</h3>
+        <p>A log that ends mid-cycle with no message is not the sensor it was about to read; it
+           is a call that never returned. On an AVR core without <code>Wire</code> timeouts, a
+           missing I²C pull-up does that. Suspect the call before the sensor.</p>
+      </div>
+      <div class="lesson">
+        <h3>A power-gated node breaks anything with an internal timer</h3>
+        <p>The turbidity sensor's brush interval, the EZO circuits' sleep command, the
+           MAX31865's configuration register — all assume continuous power. On a node that
+           powers its sensors for under a minute an hour, each has to be commanded explicitly
+           on every cycle instead.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <h2>Open before deployment</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Item</th><th>Why it matters</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Gate the boost converter</strong></td>
+            <td>The XL6009 is not switched and idles at roughly 3–5 mA around the clock —
+                about 59 % of the whole energy budget, more than every measurement combined.
+                A high-side switch in its <em>input</em> (Pololu #2810) driven from
+                <code>D7</code> also makes the opto module on the output redundant.</td>
+            <td class="num">158 → 65 mAh/day<br>19 → 46 days</td>
+          </tr>
+          <tr>
+            <td><strong>Measure the DO settling time</strong></td>
+            <td><code>DO_WARMUP_MS</code> is 30 s, guessed. The sensor answers after 0.4 s, but
+                answering is not a settled reading and DFRobot publishes no figure. Log the
+                value every 2 s until it stops moving.</td>
+            <td class="num">up to 24 mAh/day</td>
+          </tr>
+          <tr>
+            <td><strong>Confirm turbidity vs temperature</strong></td>
+            <td>Which of <code>0x2600</code> and <code>0x2602</code> is which was inferred, not
+                documented — 25.78 °C matched what both oxygen probes independently reported.
+                Put the probe in water and stir in milk or silt: turbidity must jump, temperature
+                must not.</td>
+            <td>register order</td>
+          </tr>
+          <tr>
+            <td><strong>Decide on the pH isolator</strong></td>
+            <td>The EC probe drives AC through the same water the pH cell sits in. Atlas's own
+                datasheet requires isolation for pH. Decide it by measurement: 20 pH readings
+                each with the EC probe out of the water, in but asleep, and actively measuring.
+                Under 0.05 pH total, ignore it; over 0.1 pH, fit the isolator.</td>
+            <td>≈ $28, pH channel only</td>
+          </tr>
+          <tr>
+            <td><strong>Antenna</strong></td>
+            <td>Bring-up ran on a patch antenna, which is why RSSI wandered between −94 and
+                −115 dBm. Those figures say nothing about the link from a pole at the lake.</td>
+            <td>re-measure on site</td>
+          </tr>
+          <tr>
+            <td><strong>LED currents</strong></td>
+            <td><code>L,0</code> turns the EZO status LEDs off. Anything on the switched rail
+                costs almost nothing; the boost converter's LED runs continuously and is the one
+                worth desoldering.</td>
+            <td class="num">a few mA, continuous</td>
+          </tr>
+          <tr>
+            <td><strong>Ask Yosemitech for the wiper's rated life</strong></td>
+            <td>The brush runs before every turbidity reading — 24 sweeps a day. Energy is
+                negligible at 6 J per sweep, but mechanical wear is unpublished.
+                <code>TURB_BRUSH_EVERY_N</code> exists to dial it back once the number is known.</td>
+            <td>maintenance interval</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <h2>Airtime</h2>
+    <p>Measured time on air is <b>2.45 s</b> per uplink at SF12. On a 30-minute cycle that is
+       <b>0.14 %</b> duty cycle against the EU868 limit of 1 % — a factor of seven in hand, and
+       still legal at a four-minute interval.</p>
+    <p>One thing to carry forward: 48 uplinks a day at 2.45 s is <b>115 s of airtime daily</b>.
+       On your own WaziGate that is your budget to spend. On a public network it would breach
+       The Things Network's fair-use policy of 30 s per day by a wide margin.</p>
+  </section>
+
+</div>

@@ -173,7 +173,7 @@ const int RS485_TX_PIN = 4;    // transceiver module TXD / DI
 const int RAIL33_EN    = 6;    // "Sensor Power 1" -> switched 3.3 V
 const int RAIL12_EN    = 7;    // "Sensor Power 2" -> control of the 12 V module
 const int ledPin       = 8;    // on-board LED1
-const int batt_pin     = A0;   // on-board 470k/470k divider
+const int batt_pin     = A0;   // on-board 470k/470k divider, confirmed 2.00
 #if ENABLE_PT1000
 const int MAX31865_CS  = A1;   // analog pin driven as a digital output
 #endif
@@ -395,6 +395,38 @@ const uint16_t TURB_WARMUP_MS    = 35000;    // brush sweep + optics settle
 //  ##  nothing - so the default is to brush every time rather than to ##
 //  ##  save wiper cycles.                                            ##
 //  ####################################################################
+//  ####################################################################
+//  ##  DISABLED 2026-09-09 - SUPPLY CANNOT DRIVE THE WIPER MOTOR     ##
+//  ##                                                                ##
+//  ##  With the brush command finally working, the first real sweep   ##
+//  ##  showed the 12 V rail OSCILLATING: the boost LED pulses and the ##
+//  ##  wiper turns continuously instead of making one stroke. That is ##
+//  ##  the boost failing to supply the motor inrush - Yosemitech asks ##
+//  ##  for a source able to deliver over 500 mA - so the rail         ##
+//  ##  collapses, the motor stalls, the load drops, the boost         ##
+//  ##  recovers, and it repeats.                                     ##
+//  ##                                                                ##
+//  ##  This is not merely ineffective, it is damaging. A motor        ##
+//  ##  restarted repeatedly under brownout sits at high current with  ##
+//  ##  little torque and heats its winding. Worse, the probe's own    ##
+//  ##  microcontroller browns out on every cycle, and its EEPROM      ##
+//  ##  holds the calibration constants and the slave address.         ##
+//  ##                                                                ##
+//  ##  Note this is why it never appeared before: until the framing   ##
+//  ##  was corrected the brush command did nothing, so the motor was  ##
+//  ##  never actually asked to run. And in TurbBrush/ it swept        ##
+//  ##  cleanly because the 12 V rail was fed from a bench supply.     ##
+//  ##                                                                ##
+//  ##  RESOLVED: the rail was at 12 V, the Y511-A's own minimum, so    ##
+//  ##  the motor load pulled it under. At 14 V the sweep is clean and  ##
+//  ##  draws 0.8 W measured - about 57 mA, nowhere near the ">500 mA"  ##
+//  ##  on the datasheet, which describes what the SOURCE must be able  ##
+//  ##  to deliver rather than what the motor actually takes. Re-armed. ##
+//  ##                                                                 ##
+//  ##  If the oscillation ever returns, check the rail voltage under   ##
+//  ##  the sweep before anything else: it is the rail sagging to the   ##
+//  ##  sensor's minimum, not the command or the motor.                 ##
+//  ####################################################################
 #define TURB_BRUSH_BEFORE_READ   1
 
 //  Diagnostic pause, off. It answered its question: the wiper does not move
@@ -415,7 +447,11 @@ uint8_t        turbReadCount = 0;
 //   3.3 V: the EZO circuits need roughly a second to boot after power-up.
 //   12 V : boost start-up plus charging the 1000 uF bulk capacitor.
 const uint16_t RAIL33_SETTLE_MS  = 1200;
-const uint16_t RAIL12_SETTLE_MS  = 500;
+// 3000, not 500. At 500 ms the first Modbus command went out 522 ms after
+// the rail came up (measured from the log timestamps) and the Y511-A had not
+// finished booting - it answered NO REPLY to the brush command. TurbBrush.ino,
+// where the wiper does sweep, waits 3000 ms. That is the number that works.
+const uint16_t RAIL12_SETTLE_MS  = 3000;
 
 // ---------------------------------------------------------------------------
 //  Atlas Scientific EZO (I2C)
@@ -431,9 +467,48 @@ const uint16_t EZO_CMD_DELAY_MS  = 300;
 // ---------------------------------------------------------------------------
 //  Battery measurement
 // ---------------------------------------------------------------------------
-//const float VccCorrection = 3.85 / 7.5;   // 4.2 V Li-ion
-const float VccCorrection = 5.0 / 2.6;      // 5 V supply
+//   battery = analogRead(A0) * (Vcc / 1023) * BATT_DIVIDER
+//
+// Vcc has to be measured rather than assumed, because Vcc IS the ADC's
+// reference: the raw count alone says nothing about volts. It comes from the
+// AVR's internal 1.1 V bandgap read back through the ADC, and every chip's
+// bandgap is off by a percent or two - that is what VccCorrection trims.
+//
+// CALIBRATED ON THIS UNIT. Vcc untrimmed reads 3.3129 V, repeatable to four
+// decimals, so the bandgap needs no trim and the correction stays at 1.0.
+//
+// The divider then follows from a run with the cell in place:
+//   A0     = 627.7 counts
+//   V(A0)  = 627.7 * 3.3129 / 1023 = 2.034 V
+//   cell   = 4.07 V by meter       -> factor 2.00
+//
+// A FIRST ATTEMPT GOT 2.696, and the mistake is worth recording: the ADC
+// count came from a VccCal run whose battery domain sat near 3.0 V, while the
+// meter reading of 4.07 V was taken separately. Fitting one state's counts to
+// another state's volts produces a plausible-looking number that is simply
+// wrong - and it wrongly discredited the board's own documentation. Both
+// halves of a calibration must come from the same instant.
+//
+// 2.00 is exactly the 470k/470k ratio the pin comment claimed all along, so
+// there is no ADC source-impedance artefact to worry about either.
+//
+// The two constants are pure multipliers on the same result, so only their
+// PRODUCT is fixed by that measurement. 3.3129 V is already within half a
+// percent of a 3.30 V regulator, so the correction stays at 1.0 and the whole
+// factor sits in the divider, where it physically belongs.
+//
+// The inherited values were both wrong, from opposite directions: 5.0/2.6
+// reported 11.96 V for a 3.19 V cell, and 3.85/7.5 with a 3.83 divider
+// reported 2.97 V for a 4.07 V one.
+const float VccCorrection = 1.0;
 Vcc vcc(VccCorrection);
+
+// The on-board 470k/470k pair. Still worth one confirmation against the
+// meter at around 3.7 V as the cell discharges - a resistor ratio is linear,
+// so it should track, and if it ever does not the cause would be the 235k
+// source impedance starving the ADC's sample-and-hold (cure: 100 nF from A0
+// to GND). Note the value with FTDI and cell in the SAME state both times.
+const float BATT_DIVIDER = 2.0;
 
 // ---------------------------------------------------------------------------
 //  Readings  (NAN = read failed; that channel is omitted from the uplink)
@@ -464,6 +539,123 @@ void blink_led() {
   }
 }
 
+// ===========================================================================
+//  SLEEP HOUSEKEEPING
+//
+//  Measured sleep current before any of this: 20.78 mA, of which 14.2 mA is
+//  the three devices on the switched 3.3 V rail still running (EZO-pH
+//  5.58 mA, EZO-EC 4.58 mA, transceiver plus bias 4.04 mA). Those are normal
+//  operating currents, not leakage - so the rail itself is live and NO amount
+//  of pin housekeeping will fix that. See RailTest/ for the hardware side.
+//
+//  What the code CAN fix is everything on the MCU's own side:
+// ===========================================================================
+void parkPinsForSleep() {
+  // 1. SoftwareSerial arms a PIN-CHANGE interrupt on its receive pin, and
+  //    pin-change is precisely the interrupt class that wakes an ATmega out
+  //    of powerDown. Left armed it can fire on noise or on a floating pin,
+  //    and each wake runs the core at 16 MHz - roughly 10 mA - for a moment.
+  //    It looks exactly like a quiescent drain somewhere else entirely.
+  rs485.end();
+  rs485CurrentBaud = 0;
+
+  // 2. TWI off at the register. The Arduino Wire library enables the AVR's
+  //    INTERNAL pull-ups on A4/A5, and those sit on the MCU's permanently
+  //    powered 3.3 V - so once the EZO circuits lose their supply, those
+  //    pull-ups push current through the circuits' ESD clamps into a dead
+  //    rail. A pull-up is tens of kilohms so it is only microamps, but it is
+  //    the wrong direction to leave current flowing, and it can hold an
+  //    unpowered chip in an undefined state.
+  TWCR = 0;
+
+  // 3. Park each pin according to WHAT IS AT THE OTHER END. An earlier
+  //    version of this drove them all LOW, which doubled sleep current from
+  //    20.8 to 44.8 mA - because D3 sits on the transceiver's RO OUTPUT, so
+  //    an AVR output driving low fought a transceiver output driving high.
+  //    That is the same push-pull contention that makes swapping D3/D4 by
+  //    hand a bad idea; there is no reason it becomes safe in software.
+  //
+  //    D3  transceiver RO -> MCU input.  NEVER drive this pin. Input with the
+  //        internal pull-up: it cannot fight RO while the rail is live, and
+  //        it cannot float once the rail is dead and RO goes high-impedance.
+  pinMode(RS485_RX_PIN, INPUT_PULLUP);
+
+  //    D4  MCU output -> transceiver DI. Safe to drive, but pointless to
+  //        drive low: on an auto-direction module a low on DI looks like a
+  //        start bit and asserts the driver, which then sits on the bus
+  //        burning current. UART idle is a mark, so leave it pulled high.
+  pinMode(RS485_TX_PIN, INPUT_PULLUP);
+
+  //    A4/A5  open-drain I2C with external 4.7k pull-ups on the SWITCHED
+  //        rail. Inputs with the internal pull-up OFF: while the rail is live
+  //        the external resistors hold them high, and once it is dead those
+  //        same resistors tie them to 0 V - so they never float either way,
+  //        and nothing is driven into an unpowered EZO circuit. Driving them
+  //        low would instead sink the pull-up current continuously and hold
+  //        both circuits' bus permanently busy.
+  pinMode(A4, INPUT);
+  digitalWrite(A4, LOW);
+  pinMode(A5, INPUT);
+  digitalWrite(A5, LOW);
+
+#if ENABLE_DS18B20
+  //    A2  same reasoning: open-drain 1-Wire with its 4.7k pull-up on the
+  //        switched rail.
+  pinMode(ONE_WIRE_PIN, INPUT);
+  digitalWrite(ONE_WIRE_PIN, LOW);
+#endif
+
+  // 4. Both rail enables low. Already done by railsOff(), repeated here so
+  //    this function is correct on its own and does not depend on call order.
+  digitalWrite(RAIL12_EN, LOW);
+  digitalWrite(RAIL33_EN, LOW);
+
+  // 5. The status LED. Cheap to forget, 2-3 mA if left on.
+  digitalWrite(ledPin, LOW);
+}
+
+void unparkPinsAfterSleep() {
+  // ------------------------------------------------------------------------
+  //  D4 MUST BE RESTORED TO AN OUTPUT HERE, BY HAND.
+  //
+  //  SoftwareSerial sets its pin directions in the CONSTRUCTOR, not in
+  //  begin(): begin() only computes the bit delays and calls listen(). So
+  //  once parkPinsForSleep() has turned D4 into an input, nothing ever turns
+  //  it back - the constructor ran once, at global init, and will not run
+  //  again. write() manipulates the port register directly, and with the DDR
+  //  bit clear that only toggles the pull-up. Not one bit reaches the bus.
+  //
+  //  The symptom is distinctive and cost a full debugging round: cycle 1
+  //  after any reset works completely, and every cycle after the first sleep
+  //  reports "Modbus timeout" for BOTH slaves, because the master has gone
+  //  mute rather than the slaves having gone deaf. It also explains months
+  //  of "an occasional DO reading" - exactly one working cycle per reset,
+  //  and the brownouts were supplying the resets.
+  //
+  //  Level first, direction second: pinMode(OUTPUT) on a pin whose PORT bit
+  //  is 0 drives it low for a few cycles, and a low on DI is a start bit.
+  digitalWrite(RS485_TX_PIN, HIGH);       // UART idle is a mark
+  pinMode(RS485_TX_PIN, OUTPUT);
+
+  //  RX just needs the pull-up SoftwareSerial's setRX() would have applied.
+  pinMode(RS485_RX_PIN, INPUT);
+  digitalWrite(RS485_RX_PIN, HIGH);
+  // ------------------------------------------------------------------------
+
+  pinMode(A4, INPUT);
+  pinMode(A5, INPUT);
+  Wire.begin();
+#if defined(WIRE_HAS_TIMEOUT)
+  Wire.setWireTimeout(25000, true);
+#endif
+#if ENABLE_DS18B20
+  pinMode(ONE_WIRE_PIN, INPUT);
+#endif
+  // rs485CurrentBaud was cleared, so the next rs485SetBaud() runs begin()
+  // again - which re-arms the receive interrupt and the bit timing, but NOT
+  // the pin directions. Hence the block above.
+}
+
 void sleep(int sec_to_sleep) {
   Serial.print(F("Will sleep now for approximately "));
   Serial.print(sec_to_sleep);
@@ -473,26 +665,70 @@ void sleep(int sec_to_sleep) {
   // the last characters need to leave the UART, rather than a fixed second.
   Serial.flush();
 
+  parkPinsForSleep();
+
   for (int i = 0; i < sec_to_sleep / 8; i++) {
     LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
   }
-  Serial.println(F("--------------------------------------------------"));
+
+  unparkPinsAfterSleep();
+  Serial.print(F("--- awake after "));
   Serial.print(sec_to_sleep);
-  Serial.println(F(" seconds have passed. Performing task..."));
+  Serial.println(F(" s"));
 }
 
 // ---------------------------------------------------------------------------
 //  Rail control.  3.3 V comes up first (the transceiver and the RTD front-end
 //  live on it), then the 12 V rail for the probes. Powering down in reverse.
 // ---------------------------------------------------------------------------
+// Switching a rail on with digitalWrite() reset this board. Measured: the
+// first rails33On() after a cold start browned the MCU out (MCUSR = BORF)
+// before its own log line could leave the UART buffer. Closing the low-side
+// MOSFET charges two EZO boards' and the transceiver's bulk capacitors in one
+// step, and the "Sensor Power" plus terminal is fed by the SAME 3.3 V
+// regulator as the ATmega - so the inrush hits the MCU's own supply. The peak
+// exceeded 500 mA (a bench supply capped there stayed in constant-current).
+//
+// D6 and D7 are both Timer0 PWM outputs, so the switch-on can be ramped with
+// no extra hardware: 64 steps of rising duty, roughly one 490 Hz period each,
+// then a hard HIGH. Whether that walks the gate through its linear region or
+// simply chops the load depends on the board's gate network, which is not
+// documented - either way the AVERAGE inrush is limited and the rail recovers
+// between pulses, which is what the BOD cares about.
+//
+// A 470 uF bulk capacitor across the 3.3 V rail fixed the cold start on its
+// own. This ramp is what makes it independent of residual charge: after a
+// 30-minute sleep the device capacitors have bled down, so every cycle would
+// otherwise face the same full inrush the cold start did.
+//
+// digitalWrite() on a PWM pin calls turnOffPWM() itself, so the final HIGH
+// releases the timer compare unit. Timer0 keeps running: millis() is intact.
+void railOnSoft(uint8_t pin) {
+  for (uint8_t d = 4; d < 252; d += 4) {
+    analogWrite(pin, d);
+    delay(2);
+  }
+  digitalWrite(pin, HIGH);
+}
+
 void rails33On() {
   Serial.println(F("3.3 V sensor rail ON  (D6)"));
-  digitalWrite(RAIL33_EN, HIGH);
+  Serial.flush();                 // a brownout here must not eat the evidence
+  railOnSoft(RAIL33_EN);
   delay(RAIL33_SETTLE_MS);        // EZO boot time
 }
 
+// D7 gets a HARD switch-on, deliberately. The soft-start reasoning does not
+// transfer: D7 only drives the opto module's input, and everything behind it
+// is fed by the boost converter, which is tapped ahead of the board. An
+// inrush there cannot reach the ATmega's supply, so there is nothing to
+// protect - and ramping it does harm. 128 ms of 490 Hz chopping makes the
+// boost's output pulse, and the Y511-A boots into a pulsing 14 V rail with a
+// motor attached. That is the same symptom seen when the boost was set to
+// 12 V: the LED pulsing and the wiper creeping round.
 void rails12On() {
   Serial.println(F("12 V sensor rail ON   (D7)"));
+  Serial.flush();
   digitalWrite(RAIL12_EN, HIGH);
   delay(RAIL12_SETTLE_MS);        // boost start-up + bulk cap charge
 }
@@ -574,13 +810,12 @@ bool modbusReadRegisters(uint8_t slave, uint16_t reg, uint8_t count, uint16_t *o
     }
 
     if (got < expected) {
-      Serial.print(F("  Modbus timeout (slave 0x"));
-      Serial.print(slave, HEX);
-      Serial.println(F(")  -- check RS485_ECHOES_OWN_TX"));
+      Serial.print(F("  Modbus timeout 0x"));
+      Serial.println(slave, HEX);
       continue;
     }
     if (resp[0] != slave || resp[1] != 0x03) {
-      Serial.println(F("  Modbus bad header -- check RS485_ECHOES_OWN_TX"));
+      Serial.println(F("  Modbus bad header"));
       continue;
     }
     uint16_t crcCalc = modbusCRC(resp, expected - 2);
@@ -828,7 +1063,7 @@ float readVolts() {
 
   float last_vcc = 0;
   for (uint8_t i = 0; i < BATT_SAMPLES; i++) {
-    last_vcc += ((analogRead(batt_pin) * (vcc_reg / 1023.0)) * 3.83);
+    last_vcc += ((analogRead(batt_pin) * (vcc_reg / 1023.0)) * BATT_DIVIDER);
     delay(2);
   }
   last_vcc /= BATT_SAMPLES;
@@ -1082,6 +1317,7 @@ uint8_t uplink() {
   if (!isnan(v_turb))  xlpp.addAnalogInput(6, v_turb / 10.0);   // NTU  -> NTU/10
   if (!isnan(v_temp2)) xlpp.addTemperature(7, v_temp2);
 
+
   // The 3 s delay that used to sit here came from the WaziDev example and
   // served nothing: the radio is already initialised and the rails are
   // already down by this point, so it was three seconds of the MCU simply
@@ -1177,10 +1413,57 @@ uint8_t downlink_with_logs(uint16_t timeout) {
 }
 
 // ===========================================================================
+//  WHY DID IT RESTART?
+//
+//  A boot loop looks identical whether the cause is a brownout, the watchdog,
+//  a floating RESET pin or a genuine power cycle - the log just begins again.
+//  The AVR records the reason in MCUSR, but that register must be read before
+//  anything else touches it, so this runs from .init3, ahead of main().
+//
+//    PORF  power-on      normal at first boot, or a supply that fully collapsed
+//    EXTRF external      the RESET pin - a loose DTR line or the FTDI
+//    BORF  brown-out     the supply sagged past the BOD threshold UNDER LOAD
+//    WDRF  watchdog      code hung and the watchdog fired
+//
+//  BORF repeating is the answer to "why does it reset during radio init":
+//  the SX1276 draws its peak there and the rail cannot hold it.
+// ===========================================================================
+uint8_t resetFlags __attribute__((section(".noinit")));
+
+void captureResetFlags(void) __attribute__((naked, used, section(".init3")));
+void captureResetFlags(void) {
+  resetFlags = MCUSR;
+  MCUSR = 0;
+}
+
+// A WATCHDOG WAS FITTED HERE AND REMOVED AGAIN. It is still the right idea -
+// this AVR core's Wire has no timeout, so a device holding SDA low blocks
+// forever - but the 8 s window was fed per PHASE and that is not often
+// enough. Measured from Felix's own logs: 5.57 s from the top of loop() to
+// the DO warm-up on a good cycle, and 7.54 s from the end of that warm-up to
+// the EC reading on a cycle where Modbus timed out. Against an 8 s window
+// that resets the node in exactly the situation the dog was meant to survive.
+//
+// The next attempt must call wdt_reset() inside the low-level primitives -
+// modbusTransaction(), ezoCommand(), readOneWire() - not around the phases
+// that call them. Then the interval is one operation, not one group.
+void reportResetCause() {
+  Serial.print(F(" Restart cause: MCUSR=0x"));
+  Serial.print(resetFlags, HEX);
+  if (resetFlags & _BV(PORF))  Serial.print(F("  POWER-ON"));
+  if (resetFlags & _BV(EXTRF)) Serial.print(F("  EXTERNAL-RESET"));
+  if (resetFlags & _BV(BORF))  Serial.print(F("  BROWN-OUT"));
+  if (resetFlags & _BV(WDRF))  Serial.print(F("  WATCHDOG"));
+  if (resetFlags == 0)         Serial.print(F("  ?"));
+  Serial.println();
+}
+
+// ===========================================================================
 //  SETUP / LOOP
 // ===========================================================================
 void setup() {
   Serial.begin(38400);
+  reportResetCause();
 
   pinMode(ledPin, OUTPUT);
 
@@ -1205,27 +1488,25 @@ void setup() {
   // fallback, and it is a net, not a cure (see its comment).
 #if defined(WIRE_HAS_TIMEOUT)
   Wire.setWireTimeout(25000 /* us */, true /* reset the bus on timeout */);
-  Serial.println(F(" I2C timeout guard: native (25 ms)"));
+  Serial.println(F(" I2C guard: native 25 ms"));
 #else
-  Serial.println(F(" I2C timeout guard: pre-flight check only (old AVR core)"));
+  Serial.println(F(" I2C guard: pre-flight only (old core)"));
 #endif
 
   blink_led();
 
-  Serial.println(F("=================================================="));
-  Serial.println(F(" KijaniSpace water sensor node  --  WaziSense v2"));
-  Serial.println(F("=================================================="));
-  Serial.println(F(" H1 jumper must be in the 3.3 V position."));
+  Serial.println(F(" KijaniSpace water node - WaziSense v2"));
 
 #if ENABLE_PT1000
   // SPI is shared: the MAX31865 is initialised per cycle in readPT1000(),
   // because its rail is switched off in between.
-#else
-  Serial.println(F(" Temperature: DS18B20 on A2 (PT1000 not fitted)."));
-  Serial.println(F(" Needs a 4.7 kOhm pull-up from A2 to X3-1."));
 #endif
+  Serial.println(F(" Radio init (peak current)"));
+  Serial.flush();
   wazidev.setupLoRaWAN(devAddr, LoRaWANKeys);
   sx1272.setSF(SF_12);                    // gateway accepts SF12 only
+  Serial.println(F(" Radio OK"));
+  Serial.flush();
 }
 
 void loop(void) {

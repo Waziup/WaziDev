@@ -25,11 +25,18 @@
  *    5  conductivity  uS/cm / 100  -> uS/cm
  *    6  turbidity     NTU/10 -> NTU
  *    7  temperature   degC   the DO probe's own sensor, a cross-check on ch 1
+ *    8  restart cause        raw MCUSR of the reset BEFORE this uplink
+ *                            NOT CURRENTLY SENT - the sketch was rolled
+ *                            back to its last confirmed build. The case
+ *                            below is harmless until it returns.
  *
  *  A channel whose sensor failed, or that was skipped that cycle, is left out
  *  of the payload rather than sent as zero. So a missing field means "no
  *  reading", never "reading of 0" - do not fill gaps with zeros downstream.
  *  Turbidity is only read every 4th cycle by design.
+ *
+ *  Channel 8 is the exception: it is sent on EVERY uplink, because "nothing
+ *  restarted" is itself the information you want on a node you cannot reach.
  *
  *  NOTE ON WIRING THIS IN: the function name and signature below follow the
  *  common `Decoder(bytes, port)` convention. Check what entry point your
@@ -79,6 +86,36 @@ function Decoder(bytes, port) {
           out.turbidity_NTU = Math.round(v * 10 * 10) / 10;
         } else {
           out['analog_ch' + chan] = v;
+        }
+        break;
+      }
+
+      case 0x00: {                       // LPP_DIGITAL_INPUT, 1 byte
+        var b = bytes[i];
+        i += 1;
+        if (chan === 8) {
+          // Why the node last restarted. Sent over the air because a node at
+          // the pond has no serial port, and a restart is otherwise invisible
+          // downstream: the data just arrives less often, with no reason.
+          //
+          // These describe the reset that PRECEDED this uplink, so a normal
+          // battery change shows power_on once and then nothing.
+          var why = [];
+          if (b & 0x01) why.push('power_on');
+          if (b & 0x02) why.push('external');   // RESET pin, or a USB monitor
+          if (b & 0x04) why.push('brown_out');  // supply sagged under load
+          if (b & 0x08) why.push('watchdog');   // a cycle hung, dog restarted
+          out.restart_flags = b;
+          out.restart_cause = why.length ? why.join('+') : 'none_recorded';
+
+          // Worth alerting on. Either one repeating is a real fault that the
+          // measurements themselves will not reveal: brown_out means the
+          // supply cannot hold the rail switch-on, watchdog means a cycle is
+          // hanging - most likely a blocking I2C read, since this AVR core's
+          // Wire has no timeout.
+          out.restart_alarm = !!(b & 0x0C);
+        } else {
+          out['digital_ch' + chan] = b;
         }
         break;
       }

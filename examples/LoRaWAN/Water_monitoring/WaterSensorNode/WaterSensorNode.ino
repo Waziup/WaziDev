@@ -7,17 +7,28 @@
  *  Sensors
  *    RS485 / Modbus-RTU  (switched 12 V rail):
  *      - Dissolved oxygen   DFRobot SEN0680  (fluorescence, freshwater)  0x01
- *      - Turbidity          Yosemitech Y511-A (self-cleaning wiper)      0x03
- *    I2C  (switched 3.3 V; pull-ups are NOT on the board on this unit -
- *          I2C_J was found open, so 2 x 4.7 kOhm were fitted to X3-1):
- *      - pH                 Atlas EZO-pH   NO isolator fitted            0x63
- *      - Conductivity       Atlas EZO-EC   NO isolator fitted            0x64
+ *      - Turbidity          Yosemitech Y511-A (self-cleaning wiper)      0x01
  *
- *    The missing pH isolator is a deliberate, deferred decision, not an
- *    oversight: the EC probe drives AC through the same water and the pH cell
- *    reads it as signal. Read pH BEFORE EC (this sketch does) and decide by
- *    measurement whether the residual offset matters. See Drawing 09 in the
- *    wiring document.
+ *    Both Modbus probes sit on address 0x01 and neither was reconfigured.
+ *    They are separated by BAUD RATE instead - 4800 for the oxygen probe,
+ *    9600 for the turbidity probe - because a frame arriving at the wrong
+ *    rate fails its CRC rather than being answered.
+ *
+ *    I2C  (pull-ups are NOT on the board on this unit - I2C_J was found open,
+ *          so 2 x 4.7 kOhm were fitted from A4/A5 to D6(+)):
+ *      - pH                 Atlas EZO-pH   BEHIND AN ISOLATOR            0x63
+ *      - Conductivity       Atlas EZO-EC   isolator fitted, optional     0x64
+ *
+ *    TWO isolators are fitted, but only the pH one is needed: a galvanic loop
+ *    needs two grounded ends, so floating the pH side already opens it. The
+ *    EC one is the first thing to remove if autonomy ever binds - it costs
+ *    ~82 mA and is one more device that clamps the I2C bus when unpowered.
+ *
+ *    The isolator does NOT run off the switched 3.3 V. It draws 82 mA
+ *    measured, and switching that onto the board's own 3.3 V regulator - the
+ *    one feeding this MCU - browns the MCU out at every rail switch-on. Its
+ *    input is rated 3.0-5.0 V, so it runs from the cell behind its own
+ *    Pololu #2810, gated by ISO_EN.
  *    1-Wire (switched 3.3 V):
  *      - Temperature        DS18B20  <-- PRIMARY temperature source
  *
@@ -27,18 +38,31 @@
  *    channel 7. Nothing else has to change.
  *
  *  ---------------------------------------------------------------------------
- *  TWO SWITCHED RAILS  --  both via the WaziSense on-board high-side MOSFETs.
+ *  THREE SWITCHES, AND ONLY ONE OF THEM IS ON THE BOARD.
  *  The H1 jumper must be in the **3.3 V** position; it applies to BOTH
  *  "Sensor Power" blocks, so neither can carry battery voltage.
  *
- *    D6 -> "Sensor Power 1" -> switched 3.3 V
- *          feeds: RS485 transceiver, DS18B20 + its pull-up, the two
- *                 I2C pull-ups, RS485 fail-safe bias, both EZO circuits
- *    D7 -> "Sensor Power 2" -> switched 3.3 V used as a CONTROL SIGNAL
- *          into the opto-isolated high-side module that switches the 12 V rail
+ *    D6    -> the "Sensor Power 1" MOSFET. This is a LOW-SIDE switch: it
+ *             gates D6(-), the RETURN. D6(+) is permanently live, and the
+ *             two Sensor Power plus terminals are one node (measured 1.2 Ohm
+ *             apart). Feeds the RS485 transceiver, the bias network, the
+ *             DS18B20 and the EZO-EC.
+ *             CONSEQUENCE: every device ground on this rail must land on
+ *             D6(-) and NOWHERE else. A second wire to any GND pin shorts
+ *             the MOSFET out and the rail never switches off - that cost
+ *             20.78 mA of sleep current here until it was found.
  *
- *  Both rails switch the POSITIVE line only; ground is continuous, so the
- *  RS485 common reference is never broken.
+ *    D5    -> Pololu #2810 (A) ON -> U3V9F12 -> the 12 V probes.
+ *    ISO_EN-> Pololu #2810 (B) ON -> the pH isolator, off the cell.
+ *
+ *    D7 is NOT USED. It exists only as the gate of the "Sensor Power 2"
+ *    MOSFET and is not brought out to any header, so it cannot drive an
+ *    external switch. That terminal pair is unconnected in this build.
+ *
+ *  The 12 V converter is switched at its INPUT, not its output. A boost
+ *  converter passes its input through when disabled (measured: 7.2 V on the
+ *  rail with 2.836 V at the input), so gating the output needs a series
+ *  switch AND leaves the converter drawing its own current all night.
  *  ---------------------------------------------------------------------------
  *  WaziSense v2 PIN RESERVATIONS (from the WaziSense v2 Internal User Manual)
  *    D0/D1      USB serial (FTDI port)
@@ -50,9 +74,11 @@
  *    A0         battery monitor (2x 470 kOhm divider, "BATT%" jumper)
  *    A4/A5      I2C. The manual says 4.7 kOhm pull-ups are fitted via the
  *               "I2C_J" jumper - on THIS board that jumper was open (5.9 MOhm
- *               to 3V3), so own 4.7 kOhm resistors go to X3-1. MEASURE before
+ *               to 3V3), so own 4.7 kOhm resistors go to D6(+). MEASURE before
  *               assuming: without a pull-up, Wire hangs rather than failing.
- *    D6/D7      "Sensor Power" terminal blocks (high-side MOSFETs, H1 jumper)
+ *    D6/D7      "Sensor Power" terminal blocks - LOW-side MOSFETs, see above.
+ *               D7 is not brought out as a pin; D5 and A1 drive the two
+ *               external #2810 switches instead.
  *
  *  Used by us: D3, D4, D6, D7, A2   |   Spare: D5, A1, A3
  *
@@ -108,7 +134,7 @@
 #define ENABLE_DS18B20    1     // 1-Wire - connected, with its 4.7k pull-up
 
 // The 12 V rail normally comes up only because an RS485 sensor needs it. Set
-// this to 1 to raise it anyway - it lets you meter the boost + opto-switch
+// this to 1 to raise it anyway - it lets you meter the boost + #2810
 // chain end to end at X2-1 with nothing connected to it. Safe only once the
 // XL6009 trimpot is actually set to 12 V; leave it at 0 otherwise.
 #define RAIL12_FORCE_ON   1     // trimpot verified at 12 V
@@ -150,10 +176,10 @@ int       sleep_sec = 1800;   // 30 min base cycle; downlink-settable
 //  single component is about 59 % of the whole budget - more than every
 //  measurement put together.
 //
-//  Software cannot fix it. The fix is a high-side switch in the boost's INPUT
-//  (Pololu #2810, 2-20 V / 6 A) driven from D7, which also makes the
-//  opto-isolated module on the output redundant: if the converter is off, the
-//  12 V rail does not exist. That takes the budget to about 65 mAh/day.
+//  Software could not fix it, and the hardware now does: a Pololu #2810 in
+//  the boost's INPUT, driven from D5. The opto-isolated module that used to
+//  sit on the output is gone - if the converter is unpowered, the 12 V rail
+//  does not exist and there is nothing left to disconnect.
 //
 //  What IS fixed in software below: three delays that cost awake time and buy
 //  nothing (3 s before transmit, 200 samples for one battery reading, 2 s
@@ -170,15 +196,21 @@ uint8_t       cycleCount = 0;
 // ---------------------------------------------------------------------------
 const int RS485_RX_PIN = 3;    // transceiver module RXD / RO
 const int RS485_TX_PIN = 4;    // transceiver module TXD / DI
-const int RAIL33_EN    = 6;    // "Sensor Power 1" -> switched 3.3 V
-const int RAIL12_EN    = 7;    // "Sensor Power 2" -> control of the 12 V module
+const int RAIL33_EN    = 6;    // gates the "Sensor Power 1" LOW side - D6(-)
+
+// D7 exists ONLY as the "Sensor Power 2" terminal pair on this board; there is
+// no D7 pin on any header, so it cannot carry a logic level to an external
+// switch. Both Pololu #2810 modules therefore take free GPIOs instead, and the
+// whole "Sensor Power 2" block is unused.
+const int RAIL12_EN    = 5;    // #2810 (A) ON -> U3V9F12 -> the 12 V probes
+const int ISO_EN       = A1;   // #2810 (B) ON -> the pH isolator, off the cell
 const int ledPin       = 8;    // on-board LED1
 const int batt_pin     = A0;   // on-board 470k/470k divider, confirmed 2.00
 #if ENABLE_PT1000
 const int MAX31865_CS  = A1;   // analog pin driven as a digital output
 #endif
 #if ENABLE_DS18B20
-const int ONE_WIRE_PIN = A2;   // needs an external 4.7 kOhm pull-up to X3-1
+const int ONE_WIRE_PIN = A2;   // needs an external 4.7 kOhm pull-up to D6(+)
 #endif
 
 // NOTE: no DE/RE pin. The transceiver module is an AUTO-DIRECTION type with
@@ -446,6 +478,7 @@ uint8_t        turbReadCount = 0;
 // Rail settling times.
 //   3.3 V: the EZO circuits need roughly a second to boot after power-up.
 //   12 V : boost start-up plus charging the 1000 uF bulk capacitor.
+const uint16_t ISO_SETTLE_MS     = 200;    // isolator DC-DC before the bus
 const uint16_t RAIL33_SETTLE_MS  = 1200;
 // 3000, not 500. At 500 ms the first Modbus command went out 522 ms after
 // the rail came up (measured from the log timestamps) and the Y511-A had not
@@ -503,11 +536,12 @@ const uint16_t EZO_CMD_DELAY_MS  = 300;
 const float VccCorrection = 1.0;
 Vcc vcc(VccCorrection);
 
-// The on-board 470k/470k pair. Still worth one confirmation against the
-// meter at around 3.7 V as the cell discharges - a resistor ratio is linear,
-// so it should track, and if it ever does not the cause would be the 235k
-// source impedance starving the ADC's sample-and-hold (cure: 100 nF from A0
-// to GND). Note the value with FTDI and cell in the SAME state both times.
+// The on-board 470k/470k pair, CONFIRMED at a second point: with the cell at
+// ~3.9 V by meter the sketch reported 3.95 V, about 1 % out. Two points
+// agreeing means this is a real resistor ratio and not the ADC
+// source-impedance artefact that was suspected, so no 100 nF from A0 to GND
+// is needed. Note that A0 reads X1-1, not the cell - if the protection chain
+// is in place, expect the SS34 drop of roughly 0.4 V between them.
 const float BATT_DIVIDER = 2.0;
 
 // ---------------------------------------------------------------------------
@@ -605,10 +639,11 @@ void parkPinsForSleep() {
   digitalWrite(ONE_WIRE_PIN, LOW);
 #endif
 
-  // 4. Both rail enables low. Already done by railsOff(), repeated here so
-  //    this function is correct on its own and does not depend on call order.
+  // 4. Every enable low. Already done by railsOff(), repeated here so this
+  //    function is correct on its own and does not depend on call order.
   digitalWrite(RAIL12_EN, LOW);
   digitalWrite(RAIL33_EN, LOW);
+  digitalWrite(ISO_EN,    LOW);
 
   // 5. The status LED. Cheap to forget, 2-3 mA if left on.
   digitalWrite(ledPin, LOW);
@@ -689,12 +724,27 @@ void sleep(int sec_to_sleep) {
 // regulator as the ATmega - so the inrush hits the MCU's own supply. The peak
 // exceeded 500 mA (a bench supply capped there stayed in constant-current).
 //
-// D6 and D7 are both Timer0 PWM outputs, so the switch-on can be ramped with
-// no extra hardware: 64 steps of rising duty, roughly one 490 Hz period each,
-// then a hard HIGH. Whether that walks the gate through its linear region or
-// simply chops the load depends on the board's gate network, which is not
-// documented - either way the AVERAGE inrush is limited and the rail recovers
-// between pulses, which is what the BOD cares about.
+// The ramp is BIT-BANGED, and that is the whole point of how it is written.
+//
+// An earlier version used analogWrite(), which on D6 drives OC0A - the
+// compare unit of TIMER0, the same timer millis() and delay() are built on.
+// That is only safe as long as nothing ever restarts the sketch without a
+// hardware reset. A runaway program counter landing at address 0 does exactly
+// that: MCUSR reads 0x00 (no reset flag set at all) and THE PERIPHERALS KEEP
+// THEIR CONFIGURATION. Worse, the core's init() brings Timer0 up with bit-SET
+// operations only - it never clears anything - so whatever analogWrite() left
+// behind survives into the new run.
+//
+// The measured symptom: delay() ran 12.8x fast. D6 to D7 took 104 ms where
+// the code demands at least 1330 ms, so RAIL12_SETTLE_MS of 3000 became
+// 234 ms and no sensor had time to boot. Two failing logs showed 101 and
+// 104 ms; two good ones showed 1327 and 1346 ms. The fast clock appeared
+// only after an abnormal restart, never before one.
+//
+// delayMicroseconds() is a plain busy loop with no timer behind it, so this
+// version cannot corrupt the time base no matter how the sketch ends. 63
+// steps of one 2 ms period each is ~126 ms, the same as the version it
+// replaces, so the rail timing downstream is unchanged.
 //
 // A 470 uF bulk capacitor across the 3.3 V rail fixed the cold start on its
 // own. This ramp is what makes it independent of residual charge: after a
@@ -704,14 +754,32 @@ void sleep(int sec_to_sleep) {
 // digitalWrite() on a PWM pin calls turnOffPWM() itself, so the final HIGH
 // releases the timer compare unit. Timer0 keeps running: millis() is intact.
 void railOnSoft(uint8_t pin) {
-  for (uint8_t d = 4; d < 252; d += 4) {
-    analogWrite(pin, d);
-    delay(2);
+  for (uint8_t step = 1; step <= 63; step++) {
+    uint16_t on = (uint16_t)step * 31;       // 31 us .. 1953 us of a 2 ms period
+    digitalWrite(pin, HIGH);
+    delayMicroseconds(on);
+    digitalWrite(pin, LOW);
+    delayMicroseconds(2000 - on);
   }
   digitalWrite(pin, HIGH);
 }
 
+// THE ISOLATOR COMES UP FIRST, AND GOES DOWN LAST.
+//
+// An unpowered isolator on a live I2C bus is not a neutral state: the
+// ADM3260's lines are open-drain on both sides, and with no supply they hold
+// SDA and SCL down. That takes the EZO-EC with them - measured here, both
+// circuits reported FAIL with the isolator's cell disconnected and both
+// answered with it connected, even though EC sits nowhere near the isolator.
+//
+// So the invariant is: isolator powered whenever the bus is powered. Never
+// the other way round, and never a window where D6 is high and ISO_EN is not.
 void rails33On() {
+  Serial.println(F("pH isolator ON       (A1)"));
+  Serial.flush();
+  digitalWrite(ISO_EN, HIGH);
+  delay(ISO_SETTLE_MS);           // its DC-DC needs to be up before the bus is
+
   Serial.println(F("3.3 V sensor rail ON  (D6)"));
   Serial.flush();                 // a brownout here must not eat the evidence
   railOnSoft(RAIL33_EN);
@@ -719,7 +787,7 @@ void rails33On() {
 }
 
 // D7 gets a HARD switch-on, deliberately. The soft-start reasoning does not
-// transfer: D7 only drives the opto module's input, and everything behind it
+// transfer: D5 only drives the #2810's ON pin, and everything behind it
 // is fed by the boost converter, which is tapped ahead of the board. An
 // inrush there cannot reach the ATmega's supply, so there is nothing to
 // protect - and ramping it does harm. 128 ms of 490 Hz chopping makes the
@@ -727,7 +795,7 @@ void rails33On() {
 // motor attached. That is the same symptom seen when the boost was set to
 // 12 V: the LED pulsing and the wiper creeping round.
 void rails12On() {
-  Serial.println(F("12 V sensor rail ON   (D7)"));
+  Serial.println(F("12 V sensor rail ON   (D5)"));
   Serial.flush();
   digitalWrite(RAIL12_EN, HIGH);
   delay(RAIL12_SETTLE_MS);        // boost start-up + bulk cap charge
@@ -736,6 +804,7 @@ void rails12On() {
 void railsOff() {
   digitalWrite(RAIL12_EN, LOW);
   digitalWrite(RAIL33_EN, LOW);
+  digitalWrite(ISO_EN,    LOW);   // last: see the note above rails33On()
   Serial.println(F("Both sensor rails OFF"));
 }
 
@@ -1175,7 +1244,7 @@ void readAllSensors(bool doTurbidity) {
   if (t2 > -20.0 && t2 < 60.0) v_temp2 = t2;
 
   Serial.print(F("Temperature (DS18B20): "));
-  if (isnan(v_temp2)) Serial.println(F("FAIL (check the 4.7k pull-up to X3-1)"));
+  if (isnan(v_temp2)) Serial.println(F("FAIL (check the 4.7k pull-up to D6+)"));
   else { Serial.print(v_temp2, 2); Serial.println(F(" degC")); }
 
   if (isnan(v_temp)) {
@@ -1228,7 +1297,7 @@ void readAllSensors(bool doTurbidity) {
   if (!isnan(v_ph) && (v_ph < 0 || v_ph > 14.0)) {
     Serial.print(F("pH: rejected "));
     Serial.print(v_ph, 2);
-    Serial.println(F(" - outside 0.5..14, treating as no reading"));
+    Serial.println(F(" - outside 0..14, treating as no reading"));
     v_ph = NAN;
   }
 
@@ -1462,6 +1531,19 @@ void reportResetCause() {
 //  SETUP / LOOP
 // ===========================================================================
 void setup() {
+  // Timer0 into a KNOWN state before anything else, by direct assignment
+  // rather than the bit-setting the core's init() uses. A software restart -
+  // a jump to address 0, which MCUSR reports as 0x00 - leaves every
+  // peripheral configured as the crashed run left it, and init() will not
+  // clear a single one of those bits. millis() and delay() hang off this
+  // timer, so a leftover here silently rescales every wait in the sketch.
+  // Five register writes make that class of fault impossible to inherit.
+  TCCR0A = _BV(WGM01) | _BV(WGM00);   // fast PWM, TOP = 0xFF, outputs detached
+  TCCR0B = _BV(CS01)  | _BV(CS00);    // prescaler 64 - the core's own setting
+  OCR0A  = 0;
+  OCR0B  = 0;
+  TIMSK0 = _BV(TOIE0);                // overflow interrupt = millis()
+
   Serial.begin(38400);
   reportResetCause();
 
@@ -1469,8 +1551,10 @@ void setup() {
 
   pinMode(RAIL33_EN, OUTPUT);
   pinMode(RAIL12_EN, OUTPUT);
-  digitalWrite(RAIL33_EN, LOW);           // both rails OFF at boot
+  pinMode(ISO_EN,    OUTPUT);
+  digitalWrite(RAIL33_EN, LOW);           // everything OFF at boot
   digitalWrite(RAIL12_EN, LOW);
+  digitalWrite(ISO_EN,    LOW);
 
 #if ENABLE_PT1000
   pinMode(MAX31865_CS, OUTPUT);

@@ -274,7 +274,8 @@
       <p>The order in which this node was actually made to work, and the observable result
          that had to be true before each step could be trusted. Companion to
          <a href="https://claude.ai/code/artifact/dbeeb51a-e120-48e9-a3ec-08dbad0b5dff">Water Sensor Node — Wiring</a>: that one says what connects
-         to what, this one says what to run and what you should see.</p>
+         to what, this one says what to run and what you should see. The
+         <a href="https://claude.ai/artifact/FA7kYQ5aRn6jUakyahDWPq">parts list</a> is the third piece.</p>
     </div>
     <div class="meta">
       SITE&nbsp;&nbsp;<b>Lake Victoria / fish farm</b><br>
@@ -309,7 +310,9 @@
         <tbody>
           <tr><td><code>I2CScan/</code></td><td>Can this I²C bus work at all? Measures residual voltage in mV and rise time in µs per line, bit-banged so it cannot hang.</td><td class="num">1, 3</td></tr>
           <tr><td><code>EZOSwitch/</code></td><td>Switches one EZO circuit from UART to I²C, picking the address from the circuit's own reply.</td><td class="num">3</td></tr>
-          <tr><td><code>EZOBridge/</code></td><td>A UART console to one EZO circuit over the existing SDA/SCL wires. Needed for calibration.</td><td class="num">3, 8</td></tr>
+          <tr><td><code>EZOBridge/</code></td><td>A <b>UART</b> console to one EZO circuit over the existing SDA/SCL wires. This is the tool that <em>performs</em> the switch to I²C — and the moment the switch takes effect, it can no longer reach the circuit.</td><td class="num">3</td></tr>
+          <tr><td><code>EZOCal/</code></td><td>An <b>I²C</b> console to <code>0x63</code> / <code>0x64</code>. The calibration tool, and the one to use on the circuits as they are now.</td><td class="num">8</td></tr>
+          <tr><td><code>VccCal/</code></td><td>Prints the untrimmed bandgap reading and the raw A0 count, so both battery constants can be fitted from one run.</td><td class="num">8</td></tr>
           <tr><td><code>RS485Drive/</code></td><td>Does the node's own RS485 driver work? Two multimeter readings, no probe needed.</td><td class="num">4</td></tr>
           <tr><td><code>RS485Pins/</code></td><td>Which board pin sits on the transceiver's output? Safe — no contention risk.</td><td class="num">4</td></tr>
           <tr><td><code>RS485Turnaround/</code></td><td>How long does the module keep the bus after transmitting?</td><td class="num">4</td></tr>
@@ -346,9 +349,12 @@
             battery domain at <code>X1-1</code> measured <b>2.836 V</b>, below the boost
             converter's minimum input, so it stopped regulating and the 12 V rail read
             <b>7.2 V</b>. Every Modbus device then looks identically dead on every baud rate.</li>
-        <li><strong>Boost set with a meter, before any probe is connected.</strong> 14 V. The
-            Y511-A's range is 12–24 V, so 12 V is its <em>minimum</em> and 10 m of cable plus
-            the wiper motor's inrush would pull it under.</li>
+        <li><strong>Boost set with a meter, before any probe is connected. 12 V.</strong>
+            Earlier revisions said 14 V; that was a workaround for a converter that was failing
+            — the same unit later put out <b>30 V from a 3.6 V input</b>. A regulated 12 V that
+            holds under the wiper motor is what both probes are specified for. If the voltage
+            at the <em>probe</em> sags during a sweep, the cure is thicker cable, not a higher
+            setting.</li>
         <li><strong>Serial monitor at 38400 baud.</strong> The IDE defaults to 9600 and shows
             only garbage.</li>
         <li>A bench supply on the 12 V rail is worth it for the ammeter alone — the current
@@ -389,7 +395,7 @@ PHASE 2  address scan 0x08..0x77
            <b>4.7 kΩ</b>. On this board the <code>I2C_J</code> jumper was <strong>open</strong>
            despite the manual stating it ships closed, and both lines measured
            <b>5.9 MΩ</b>. Two 4.7 kΩ resistors were fitted from <code>A4</code> and
-           <code>A5</code> to <code>X3-1</code> — the switched rail, so the pull-ups power up
+           <code>A5</code> to <code>D6(+)</code> — the switched rail, so the pull-ups power up
            and down with the devices they serve.</p>
         <p>A missing I²C pull-up does not degrade gracefully. The TWI hardware releases SCL
            and waits for it to rise before it can issue a START; with no pull-up it waits
@@ -407,7 +413,7 @@ PHASE 2  address scan 0x08..0x77
       <div class="runs"><b>WaterSensorNode.ino</b> · <code>ENABLE_DS18B20 1</code>, everything else <code>0</code></div>
       <p>The simplest sensor first, and the only one with no protocol to configure. Four
          wires: <code>VDD</code> and <code>GND</code> from <code>X3</code>, <code>DQ</code> to
-         <code>A2</code>, and a 4.7 kΩ pull-up from <code>DQ</code> to <code>X3-1</code>.</p>
+         <code>A2</code>, and a 4.7 kΩ pull-up from <code>DQ</code> to <code>D6(+)</code>.</p>
       <div class="gate">
         <span class="lbl">gate</span>
 <pre>Temperature (DS18B20): <span class="g">24.25 degC</span></pre>
@@ -540,7 +546,8 @@ SDA (A4): idle=H  driven-low=12 mV  rise=0 us   <span class="g">ok</span>
               <tr><td>Value register</td><td class="num">0x0002 · mg/L</td><td class="num">0x2602 · NTU</td></tr>
               <tr><td>Temperature</td><td class="num">0x0004 · °C</td><td class="num">0x2600 · °C</td></tr>
               <tr><td>Byte order</td><td class="num">ABCD · big endian</td><td class="num">DCBA · fully reversed</td></tr>
-              <tr><td>Ready after rail-on</td><td class="num">0.4 s</td><td class="num">0.4 s</td></tr>
+              <tr><td>Answers after rail-on</td><td class="num">0.4 s</td><td class="num">0.4 s</td></tr>
+              <tr><td><b>Ready for a command</b></td><td class="num">3 s</td><td class="num"><b>3 s</b></td></tr>
               <tr><td>Supply</td><td class="num">10–30 V · 10.6 mA</td><td class="num">12–24 V · 17 mA, 50 mA wiping</td></tr>
             </tbody>
           </table>
@@ -589,7 +596,7 @@ SDA (A4): idle=H  driven-low=12 mV  rise=0 us   <span class="g">ok</span>
         <span class="lbl">gate</span>
 <pre>3.3 V sensor rail ON  (D6)
 12 V sensor rail ON   (D7)
-Turbidity: brush sweep (watch the wiper move)
+Turbidity: brush sweep (acknowledged) - ~10 s
 Turbidity: start measurement
 Temperature (DS18B20): <span class="g">24.25 degC</span>
 DO: warming up optics...
@@ -611,6 +618,14 @@ LoRaWAN send ... <span class="g">OK</span></pre>
            fire. So the sweep is triggered directly before every turbidity reading — anti-fouling
            is the reason this sensor was chosen over a cheaper one, and a reading taken through
            a fouled window is worth nothing.</p>
+        <p><strong>And the frame is not ordinary Modbus.</strong> Yosemitech sends its
+           register-<em>count</em> field as <code>0x0000</code>. The sweep is
+           <code>01 10 31 00 00 00 00 74 94</code>, verified on the bench as the only command
+           that actually moves the wiper; a normal read of <code>0x3100</code>, or a
+           <code>0x06</code> write to it, are different frames and the sensor ignores them.</p>
+        <p><strong>Give the rail 3 s before the first command.</strong> At 500 ms the sweep
+           command returned <code>NO REPLY</code> — the probe had not finished booting, which
+           reads as a protocol fault and is not one. <code>RAIL12_SETTLE_MS</code> is 3000.</p>
       </div>
     </div>
   </div>
@@ -680,22 +695,34 @@ LoRaWAN send ... <span class="g">OK</span></pre>
     <div class="n">8</div>
     <div class="body">
       <h2>Calibration — still open</h2>
-      <div class="runs"><b>EZOBridge/</b> · buffer solutions · a multimeter</div>
+      <div class="runs"><b>EZOCal/</b> · <b>VccCal/</b> · buffer solutions · a multimeter</div>
       <p>Everything above proves the node reads and transmits. None of it makes the numbers
          <em>true</em>. Until this stage is done the pH and EC figures are readings, not
          measurements.</p>
       <ul>
+        <li><strong>Use <code>EZOCal</code>, not <code>EZOBridge</code>.</strong> The circuits are
+            in I²C mode now. A UART console gets silence from them, and the silence says
+            nothing about why.</li>
         <li><strong>pH</strong> — <code>Cal,mid,7.00</code>, then <code>Cal,low,4.00</code>,
-            then <code>Cal,high,10.00</code>, with buffer solutions, via
-            <code>EZOBridge</code>. Mid first: it sets the offset the other two are measured
-            against.</li>
-        <li><strong>EC</strong> — dry calibration first, then a standard solution matched to the
-            K=1.0 cell.</li>
-        <li><strong>Battery voltage</strong> — two constants, in this order.
-            <code>VccCorrection</code> first: measure the real supply, compare with what
-            <code>vcc.Read_Volts()</code> reports, and set the ratio. Only then the
-            <code>3.83</code> divider factor. Reversed, the two errors compensate each other
-            and both stay wrong.</li>
+            then <code>Cal,high,10.00</code>. Mid <em>first</em>: it clears the other two, so the
+            reverse order throws away the work. Submerge both the bulb and the reference junction,
+            about 2–3 cm; a narrow vessel reaches that on 20–30 mL. Rinse with distilled water
+            between buffers and shake off rather than wipe — rubbing charges the glass and the
+            drift takes minutes to settle. <strong>Never dilute a buffer</strong>, and never store
+            the probe in distilled water.</li>
+        <li><strong>EC</strong> — set the probe's <code>K</code> value first, then
+            <code>Cal,dry</code> with the probe in air, then a standard. Without both of those the
+            circuit answers <b>0.0 µS/cm</b> in any liquid, which looks like a dead probe and is
+            not. Lake Victoria sits near 100 µS/cm, so an 84 µS/cm standard suits it better than
+            the common 1413 µS/cm one.</li>
+        <li><strong>Battery voltage — done, and here is the trap.</strong>
+            <code>VccCorrection</code> is <b>1.0</b> (this chip's bandgap reads 3.3129 V untrimmed,
+            inside half a percent) and <code>BATT_DIVIDER</code> is <b>2.00</b>, the on-board
+            470k/470k ratio. A first attempt produced 2.696 because the ADC count came from a run
+            whose battery domain sat near 3.0 V while the meter reading of 4.07 V was taken
+            separately. <strong>Both halves of a calibration must come from the same instant</strong>
+            — fitting one state's counts to another state's volts gives a plausible number that is
+            simply wrong, and it wrongly discredited the board's own documentation.</li>
         <li><strong>Atmospheric pressure on the SEN0680</strong>, register <code>0x1022</code>.
             Oxygen saturation follows the partial pressure of oxygen, and Lake Victoria sits at
             about 1135 m where pressure is near 88 kPa instead of 101 — roughly 13 % lower.
@@ -775,12 +802,14 @@ LoRaWAN send ... <span class="g">OK</span></pre>
         <thead><tr><th>Item</th><th>Why it matters</th><th>Effect</th></tr></thead>
         <tbody>
           <tr>
-            <td><strong>Gate the boost converter</strong></td>
-            <td>The XL6009 is not switched and idles at roughly 3–5 mA around the clock —
-                about 59 % of the whole energy budget, more than every measurement combined.
-                A high-side switch in its <em>input</em> (Pololu #2810) driven from
-                <code>D7</code> also makes the opto module on the output redundant.</td>
-            <td class="num">158 → 65 mAh/day<br>19 → 46 days</td>
+            <td><strong>Gate the boost converter — decided</strong></td>
+            <td>A <b>Pololu #2810</b> now sits in the converter's <em>input</em>, driven from the
+                <code>D5</code> pin, and the opto module on the output is gone. (<code>D7</code> is not
+                brought out as a logic pin on this board — only as the Sensor Power 2 terminal pair.) The converter is
+                genuinely unpowered between measurements rather than idling. The replacement
+                converter is a <b>U3V9F12</b>, fixed 12 V — the old one failed by putting out
+                30 V at a 3.6 V input.</td>
+            <td class="num">sleep 20.8 → 3.2 mA</td>
           </tr>
           <tr>
             <td><strong>Measure the DO settling time</strong></td>
@@ -790,20 +819,23 @@ LoRaWAN send ... <span class="g">OK</span></pre>
             <td class="num">up to 24 mAh/day</td>
           </tr>
           <tr>
-            <td><strong>Confirm turbidity vs temperature</strong></td>
-            <td>Which of <code>0x2600</code> and <code>0x2602</code> is which was inferred, not
-                documented — 25.78 °C matched what both oxygen probes independently reported.
-                Put the probe in water and stir in milk or silt: turbidity must jump, temperature
-                must not.</td>
-            <td>register order</td>
+            <td><strong>Turbidity vs temperature — settled</strong></td>
+            <td>No milk needed in the end: submerging the probe was already a large enough optical
+                change. <code>0x2602</code> went from <b>0.08 NTU in air to 8.88 NTU under water</b>
+                — a factor of 111 — while both temperature readings moved by 0.06 K. No temperature
+                register behaves that way, so <code>0x2602</code> is turbidity and the pairing with
+                <code>0x2600</code> holds.</td>
+            <td class="num">0.08 → 8.88 NTU</td>
           </tr>
           <tr>
-            <td><strong>Decide on the pH isolator</strong></td>
-            <td>The EC probe drives AC through the same water the pH cell sits in. Atlas's own
-                datasheet requires isolation for pH. Decide it by measurement: 20 pH readings
-                each with the EC probe out of the water, in but asleep, and actively measuring.
-                Under 0.05 pH total, ignore it; over 0.1 pH, fit the isolator.</td>
-            <td>≈ $28, pH channel only</td>
+            <td><strong>pH isolator — fitted, on the battery</strong></td>
+            <td>One Basic EZO Inline Voltage Isolator on the pH channel; a loop needs two
+                grounded ends, so EC needs none. It draws <b>82 mA</b> measured, and switching
+                that onto the board's own 3.3 V regulator browns the MCU out at every rail
+                switch-on — so it runs off the cell behind a second <b>#2810</b> on
+                <code>D5</code>. Still to check: whether its isolated side has its own I²C
+                pull-ups.</td>
+            <td class="num">+1.3 mA average</td>
           </tr>
           <tr>
             <td><strong>Antenna</strong></td>

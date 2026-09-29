@@ -1,0 +1,465 @@
+<title>KijaniSpace Node Parts List</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    color-scheme: light;
+    --bg:        #F6F9FA;
+    --surface:   #FFFFFF;
+    --surface-2: #EBF1F3;
+    --border:    #D2DEE3;
+    --border-2:  #B9CAD1;
+    --ink:       #15242A;
+    --ink-2:     #485D67;
+    --ink-3:     #7B9099;
+    --rail12:    #B45F09;
+    --rail33:    #0D6E88;
+    --data:      #6D3BD1;
+    --pass:      #1B6B4A;
+    --pass-bg:   #E8F3ED;
+    --note-bg:   #FBF3E6;
+    --note-bd:   #E3C79C;
+    --danger:    #A32C24;
+    --danger-bg: #FBEDEB;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg:        #0D1517;
+      --surface:   #162226;
+      --surface-2: #1D2C31;
+      --border:    #2B3F46;
+      --border-2:  #3D555E;
+      --ink:       #E3ECEF;
+      --ink-2:     #A2B6BE;
+      --ink-3:     #728A93;
+      --rail12:    #EFA243;
+      --rail33:    #46B7D2;
+      --data:      #A98CF7;
+      --pass:      #5CC594;
+      --pass-bg:   #10241C;
+      --note-bg:   #221B10;
+      --note-bd:   #47381E;
+      --danger:    #F08A80;
+      --danger-bg: #241312;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:        #0D1517;
+    --surface:   #162226;
+    --surface-2: #1D2C31;
+    --border:    #2B3F46;
+    --border-2:  #3D555E;
+    --ink:       #E3ECEF;
+    --ink-2:     #A2B6BE;
+    --ink-3:     #728A93;
+    --rail12:    #EFA243;
+    --rail33:    #46B7D2;
+    --data:      #A98CF7;
+    --pass:      #5CC594;
+    --pass-bg:   #10241C;
+    --note-bg:   #221B10;
+    --note-bd:   #47381E;
+    --danger:    #F08A80;
+    --danger-bg: #241312;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding-block: 40px 80px;
+    padding-inline: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+  }
+
+  .titleblock {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    padding: 22px 24px;
+    align-items: end;
+  }
+  .titleblock h1 {
+    font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.7rem, 4vw, 2.3rem);
+    line-height: 1.1;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .titleblock p { margin: 0; color: var(--ink-2); max-width: 60ch; }
+  .meta {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    color: var(--ink-3);
+    text-align: right;
+    line-height: 1.8;
+    white-space: nowrap;
+  }
+  .meta b { color: var(--ink-2); font-weight: 500; }
+
+  h2 {
+    font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+    font-weight: 700;
+    font-size: 1.3rem;
+    margin: 0;
+    letter-spacing: -0.005em;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  h2 .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: var(--rail33);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+  }
+  h3 {
+    font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0 0 6px;
+  }
+  section { display: flex; flex-direction: column; gap: 14px; }
+  p { margin: 0; max-width: 74ch; color: var(--ink-2); }
+  p strong, li strong, td strong { color: var(--ink); font-weight: 600; }
+
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.86em; }
+  td code, p code {
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  a { color: var(--rail33); }
+  a:focus-visible { outline: 2px solid var(--rail33); outline-offset: 2px; }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--border); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 0.88rem; }
+  th, td { text-align: left; padding: 9px 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th {
+    font-family: "IBM Plex Sans Condensed", sans-serif;
+    font-weight: 700;
+    font-size: 0.72rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.q {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  td.part { color: var(--ink); font-weight: 500; }
+
+  .tag {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .t-fit  { color: var(--pass);   border-color: var(--pass);   background: var(--pass-bg);   }
+  .t-buy  { color: var(--rail12); border-color: var(--note-bd); background: var(--note-bg);  }
+  .t-bench{ color: var(--data);   border-color: var(--border-2); background: var(--surface-2); }
+  .t-ord  { color: var(--rail33); border-color: var(--rail33); background: var(--surface-2); }
+  .t-no   { color: var(--danger); border-color: var(--danger);  background: var(--danger-bg); }
+
+  .note {
+    border: 1px solid var(--note-bd);
+    background: var(--note-bg);
+    padding: 15px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .note h3 { margin: 0; }
+  .note p { margin: 0; max-width: 76ch; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    font-size: 0.8rem;
+    color: var(--ink-2);
+    align-items: center;
+  }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+  @media (max-width: 620px) {
+    .titleblock { grid-template-columns: 1fr; }
+    .meta { text-align: left; white-space: normal; }
+  }
+</style>
+
+<div class="sheet">
+
+  <header class="titleblock">
+    <div>
+      <h1>Parts list — solar LoRaWAN water node</h1>
+      <p>Everything in the build as it stands, grouped the way it is wired. Quantities are per node.
+         Values that were measured on this unit rather than read off a datasheet are marked as such.</p>
+    </div>
+    <div class="meta">
+      SITE&nbsp;&nbsp;<b>Lake Victoria / fish farm</b><br>
+      MCU&nbsp;&nbsp;&nbsp;<b>WaziSense v2 (ATmega328P)</b><br>
+      RADIO&nbsp;<b>SX1276 · EU868 · SF12</b><br>
+      PAIRS&nbsp;<b>wiring + bring-up guides</b>
+    </div>
+  </header>
+
+  <div class="legend">
+    <span><span class="tag t-fit">fitted</span> in the node as built</span>
+    <span><span class="tag t-buy">to order</span> decided, not yet chosen</span>
+    <span><span class="tag t-ord">ordered</span> on its way</span>
+    <span><span class="tag t-bench">bench</span> bring-up and calibration only</span>
+    <span><span class="tag t-no">dropped</span> rejected — so it is not re-bought</span>
+  </div>
+
+  <hr>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">GROUP 01</span>Energy — harvest, storage, protection</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Qty</th><th>Part</th><th>Spec</th><th>Role</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="q">1</td><td class="part">Solar panel</td><td>6 V, 5–10 W</td><td>Harvest. Sized for the node's ~5.5 mA average with a wide margin for cloud and dirt.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">MPPT charge controller</td><td>solar → 1S Li-ion</td><td>Charge management for the cell</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">18650 Li-ion cell</td><td>2500 mAh, 3.0–4.2 V</td><td>Storage. Roughly 19 days from full with no sun at all.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Cell holder</td><td>18650, sprung contacts</td><td><strong>Solder directly for the final build.</strong> A sprung contact adds an ohm or so, and 100 mA through it costs voltage the 3.3 V regulator does not have spare.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">PTC resettable fuse</td><td>2.6 A hold</td><td>First element after the cell</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Schottky diode</td><td>SS34</td><td>Reverse-polarity protection. Banded end towards the load.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">TVS diode</td><td>SMBJ5.0A</td><td>Clamp across the protected battery rail</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">TVS diode</td><td>for the panel's open-circuit voltage</td><td>Clamp at the solar input</td><td><span class="tag t-fit">fitted</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">GROUP 02</span>Power conversion and gating</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Qty</th><th>Part</th><th>Spec</th><th>Role</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="q">2</td><td class="part">Pololu #2810</td><td>Mini MOSFET Slide Switch with reverse-voltage protection, <b>LV</b>. 1.8–16 V, 3.0 A at 55 °C, <code>ON</code> pin switches above ~1 V.</td><td><b>(A)</b> gates the boost converter's input from <code>D5</code>. <b>(B)</b> gates the pH isolator's supply from <code>A1</code>. <b>D7 is not available as a logic pin on this board</b> — it exists only as the "Sensor Power 2" terminal pair, which stays unused. <b>Both slide switches go to OFF</b>, or they override the <code>ON</code> pin. The <code>ON</code> pin is the alternative to the slide switch, which is what makes these usable under firmware control.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Pololu #5585</td><td>U3V9F12 step-up. 2.6–20 V in, <b>12 V fixed ±4 %</b>, input current to ~900 mA, 75–95 % efficient.</td><td>Battery to 12 V for the two RS485 probes. Named by Pololu as the drop-in replacement for the discontinued U3V12F12.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Electrolytic capacitor</td><td>1000 µF, ≥25 V</td><td>Bulk at the U3V9F12's output, on <code>X2-1</code>. A 470 µF does the same job here — but it must be a <em>second</em> capacitor, not the one from the 3.3 V rail.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Electrolytic capacitor</td><td>470 µF, ≥10 V</td><td>Bulk across the 3.3 V rail, <code>D6(+)</code> to a GND pin. Fitting this ended a cold-start brownout.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Ceramic capacitor</td><td>10 µF X7R</td><td>Parallel to the 470 µF, short leads. The electrolytic's ESR cannot carry the first microseconds of a load step; an extra electrolytic is not a substitute.</td><td><span class="tag t-buy">to order</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Ceramic capacitor</td><td>100 nF</td><td>Same node, for the fastest edge</td><td><span class="tag t-buy">to order</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <h3>Why the switch goes before the converter</h3>
+      <p>A boost converter passes its input through to its output when disabled, through the inductor and the
+         diode — measured on this build as <b>7.2 V on the rail with 2.836 V at the input</b>. So an enable pin
+         does not make the probes safe to leave connected, and a converter gated only at its output still draws
+         its own quiescent current all night.</p>
+      <p>Switching the <em>input</em> removes both problems at once, and it is why the opto-isolated module that
+         used to sit after the converter is no longer in this list.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">GROUP 03</span>Controller and radio</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Qty</th><th>Part</th><th>Spec</th><th>Role</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="q">1</td><td class="part">WaziSense v2</td><td>ATmega328P + RFM95W (SX1276). <code>H1</code> on <b>3.3 V</b>.</td><td>The node. Flash is at 99 % with the current sketch.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Antenna</td><td>λ/2 dipole, 868 MHz</td><td>Outdoor. A patch antenna is fine on the bench only.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">SMA bulkhead + pigtail</td><td>coax</td><td>Enclosure feed-through. Seal the outdoor joint with self-amalgamating tape.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Resistor</td><td>10 kΩ</td><td><strong>From <code>RXI</code> to <code>D6(+)</code>.</strong> Without it the bootloader's receive pin floats when no FTDI is attached, reads phantom start bits and waits for an upload forever — a hang that neither the reset pin nor a watchdog can clear.</td><td><span class="tag t-buy">to order</span></td></tr>
+          <tr><td class="q">1</td><td class="part">FTDI adapter</td><td><b>3.3 V</b> setting</td><td>Upload and serial log. Cannot power the 12 V chain: on USB alone the battery domain measured 2.836 V.</td><td><span class="tag t-bench">bench</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">GROUP 04</span>RS485 / Modbus side</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Qty</th><th>Part</th><th>Spec</th><th>Role</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="q">1</td><td class="part">MAX3485 module</td><td><b>3.3 V, auto-direction</b> — only <code>RXD</code>, <code>TXD</code>, <code>GND</code>, <code>3.3 V</code></td><td>Bus master side. No <code>DE</code>/<code>RE</code> to drive, which is what freed <code>D5</code>. Verified on the bench not to echo its own transmission.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">DFRobot SEN0680</td><td>Dissolved oxygen, RS485, <b>DC 10–30 V</b>, 4800 baud, address <code>0x01</code>, float ABCD</td><td>Oxygen and its own water temperature. 30 s optics warm-up per reading.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Yosemitech Y511-A</td><td>Turbidity with wiper, RS485, <b>12 V</b>, 9600 baud, address <code>0x01</code>, float <b>DCBA</b></td><td>Turbidity and anti-fouling. Survived 30 V from the failed converter, but it is a 12 V part.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Resistor</td><td>120 Ω</td><td>Bus termination — one only, at the transceiver</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">2</td><td class="part">Resistor</td><td>680 Ω</td><td>Fail-safe bias: <code>A</code> to <code>D6(+)</code>, <code>B</code> to <code>D6(−)</code>. Measured 1.845 V / 1.52 V, 271 mV differential.</td><td><span class="tag t-fit">fitted</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <h3>Two probes, one address, and why that is fine</h3>
+      <p>Both probes ship as address <code>0x01</code> and neither was reconfigured. They are separated by
+         <strong>baud rate instead</strong>: the firmware switches the port to 4800 for the oxygen probe and
+         9600 for the turbidity probe, and a frame arriving at the wrong rate fails its CRC rather than being
+         answered. That removes a configuration step that can only be done once, with a tool, and is easy to
+         get wrong in the field.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">GROUP 05</span>I²C side — pH, conductivity, isolation</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Qty</th><th>Part</th><th>Spec</th><th>Role</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="q">1</td><td class="part">Atlas EZO-pH</td><td>I²C address <code>0x63</code></td><td>pH. Ships in UART mode; switched with <code>I2C,99</code>.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Atlas pH probe</td><td>+ connector board to SMA/BNC</td><td><code>PRB</code> to the centre conductor, <code>PGND</code> to the shell. <code>PGND</code> is the reference electrode, not a ground.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Atlas EZO-EC</td><td>I²C address <code>0x64</code></td><td>Conductivity. Switched with <code>I2C,100</code>. Needs its probe's <code>K</code> value and <code>Cal,dry</code> before it reads anything but zero.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Atlas EC probe</td><td>K value per probe</td><td>Lake Victoria sits near 100 µS/cm, so a low-range probe suits it.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">2</td><td class="part">Basic EZO Inline Voltage Isolator</td><td>BE-IVI. 3.0–5.0 V in, isolated 3.9 V out, ADM3260, <code>EN</code> pin.</td><td><strong>Two fitted; only the pH one is required.</strong> A loop needs two grounded ends, so floating the pH side already opens it. The second costs ~82 mA and adds one more device that clamps the I²C bus when unpowered — <b>it is the first thing to remove if autonomy ever binds.</b> Both run from the cell through #2810 (B), <em>not</em> from <code>D6(+)</code>.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">2</td><td class="part">Resistor</td><td>4.7 kΩ</td><td>I²C pull-ups, <code>A4</code>/<code>A5</code> to <code>D6(+)</code>. Fitted because <code>I2C_J</code> measured <b>5.9 MΩ</b> on this board despite the manual.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">2</td><td class="part">Resistor</td><td>4.7 kΩ</td><td>Possibly needed on the <em>isolated</em> side of the isolator — the ADM3260 is open-drain on both sides. Measure the isolated data lines against isolated GND before deciding.</td><td><span class="tag t-buy">to order</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <h3>The isolator draws 82 mA, and that dictates where it is powered from</h3>
+      <p>Measured on this build: <b>97.1 mA</b> with isolator and EZO-pH connected, <b>15 mA</b> without.
+         Switching that onto the board's 3.3 V regulator — the same one feeding the ATmega — browns the MCU out
+         at every rail switch-on, with or without USB attached.</p>
+      <p>The isolator's input is specified for 3.0–5.0 V, so it runs straight off the cell behind its own #2810.
+         The current and its inrush then never reach the MCU's supply, which is why this is the second switch in
+         Group 02 rather than a capacitor somewhere.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">GROUP 06</span>Temperature</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Qty</th><th>Part</th><th>Spec</th><th>Role</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="q">1</td><td class="part">DS18B20</td><td>waterproof probe, 1-Wire on <code>A2</code></td><td>Water temperature. Single device, index 0, no addressing. Reads within 0.3 K of the oxygen probe's own sensor, which is a useful cross-check on both.</td><td><span class="tag t-fit">fitted</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Resistor</td><td>4.7 kΩ</td><td><strong>Mandatory</strong> 1-Wire pull-up, <code>A2</code> to <code>D6(+)</code>. To the plus terminal — wiring it to <code>D6(−)</code> makes it a pull-down and the sensor never answers.</td><td><span class="tag t-fit">fitted</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">GROUP 07</span>Calibration consumables</h2>
+    <p>Buffers are references, not concentrates. <strong>Never dilute one</strong> — the value comes from the
+       buffer capacity of a specific salt mixture, and a diluted buffer is no longer a known reference. An error
+       taken in here lands in every reading the node ever sends.</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Qty</th><th>Part</th><th>Spec</th><th>Role</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="q">1</td><td class="part">pH 7.00 buffer</td><td>125 mL</td><td>Midpoint — always calibrated first, because <code>Cal,mid</code> clears the other two.</td><td><span class="tag t-bench">bench</span></td></tr>
+          <tr><td class="q">1</td><td class="part">pH 4.00 buffer</td><td>—</td><td>Low point for the slope — and it doubles as <b>storage solution</b>: acidic, keeps the membrane hydrated, discourages growth. That removes the need to wait for a dedicated storage bottle.</td><td><span class="tag t-bench">bench</span></td></tr>
+          <tr><td class="q">1</td><td class="part">pH 10.00 buffer</td><td>—</td><td>High point for the slope. The important one here: Lake Victoria and fish ponds sit alkaline, so this anchors the side the node actually measures on.</td><td><span class="tag t-bench">bench</span></td></tr>
+          <tr><td class="q">1</td><td class="part">pH storage solution</td><td>—</td><td>Purpose-made, and the cleanest long-term answer — but <b>pH 4.00 buffer does the same job</b>, so this is a convenience rather than a blocker. What matters either way: never store the probe in distilled or tap water. Low ionic strength pulls the KCl out of the reference through the junction, and the probe goes slow and drifty. A night in air is recoverable; weeks dry crystallises the junction.</td><td><span class="tag t-buy">to order</span></td></tr>
+          <tr><td class="q">1</td><td class="part">EC standard set</td><td>3 × 50 mL: <b>12.88 / 111.3 / 1413 µS/cm</b></td><td><b>Calibrate at 111.3</b> — that is this water’s own range, so the anchor sits where the readings are. Use the other two to <em>verify</em> instead of to calibrate: measured without recalibrating, they give a real error curve across two decades. 12.88 µS/cm sits near the K1.0 cell’s 5 µS/cm floor and takes up CO₂ within minutes — pour a portion, cap the bottle, measure quickly.</td><td><span class="tag t-ord">ordered</span></td></tr>
+          <tr><td class="q">1</td><td class="part">DO fluorescent film</td><td>spare cap for the SEN0680</td><td><b>A consumable, not a permanent part — about one year of normal use.</b> That sets a yearly maintenance trip on its own, so order a spare with the sensor rather than after it fails. Between uses: protective cap on, its sponge damp with plain water and squeezed out, kept above 0 °C. Plain water here, <em>not</em> the storage solution the pH probe needs — the two are not interchangeable.</td><td><span class="tag t-bench">bench</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Distilled water</td><td>—</td><td>Rinsing between buffers. Shake off, never wipe — rubbing charges the glass and the drift takes minutes to settle. Until it arrives: rinse with tap water, then with a little of the buffer you are about to measure in. Seconds of tap water do no harm; it is only <em>storage</em> in low-ionic-strength water that leaches the reference.</td><td><span class="tag t-ord">ordered</span></td></tr>
+          <tr><td class="q">1</td><td class="part">Narrow vessel</td><td>50 mL tube or slim beaker</td><td>Both the bulb <em>and</em> the reference junction must be submerged, about 2–3 cm. A narrow vessel reaches that depth on 20–30 mL instead of five times as much.</td><td><span class="tag t-bench">bench</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <h2><span class="num">GROUP 08</span>Considered and dropped</h2>
+    <p>Kept in the list so that none of it gets re-bought, and so the reasoning survives the decision.</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Qty</th><th>Part</th><th>Why it is not in the build</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="q">—</td><td class="part">PT1000 + MAX31865</td><td>Replaced by the DS18B20. The 1-Wire probe is one part instead of two, needs no SPI, and its accuracy is far inside what a fish pond calls for. The firmware still carries the code behind <code>ENABLE_PT1000</code>.</td><td><span class="tag t-no">dropped</span></td></tr>
+          <tr><td class="q">—</td><td class="part">Opto-isolated 22 A module</td><td>It existed only to cut the boost converter's output, because a disabled converter passes its input through. Gating the converter's input instead leaves it nothing to do.</td><td><span class="tag t-no">dropped</span></td></tr>
+          <tr><td class="q">—</td><td class="part">XL6009 boost module</td><td><strong>Failed dangerously.</strong> At 3.6 V input it put out <b>30 V</b>, at 3.7 V input 14 V. That is inside the SEN0680's 10–30 V window and well outside the Y511-A's, so the turbidity probe went silent while the oxygen probe kept answering. A fault that tracks the sensors' voltage ratings is a supply fault.</td><td><span class="tag t-no">dropped</span></td></tr>
+          <tr><td class="q">—</td><td class="part">Second isolator for EC</td><td>One isolator opens the loop. The EC circuit is the aggressor in that pairing, not the victim.</td><td><span class="tag t-no">dropped</span></td></tr>
+          <tr><td class="q">—</td><td class="part">Series resistor for inrush</td><td>At the isolator's measured 82 mA even 10 Ω drops 0.82 V. The arithmetic ruled it out before anything was soldered.</td><td><span class="tag t-no">dropped</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2><span class="num">BUDGET</span>What it all draws</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>State</th><th>Current</th><th>Duration per 30 min cycle</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="part">Sleep</td><td class="q">3.2 mA</td><td class="q">~1755 s</td><td>Both rails off, both #2810 switches off, radio and TWI down, pins parked by role</td></tr>
+          <tr><td class="part">Measuring</td><td class="q">~97 mA</td><td class="q">~45 s</td><td>Dominated by the isolator and EZO-pH at 82 mA of it</td></tr>
+          <tr><td class="part">Average</td><td class="q">~5.5 mA</td><td class="q">—</td><td><strong>≈19 days from a full 2500 mAh cell with no sun at all.</strong> The panel covers the rest with room to spare.</td></tr>
+          <tr><td class="part">Airtime</td><td class="q">2.0–2.5 s</td><td class="q">per uplink</td><td>SF12. At 1800 s spacing that is 0.14 % against the EU868 1 % duty cycle. 48 uplinks a day is ~115 s — fine on an own gateway, over TTN's 30 s/day fair-use policy.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>

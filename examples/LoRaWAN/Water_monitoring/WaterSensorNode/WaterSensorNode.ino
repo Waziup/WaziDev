@@ -337,9 +337,7 @@ const float    DO_SCALE          = 1.0;      // already mg/L
 // register that holds a real value.
 
 // The DO sensor measures water temperature anyway, at the probe tip. Free to
-// read - it is two registers further on - and it cross-checks the DS18B20,
-// which sits in a different spot. Two independent temperatures that disagree
-// is a fault you want to see in the data rather than discover later.
+// read - it is two registers further on - and it cross-checks the DS18B20.
 #define ENABLE_DO_TEMP  1
 const uint16_t DO_TEMP_REG       = 0x0004;
 
@@ -404,6 +402,7 @@ const uint16_t TURB_BRUSH_REG    = 0x3100;   // activateBrush,    fn 0x10
 const uint16_t TURB_START_REG    = 0x2500;   // startMeasurement, fn 0x03
 const uint8_t  TURB_NEEDS_START  = 1;
 const uint16_t TURB_WARMUP_MS    = 35000;    // brush sweep + optics settle
+const uint16_t TURB_RETRY_MS     = 5000;     // before the one real retry
 
 //  ####################################################################
 //  ##  THE BRUSH IS COMMANDED, NOT SCHEDULED                         ##
@@ -421,11 +420,10 @@ const uint16_t TURB_WARMUP_MS    = 35000;    // brush sweep + optics settle
 //  ##  probe sat continuously powered for well over 30 minutes during ##
 //  ##  the RS485 debugging.                                           ##
 //  ##                                                                ##
-//  ##  So the sweep is commanded before every turbidity reading.      ##
-//  ##  Anti-fouling is the entire reason this sensor was chosen over  ##
-//  ##  a cheaper one, and a reading through a fouled window is worth  ##
-//  ##  nothing - so the default is to brush every time rather than to ##
-//  ##  save wiper cycles.                                            ##
+//  ##  That reasoning led to commanding a sweep before every reading, ##
+//  ##  which turned out to be unnecessary AND harmful - see the       ##
+//  ##  2026-09-30 block below. The probe sweeps on power-up on its    ##
+//  ##  own, so every measurement cycle is already a cleaned one.      ##
 //  ####################################################################
 //  ####################################################################
 //  ##  DISABLED 2026-09-09 - SUPPLY CANNOT DRIVE THE WIPER MOTOR     ##
@@ -459,11 +457,37 @@ const uint16_t TURB_WARMUP_MS    = 35000;    // brush sweep + optics settle
 //  ##  the sweep before anything else: it is the rail sagging to the   ##
 //  ##  sensor's minimum, not the command or the motor.                 ##
 //  ####################################################################
-#define TURB_BRUSH_BEFORE_READ   1
+//  ####################################################################
+//  ##  DISABLED 2026-09-30 - THE PROBE ALREADY SWEEPS ON POWER-UP    ##
+//  ##                                                                ##
+//  ##  Heard at the bench, and the counts are the interesting part:   ##
+//  ##    cycle WITH the command    2 strokes                          ##
+//  ##    cycle WITHOUT the command 3 strokes                          ##
+//  ##                                                                ##
+//  ##  Fewer strokes when commanded. The sweep is therefore not       ##
+//  ##  additive: the Y511-A starts its own sweep the moment the 12 V  ##
+//  ##  rail comes up, and activateBrush arriving 3 s later - see      ##
+//  ##  RAIL12_SETTLE_MS - lands in the middle of a running motor and  ##
+//  ##  TRUNCATES it. The command was buying nothing and cutting the   ##
+//  ##  automatic cleaning short.                                      ##
+//  ##                                                                ##
+//  ##  Anti-fouling is unaffected: the probe cleans itself once per   ##
+//  ##  power-up, which is once per measurement cycle - more often     ##
+//  ##  than the every-other-cycle the command was scheduling.         ##
+//  ##                                                                ##
+//  ##  The code stays behind this flag rather than being deleted. If  ##
+//  ##  a future unit does NOT sweep on power-up, set it back to 1.    ##
+//  ##  The test is your ears, not the log: the command is             ##
+//  ##  acknowledged either way.                                       ##
+//  ####################################################################
+#define TURB_BRUSH_BEFORE_READ   0
 
-//  Diagnostic pause, off. It answered its question: the wiper does not move
-//  while the rail simply sits powered, so power-up is not a trigger. Set it
-//  to 1 again for the next sensor that needs the same question asked.
+//  Diagnostic pause, off - and its recorded answer was WRONG. It concluded
+//  that power-up does not trigger the wiper; listening to two consecutive
+//  cycles showed that it does, every time. The pause only ever proved that
+//  the wiper does not move while the rail sits ALREADY powered, which is a
+//  different question. Set it to 1 again for the next sensor that needs the
+//  same question asked - and answer it by ear, not from the log.
 #define TURB_TRIGGER_PROBE       0
 const uint16_t TURB_PROBE_MS     = 15000;
 
@@ -479,7 +503,7 @@ uint8_t        turbReadCount = 0;
 //   3.3 V: the EZO circuits need roughly a second to boot after power-up.
 //   12 V : boost start-up plus charging the 1000 uF bulk capacitor.
 const uint16_t ISO_SETTLE_MS     = 200;    // isolator DC-DC before the bus
-const uint16_t RAIL33_SETTLE_MS  = 1200;
+const uint16_t RAIL33_SETTLE_MS  = 1500;   // WaziSense manual: "at least 1500 ms"
 // 3000, not 500. At 500 ms the first Modbus command went out 522 ms after
 // the rail came up (measured from the log timestamps) and the Y511-A had not
 // finished booting - it answered NO REPLY to the brush command. TurbBrush.ino,
@@ -1328,6 +1352,27 @@ void readAllSensors(bool doTurbidity) {
     }
     rs485SetBaud(TURB_BAUD);
     v_turb = modbusReadValue(TURB_ADDR, TURB_REG, TURB_FMT, TURB_SCALE);
+
+    //  ONE REAL SECOND ATTEMPT - which the three MODBUS_RETRIES are not.
+    //
+    //  Those three all fall inside about three seconds of each other and all
+    //  re-send the same read to a probe that has already stopped answering,
+    //  so a brief deafness defeats all three identically. This attempt is
+    //  different in kind: it re-arms the measurement with startMeasurement
+    //  and waits TURB_RETRY_MS before asking again, which is long enough for
+    //  the probe's own firmware to have come back to the bus.
+    //
+    //  It also tells you WHICH failure you have. If the retry succeeds, the
+    //  probe is transiently dropping off and the node no longer loses the
+    //  reading over it. If the retry fails too, the fault is the supply or
+    //  the wiring, and no amount of retrying will cover it.
+    if (isnan(v_turb) && TURB_NEEDS_START) {
+      Serial.println(F("Turbidity: no answer - re-arming, 5 s, one more try"));
+      turbStartMeasurement();
+      delay(TURB_RETRY_MS);
+      v_turb = modbusReadValue(TURB_ADDR, TURB_REG, TURB_FMT, TURB_SCALE);
+    }
+
     Serial.print(F("Turbidity: "));
     if (isnan(v_turb)) Serial.println(F("FAIL"));
     else { Serial.print(v_turb, 2); Serial.println(F(" NTU")); }

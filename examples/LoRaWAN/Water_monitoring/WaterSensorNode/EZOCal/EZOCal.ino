@@ -33,8 +33,8 @@
  *  EC CALIBRATION
  *    Cal,dry           IN AIR, probe completely dry. Always first.
  *    Cal,one,<value>   single point, in a standard close to your water
- *  Lake Victoria sits near 100 uS/cm, so an 84 uS/cm standard is the better
- *  single point for this deployment than the common 1413 uS/cm one.
+ *  Lake Victoria sits near 100 uS/cm, so of the three standards on order
+ *  (12.88 / 111.3 / 1413 uS/cm) the 111.3 one is the single point to use.
  *
  *  Calibration is stored in the circuit's own EEPROM. It survives power loss
  *  and reflashing the ATmega - you do this once per probe, not once per
@@ -45,9 +45,11 @@
 #include <Wire.h>
 
 const int RAIL33_EN = 6;          // "Sensor Power 1" -> switched 3.3 V
+const int ISO_EN    = A1;         // #2810 (B) -> both isolators, off the cell
 const int ledPin    = 8;
 
-const uint16_t RAIL_SETTLE_MS = 1500;   // EZO boot, plus the isolator's DC-DC
+const uint16_t ISO_SETTLE_MS  = 200;    // its DC-DC, before the bus comes up
+const uint16_t RAIL_SETTLE_MS = 1500;   // EZO boot
 
 // One wait for every command. The slowest documented processing delay on
 // these circuits is 900 ms (R and Cal); 1600 ms covers it with margin, and
@@ -163,6 +165,15 @@ void setup() {
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, HIGH);
 
+  // THE ISOLATORS COME UP FIRST - same invariant as the main sketch.
+  // An unpowered ADM3260 holds SDA and SCL down on both sides, so without
+  // this nothing on the bus answers, not even the circuits that sit nowhere
+  // near an isolator. THE CELL MUST BE CONNECTED: A1 only gates the #2810,
+  // it does not supply it, and the FTDI alone will not run the isolators.
+  pinMode(ISO_EN, OUTPUT);
+  digitalWrite(ISO_EN, HIGH);
+  delay(ISO_SETTLE_MS);
+
   pinMode(RAIL33_EN, OUTPUT);
   digitalWrite(RAIL33_EN, HIGH);        // circuits stay powered the whole time
   delay(RAIL_SETTLE_MS);
@@ -170,6 +181,7 @@ void setup() {
   Serial.println();
   Serial.println(F("=================================================="));
   Serial.println(F(" EZO calibration console  --  I2C"));
+  Serial.println(F(" Isolators ON (A1) - the cell must be connected."));
   Serial.println(F("=================================================="));
   Serial.println(F(" Type a command and press Enter. Any line ending."));
   Serial.println(F("   #63 / #64   choose pH or EC"));

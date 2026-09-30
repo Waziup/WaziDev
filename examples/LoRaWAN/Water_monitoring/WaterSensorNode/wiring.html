@@ -391,7 +391,7 @@
     <p>The node splits into two voltage domains, and <strong>both of them are gated</strong>. Everything the
        MCU talks to directly runs at <strong>3.3 V</strong>, switched by <span class="mono pin">D6</span>; the
        two RS485 probes need <strong>10–30 V</strong> and are fed from a 12 V converter whose <em>input</em> is
-       switched by <span class="mono pin">D7</span> — the switch comes first, so the converter itself is
+       switched by <span class="mono pin">D5</span> — the switch comes first, so the converter itself is
        unpowered between measurements rather than merely disconnected from its load. Between measurements both rails are dead — including the RS485
        fail-safe bias, which would otherwise draw current around the clock. The RS485 bus and the I²C bus
        stay independent: a fault on one does not take the other down.</p>
@@ -2007,12 +2007,12 @@
           <tr><td><code>RS_TX</code></td><td>WaziSense <code>D4</code></td><td>Module <code>TXD</code></td><td>blue</td><td>SoftwareSerial TX</td></tr>
           <tr><td>—</td><td colspan="4"><b>No <code>DE</code> / <code>RE</code> wire.</b> The module breaks out only <code>RXD</code>, <code>TXD</code>, <code>GND</code> and <code>3.3 V</code>, and switches the driver internally from activity on <code>TXD</code>. That is what freed <code>D5</code>, which now gates the 12 V chain.</td></tr>
           <tr><td><code>3V3SW</code></td><td><code>D6(+)</code></td><td>Module <code>3.3 V</code></td><td>orange</td><td><b>3.3 V part — 3.0–3.6 V is a hard limit.</b> Never feed it from the battery rail.</td></tr>
-          <tr><td><code>GND</code></td><td><code>X1-2</code></td><td>Module <code>GND</code></td><td>black</td><td></td></tr>
+          <tr><td><code>3V3RTN</code></td><td>Module <code>GND</code></td><td><code>D6(−)</code></td><td>black</td><td><b>Not <code>X1-2</code>.</b> This device sits on the switched rail, so its return is the switched node. A wire from here to any GND pin shorts the MOSFET out and the rail never switches off — that cost 20.78 mA of sleep current on this build. See Drawing 00.</td></tr>
           <tr><td><code>RS485_A</code></td><td>Module <code>A</code></td><td><code>X2-3</code></td><td>yellow</td><td></td></tr>
           <tr><td><code>RS485_B</code></td><td>Module <code>B</code></td><td><code>X2-4</code></td><td>green</td><td></td></tr>
           <tr><td>—</td><td>120 Ω</td><td><code>X2-3</code> ↔ <code>X2-4</code></td><td>—</td><td><b>the only terminator</b> — none at the probes</td></tr>
           <tr><td>—</td><td>680 Ω</td><td><code>X2-3</code> → <code>D6(+)</code></td><td>—</td><td>fail-safe bias, pull-up — matched to a single 120 Ω</td></tr>
-          <tr><td>—</td><td>680 Ω</td><td><code>X2-4</code> → <code>X1-2</code></td><td>—</td><td>fail-safe bias, pull-down — gives 268 mV idle</td></tr>
+          <tr><td>—</td><td>680 Ω</td><td><code>X2-4</code> → <code>D6(−)</code></td><td>—</td><td><b>To <code>D6(−)</code>, not <code>X1-2</code>. This one wire is worth 2.2 mA.</b> The pull-up sits on the permanently live <code>D6(+)</code>, so a pull-down on the permanent ground closes a chain that never opens: 3.3 V / (680 + 120 + 680) Ω = <b>2.23 mA, day and night, sleep included</b> — against a measured 3.2 mA sleep current for the whole node. Returned to <code>D6(−)</code> instead, the chain has no path while the MOSFET is open: the switched node simply floats up to <code>D6(+)</code>, no differential, no current. Idle bias while running is unchanged at 268 mV. This is what the overview on Drawing 01 already claims happens.</td></tr>
           <tr><td>—</td><td>Cable shield</td><td>Enclosure ground</td><td>drain wire</td><td><b>enclosure end only</b>, far end open</td></tr>
         </tbody>
       </table>
@@ -2219,7 +2219,7 @@
         <thead><tr><th>Net</th><th>From</th><th>To</th><th>Wire</th><th>Note</th></tr></thead>
         <tbody>
           <tr><td><code>3V3SW</code></td><td><code>D6(+)</code></td><td>DS18B20 <code>VDD</code></td><td>red</td><td></td></tr>
-          <tr><td><code>GND</code></td><td><code>X1-2</code></td><td>DS18B20 <code>GND</code></td><td>black</td><td></td></tr>
+          <tr><td><code>3V3RTN</code></td><td>DS18B20 <code>GND</code></td><td><code>D6(−)</code></td><td>black</td><td><b>Not <code>X1-2</code>.</b> This device sits on the switched rail, so its return is the switched node. A wire from here to any GND pin shorts the MOSFET out and the rail never switches off — that cost 20.78 mA of sleep current on this build. See Drawing 00.</td></tr>
           <tr><td><code>OW_DATA</code></td><td>WaziSense <code>A2</code></td><td>DS18B20 <code>DQ</code></td><td>yellow</td><td>D9 is the radio's RESET — not usable</td></tr>
           <tr><td>—</td><td>4.7 kΩ</td><td><code>OW_DATA</code> → <code>D6(+)</code></td><td>—</td><td><b>mandatory</b> 1-Wire pull-up — unlike the I²C ones, this resistor you <em>do</em> fit. To <code>D6(+)</code>, not the board's permanent 3V3, or it feeds a dead sensor between measurements.</td></tr>
         </tbody>
@@ -2327,6 +2327,11 @@
        register-count field is <code>0x0000</code>. The wiper sweep is
        <code>01 10 31 00 00 00 00 74 94</code> — verified on the bench, and the only command that actually
        moves it.</p>
+    <p><strong>That command is no longer sent.</strong> The probe sweeps itself whenever the 12 V rail comes
+       up, and the commanded sweep — arriving 3 s later, into a running motor — was measurably
+       <em>truncating</em> the automatic one: two strokes when commanded against three when not.
+       <code>TURB_BRUSH_BEFORE_READ</code> is <code>0</code>. The frame is documented here because the code
+       is still behind that flag, for a future probe that does not clean itself on power-up.</p>
   </div>
 
 </div>

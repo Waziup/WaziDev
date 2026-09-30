@@ -594,30 +594,53 @@ SDA (A4): idle=H  driven-low=12 mV  rise=0 us   <span class="g">ok</span>
          it, and refuses unless exactly one device is present — but nothing needs it to work.</p>
       <div class="gate">
         <span class="lbl">gate</span>
-<pre>3.3 V sensor rail ON  (D6)
-12 V sensor rail ON   (D7)
-Turbidity: brush sweep (acknowledged) - ~10 s
-Turbidity: start measurement
-Temperature (DS18B20): <span class="g">24.25 degC</span>
+<pre>pH isolator ON       (A1)
+3.3 V sensor rail ON  (D6)
+12 V sensor rail ON   (D5)
+Turbidity: start measurement (acknowledged)
+Temperature (DS18B20): <span class="g">22.19 degC</span>
 DO: warming up optics...
-Dissolved oxygen: <span class="g">7.76 mg/L</span>
-Temperature (DO probe): <span class="g">23.61 degC</span>   (DS18B20 differs by 0.64 K)
-pH: <span class="g">7.65</span>
-Conductivity: <span class="g">94.0 uS/cm</span>
-Turbidity: <span class="g">5.70 NTU</span>
+Dissolved oxygen: <span class="g">8.77 mg/L</span>
+Temperature (DO probe): <span class="g">24.91 degC</span>   (DS18B20 differs by 2.73 K)
+pH: <span class="g">5.65</span>
+Conductivity: <span class="g">0.0 uS/cm</span>
+Turbidity: waiting 1 s for wiper/optics
+Turbidity: <span class="g">2.36 NTU</span>
 Both sensor rails OFF
+Battery: <span class="g">3.94 V</span>
 LoRaWAN send ... <span class="g">OK</span></pre>
-        <p>No <code>FAIL</code> line. The brush sweep is mechanical — watch or listen for it,
-           which is the only way to confirm the <code>0x3100</code> command framing is right.</p>
+        <p>No <code>FAIL</code> line, and <b>no <code>re-arming</code> line</b> — that one only
+           appears when the first turbidity read times out and the sketch makes its one real
+           second attempt. If it appears followed by a value, the probe dropped off briefly and
+           the reading was saved; followed by <code>FAIL</code>, the fault is supply or wiring.</p>
+        <p><b>There is no brush line, and that is correct.</b> The wiper still sweeps — listen
+           for it right after the 12 V rail comes up. It is the probe doing that by itself.</p>
       </div>
       <div class="note">
-        <span class="lbl">why the brush is commanded and not scheduled</span>
-        <p>The Y511-A has an internal brush-interval register, and it is useless on this node:
-           that interval only counts while the sensor is <em>powered</em>, and here it is
-           powered for under a minute per hour. An interval of 60 minutes would never once
-           fire. So the sweep is triggered directly before every turbidity reading — anti-fouling
-           is the reason this sensor was chosen over a cheaper one, and a reading taken through
-           a fouled window is worth nothing.</p>
+        <span class="lbl">why the brush is no longer commanded</span>
+        <p><strong>The Y511-A sweeps on its own, every time the 12 V rail comes up.</strong>
+           This was found by ear, not in the log, because the command is acknowledged either
+           way. Two consecutive cycles were counted:</p>
+        <table style="width:auto;margin:0.6em 0">
+          <tbody>
+            <tr><td>cycle <em>with</em> <code>activateBrush</code></td><td><b>2</b> strokes</td></tr>
+            <tr><td>cycle <em>without</em> it</td><td><b>3</b> strokes</td></tr>
+          </tbody>
+        </table>
+        <p><em>Fewer</em> strokes when commanded. The command is therefore not additive: it
+           arrives 3 s after the rail comes up (<code>RAIL12_SETTLE_MS</code>), lands in the
+           middle of a motor that is already running, and <b>truncates the automatic sweep</b>.
+           It was buying nothing and cutting the cleaning short, so
+           <code>TURB_BRUSH_BEFORE_READ</code> is now <code>0</code>.</p>
+        <p>Anti-fouling is unaffected — improved, if anything. The probe cleans itself once
+           per power-up, which is once per measurement cycle, where the command was only
+           scheduled every second cycle.</p>
+        <p>The internal brush-<em>interval</em> register remains useless here for a separate
+           reason: it only counts while the sensor is <em>powered</em>, and here it is powered
+           for under a minute per cycle. An interval of 30 minutes would never once fire.</p>
+        <p><strong>Do not assume the next probe behaves this way.</strong> The
+           command frame below still works and the code is still there behind the flag. Set it
+           back to <code>1</code> and count strokes by ear if you fit a different unit.</p>
         <p><strong>And the frame is not ordinary Modbus.</strong> Yosemitech sends its
            register-<em>count</em> field as <code>0x0000</code>. The sweep is
            <code>01 10 31 00 00 00 00 74 94</code>, verified on the bench as the only command
@@ -846,15 +869,22 @@ LoRaWAN send ... <span class="g">OK</span></pre>
           <tr>
             <td><strong>LED currents</strong></td>
             <td><code>L,0</code> turns the EZO status LEDs off. Anything on the switched rail
-                costs almost nothing; the boost converter's LED runs continuously and is the one
-                worth desoldering.</td>
+                costs almost nothing — the continuously powered ones are what matter, and there
+                are now three: the boost converter's, and <b>one on each Pololu #2810</b>. The
+                #2810 LEDs were observed lit right through sleep with the switch off, so they
+                sit on the input side; the datasheet's ~210&nbsp;µA/V puts them at roughly
+                0.8&nbsp;mA each at 3.9&nbsp;V. Confirm against a sleep-current measurement
+                before desoldering anything.</td>
             <td class="num">a few mA, continuous</td>
           </tr>
           <tr>
             <td><strong>Ask Yosemitech for the wiper's rated life</strong></td>
-            <td>The brush runs before every turbidity reading — 24 sweeps a day. Energy is
-                negligible at 6 J per sweep, but mechanical wear is unpublished.
-                <code>TURB_BRUSH_EVERY_N</code> exists to dial it back once the number is known.</td>
+            <td>The probe sweeps itself once per power-up — at a 30 min cycle that is
+                <b>48 sweeps a day</b>. Energy is negligible at 6 J per sweep, but mechanical
+                wear is unpublished. <b>Note that software no longer has a lever here:</b>
+                <code>TURB_BRUSH_EVERY_N</code> only ever throttled the <em>commanded</em>
+                sweep, which is now disabled. The only way to reduce wiper cycles is to
+                lengthen <code>sleep_sec</code>, which reduces every reading with it.</td>
             <td>maintenance interval</td>
           </tr>
         </tbody>

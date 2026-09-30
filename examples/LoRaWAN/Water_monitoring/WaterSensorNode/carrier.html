@@ -1,0 +1,860 @@
+<title>KijaniSpace Sensor Carrier</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one measured column of prose, with figures and tables allowed to
+     break out to a wider band. Rail colours carry over from wiring.html so the
+     two documents can be read side by side. */
+  :root {
+    --bg:        #f4f2ee;
+    --surface:   #ffffff;
+    --surface-2: #eceae4;
+    --ink:       #23211d;
+    --ink-2:     #4a463f;
+    --ink-3:     #777166;
+    --line:      #d6d2c8;
+    --accent:    #9a5b2c;   /* oxide copper */
+    --batt:      #c0442e;
+    --rail12:    #b07a10;
+    --rail33:    #17786e;
+    --swgnd:     #6b4ea8;
+    --iso:       #a83277;
+    --danger:    #b3231b;
+    --ok:        #2e6b3a;
+    --font-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    --font-head: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:        #171614;
+      --surface:   #201e1b;
+      --surface-2: #2a2724;
+      --ink:       #ece9e3;
+      --ink-2:     #c2bdb4;
+      --ink-3:     #8f887d;
+      --line:      #3a3630;
+      --accent:    #d9915a;
+      --batt:      #e8705a;
+      --rail12:    #e0ad3e;
+      --rail33:    #47bfb0;
+      --swgnd:     #a28ae0;
+      --iso:       #e070ae;
+      --danger:    #e8564c;
+      --ok:        #64b878;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:        #171614;
+    --surface:   #201e1b;
+    --surface-2: #2a2724;
+    --ink:       #ece9e3;
+    --ink-2:     #c2bdb4;
+    --ink-3:     #8f887d;
+    --line:      #3a3630;
+    --accent:    #d9915a;
+    --batt:      #e8705a;
+    --rail12:    #e0ad3e;
+    --rail33:    #47bfb0;
+    --swgnd:     #a28ae0;
+    --iso:       #e070ae;
+    --danger:    #e8564c;
+    --ok:        #64b878;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.62;
+    padding-block: 3rem 5rem;
+    padding-inline: 16px;
+  }
+  .wrap { max-width: 62rem; margin: 0 auto; }
+  .col  { max-width: 40rem; }
+
+  h1 {
+    font-family: var(--font-head);
+    font-size: clamp(2rem, 6vw, 3.1rem);
+    line-height: 1.04;
+    font-weight: 700;
+    margin: 0 0 .4rem;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+  .sub { color: var(--ink-2); font-size: 1.08rem; margin: 0 0 .5rem; max-width: 40rem; }
+  .meta {
+    font-family: var(--font-mono); font-size: .78rem; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: .08em; margin: 0 0 3rem;
+  }
+
+  h2 {
+    font-family: var(--font-head); font-weight: 700;
+    font-size: clamp(1.35rem, 3.4vw, 1.85rem);
+    margin: 3.6rem 0 .9rem; text-wrap: balance; line-height: 1.16;
+    padding-top: 1.3rem; border-top: 2px solid var(--line);
+  }
+  h2 .num {
+    display: block; font-family: var(--font-mono); font-size: .72rem;
+    letter-spacing: .12em; color: var(--accent); margin-bottom: .35rem;
+    font-weight: 500; text-transform: uppercase;
+  }
+  h3 {
+    font-family: var(--font-head); font-weight: 600; font-size: 1.12rem;
+    margin: 2.2rem 0 .5rem; color: var(--ink); text-wrap: balance;
+  }
+  p { margin: 0 0 1rem; max-width: 40rem; }
+  ul, ol { max-width: 40rem; padding-left: 1.2rem; margin: 0 0 1rem; }
+  li { margin-bottom: .4rem; }
+  strong { font-weight: 600; }
+  code, .mono { font-family: var(--font-mono); font-size: .88em; }
+  code {
+    background: var(--surface-2); padding: .08em .34em;
+    border-radius: 2px; color: var(--ink);
+  }
+  a { color: var(--accent); }
+
+  .lede {
+    font-size: 1.12rem; color: var(--ink-2); max-width: 40rem;
+    border-left: 3px solid var(--accent); padding-left: 1.1rem; margin-bottom: 2rem;
+  }
+
+  figure { margin: 1.8rem 0 2rem; }
+  .canvas {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 3px; padding: 1rem; overflow-x: auto;
+  }
+  .canvas svg { display: block; min-width: 520px; max-width: 100%; height: auto; }
+  figcaption {
+    font-size: .88rem; color: var(--ink-3); margin-top: .7rem;
+    max-width: 40rem; line-height: 1.5;
+  }
+
+  .tw { overflow-x: auto; margin: 1.2rem 0 1.8rem; }
+  table { border-collapse: collapse; width: 100%; font-size: .88rem; min-width: 34rem; }
+  th, td {
+    text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    font-family: var(--font-head); font-weight: 600; font-size: .8rem;
+    text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3);
+    border-bottom: 2px solid var(--line); white-space: nowrap;
+  }
+  td.n { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .note, .warn, .win {
+    border-radius: 3px; padding: 1rem 1.15rem; margin: 1.4rem 0;
+    max-width: 40rem; font-size: .94rem;
+  }
+  .note { background: var(--surface); border: 1px solid var(--line); }
+  .warn { background: var(--surface); border: 1px solid var(--danger); border-left-width: 4px; }
+  .win  { background: var(--surface); border: 1px solid var(--ok); border-left-width: 4px; }
+  .note p:last-child, .warn p:last-child, .win p:last-child { margin-bottom: 0; }
+  .lbl {
+    display: block; font-family: var(--font-mono); font-size: .7rem;
+    text-transform: uppercase; letter-spacing: .1em; margin-bottom: .45rem;
+  }
+  .warn .lbl { color: var(--danger); }
+  .win .lbl  { color: var(--ok); }
+  .note .lbl { color: var(--ink-3); }
+
+  .tag {
+    display: inline-block; font-family: var(--font-mono); font-size: .68rem;
+    text-transform: uppercase; letter-spacing: .06em; padding: .12em .45em;
+    border-radius: 2px; border: 1px solid currentColor; white-space: nowrap;
+  }
+  .t-new  { color: var(--ok); }
+  .t-keep { color: var(--ink-3); }
+  .t-mod  { color: var(--rail12); }
+  .t-chk  { color: var(--danger); }
+
+  .budget { max-width: 40rem; margin: 1.2rem 0 1.8rem; }
+  .budget .row {
+    display: flex; align-items: baseline; gap: .8rem;
+    padding: .45rem 0; border-bottom: 1px solid var(--line);
+  }
+  .budget .row:last-child { border-bottom: none; font-weight: 600; }
+  .budget .nm { flex: 1; min-width: 0; }
+  .budget .vl { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  @media (max-width: 640px) {
+    body { font-size: 15px; }
+    .canvas { padding: .6rem; }
+  }
+</style>
+
+<div class="wrap">
+
+  <h1>KijaniSpace Sensor Carrier</h1>
+  <p class="sub">A carrier board for the Lake Victoria water-quality node: the WaziSense v2, five modules
+     and six probes reduced to plug-in connectors, with the four traps this build has already paid for
+     designed out in copper.</p>
+  <p class="meta">Rev B &middot; design document &middot; 30 September 2026 &middot; not yet routed</p>
+
+  <p class="lede">This board exists because the wiring is now well understood and the mistakes are
+     documented. Every trap below was found the expensive way on the hand-wired node. A PCB is the one
+     place where a mistake you have already made can be made impossible rather than merely written down.</p>
+
+  <h2><span class="num">Section 01</span>What the board replaces</h2>
+
+  <p>The hand-wired node carries roughly forty conductors between the WaziSense, five modules and six
+     probes, plus eight discrete components on flying leads. Most of those are fixed by the design and
+     have exactly one correct destination, which is the definition of something that belongs on a PCB.</p>
+
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>Today</th><th>On the carrier</th><th></th></tr>
+      </thead>
+      <tbody>
+        <tr><td>~40 flying leads</td><td><b>14 conductors</b> in four plugs &mdash; see Section 04</td><td><span class="tag t-new">new</span></td></tr>
+        <tr><td>PTC + SS34 + SMBJ on leads, currently <b>bypassed</b></td><td>Designed in, always present</td><td><span class="tag t-new">new</span></td></tr>
+        <tr><td>2 &times; Pololu #2810 (&euro;5 each, LED lit in sleep)</td><td>Discrete P-FET high-side switches, &euro;0.40 each</td><td><span class="tag t-mod">changed</span></td></tr>
+        <tr><td>Pololu U3V9F12 on leads</td><td>Same module, on a socket</td><td><span class="tag t-keep">kept</span></td></tr>
+        <tr><td>MAX3485 module on leads</td><td>Same module, on a socket</td><td><span class="tag t-keep">kept</span></td></tr>
+        <tr><td>2 &times; Atlas isolator, 2 &times; EZO circuit on leads</td><td>Sockets, on an isolated island with a routed slot</td><td><span class="tag t-mod">changed</span></td></tr>
+        <tr><td>120 &Omega; + 2 &times; 680 &Omega; bias on leads</td><td>Designed in, <b>pull-down returned to the switched node</b></td><td><span class="tag t-mod">changed</span></td></tr>
+        <tr><td>10 k&Omega; <code>RXI</code> pull-up &mdash; not yet fitted</td><td>Designed in</td><td><span class="tag t-new">new</span></td></tr>
+        <tr><td>Probe leads into screw blocks shared between probes</td><td>One 4-way block per Modbus probe, separate</td><td><span class="tag t-mod">changed</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="num">Section 02</span>The four traps, designed out</h2>
+
+  <p>This is the part of the document worth reading even if the board is never built. Each of these cost
+     real time on the hand-wired node, and each becomes structurally impossible on a PCB rather than a
+     note somebody has to remember.</p>
+
+  <h3>Trap 1 &mdash; the stray ground that shorts out the rail switch</h3>
+
+  <p><code>D6</code> on the WaziSense is a <strong>low-side</strong> switch. It gates <code>D6(&minus;)</code>,
+     the return; <code>D6(+)</code> is permanently live. Every device on that rail must return to
+     <code>D6(&minus;)</code> and nowhere else. One extra wire from any of those grounds to a GND pin
+     bypasses the MOSFET and the rail never switches off. That happened through the MAX3485's ground and
+     cost <strong>20.78 mA of sleep current</strong> before it was found.</p>
+
+  <p>On the board this becomes a <strong>separate copper pour</strong>, <code>SWGND</code>, with exactly
+     one connection to the outside world: <code>SW_1</code> pin 2. There is no via, no stitch, no path to
+     <code>GND</code> anywhere on either layer. A wiring error that takes twenty minutes with a meter to
+     find becomes a design-rule violation you cannot draw.</p>
+
+  <div class="win">
+    <span class="lbl">the vendor&rsquo;s own CAD source now confirms this</span>
+    <p>The low-side topology was established here by measurement, against a manual that reads like
+      high-side switching. The EasyEDA source settles it beyond argument:</p>
+    <ul style="margin-top:.6rem">
+      <li><code>U3</code> and <code>U4</code> are <strong>RUF025N02</strong> &mdash; N-channel MOSFETs,
+        20 V, 2.5 A. N-channel means low side.</li>
+      <li><code>SW_1</code> pin 1 and <code>SW_2</code> pin 1 are <strong>the same net</strong>,
+        <code>SW_OUT</code>. That is the 1.2 &Omega; measured between the two &ldquo;+&rdquo; terminals.</li>
+      <li><code>SW_1</code> pin 2 goes to <code>U3</code> pin 3 and <code>SW_2</code> pin 2 to
+        <code>U4</code> pin 3 &mdash; each block&rsquo;s minus terminal is its own MOSFET&rsquo;s drain.</li>
+      <li><code>SW_OUT</code> comes from <code>H1</code> pin 2, which is why one jumper sets both blocks.</li>
+    </ul>
+  </div>
+
+  <figure>
+    <div class="canvas">
+      <svg viewBox="0 0 860 380" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Two separate ground pours. The main GND pour carries the battery return, the 12 volt converter and the probe terminals. A second, physically separate pour called SWGND carries only the RS485 transceiver, the DS18B20 and the bias pull-down, and connects to the outside world only through the D6 minus terminal of the WaziSense. No copper joins the two pours anywhere on the board.">
+        <rect x="0" y="0" width="860" height="380" fill="none"/>
+
+        <!-- main GND pour -->
+        <rect x="20" y="40" width="380" height="300" rx="4" fill="var(--surface-2)" stroke="var(--ink-2)" stroke-width="1.6"/>
+        <text x="36" y="66" font-family="IBM Plex Sans Condensed, sans-serif" font-size="15" font-weight="700" fill="var(--ink)">GND pour</text>
+        <text x="36" y="84" font-size="11" fill="var(--ink-3)">bottom layer, permanent</text>
+
+        <g font-size="12" fill="var(--ink-2)">
+          <rect x="44" y="104" width="150" height="30" rx="2" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="56" y="124">cell return</text>
+          <rect x="44" y="146" width="150" height="30" rx="2" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="56" y="166">U3V9F12 GND</text>
+          <rect x="44" y="188" width="150" height="30" rx="2" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="56" y="208">probe terminals</text>
+          <rect x="44" y="230" width="150" height="30" rx="2" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="56" y="250">isolator MCU side</text>
+          <rect x="44" y="272" width="150" height="30" rx="2" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="56" y="292">WaziSense X1-2</text>
+        </g>
+
+        <!-- the gap -->
+        <rect x="400" y="40" width="46" height="300" fill="none"/>
+        <line x1="423" y1="52" x2="423" y2="328" stroke="var(--danger)" stroke-width="2" stroke-dasharray="6 5"/>
+        <text x="423" y="36" text-anchor="middle" font-size="11" fill="var(--danger)" font-weight="600">no copper</text>
+
+        <!-- SWGND pour -->
+        <rect x="446" y="40" width="300" height="300" rx="4" fill="var(--surface-2)" stroke="var(--swgnd)" stroke-width="2.2"/>
+        <text x="462" y="66" font-family="IBM Plex Sans Condensed, sans-serif" font-size="15" font-weight="700" fill="var(--swgnd)">SWGND island</text>
+        <text x="462" y="84" font-size="11" fill="var(--ink-3)">switched by D6, floats when off</text>
+
+        <g font-size="12" fill="var(--ink-2)">
+          <rect x="470" y="104" width="180" height="30" rx="2" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="482" y="124">MAX3485 GND</text>
+          <rect x="470" y="146" width="180" height="30" rx="2" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="482" y="166">DS18B20 GND</text>
+          <rect x="470" y="188" width="180" height="30" rx="2" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="482" y="208">680 &#937; bias pull-down</text>
+          <rect x="470" y="230" width="180" height="30" rx="2" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="482" y="250">470 &#181;F bulk (&#8722;)</text>
+        </g>
+
+        <!-- single exit -->
+        <line x1="596" y1="302" x2="596" y2="336" stroke="var(--swgnd)" stroke-width="2.4"/>
+        <circle cx="596" cy="336" r="4.5" fill="var(--swgnd)"/>
+        <text x="612" y="341" font-size="12" fill="var(--swgnd)" font-weight="600">SW_1 pin 2</text>
+        <text x="612" y="357" font-size="10.5" fill="var(--ink-3)">the only exit from this island</text>
+
+        <text x="770" y="120" font-size="11" fill="var(--ink-3)">rail ON:</text>
+        <text x="770" y="136" font-size="11" fill="var(--ink-3)">island at 0 V</text>
+        <text x="770" y="168" font-size="11" fill="var(--ink-3)">rail OFF:</text>
+        <text x="770" y="184" font-size="11" fill="var(--ink-3)">island floats</text>
+        <text x="770" y="200" font-size="11" fill="var(--ink-3)">to D6(+)</text>
+      </svg>
+    </div>
+    <figcaption>The central idea of the board. Two pours that never touch, and one deliberate exit. The
+      wiring error that cost 20.78 mA has no route to exist here.</figcaption>
+  </figure>
+
+  <div class="warn">
+    <span class="lbl">tell the assembler before they "fix" it</span>
+    <p>A design-rule check will report <code>SWGND</code> and the two isolated grounds as separate,
+      unconnected nets. <strong>That is the intended result, not an error.</strong> Anyone who stitches
+      them to <code>GND</code> to make the DRC quiet destroys both the rail switching and the galvanic
+      isolation. Put this on the silkscreen and in the fabrication notes.</p>
+  </div>
+
+  <h3>Trap 2 &mdash; the fail-safe bias that never sleeps</h3>
+
+  <p>The RS485 bias as currently specified runs from the permanently live <code>D6(+)</code>, through
+     680 &Omega;, the 120 &Omega; terminator and a second 680 &Omega;, to permanent ground. That is a
+     closed chain with nothing to switch it:</p>
+
+  <p class="mono" style="font-size:.95rem">3.3 V / (680 + 120 + 680) &Omega; = <strong>2.23 mA, continuously</strong></p>
+
+  <p>Against a measured whole-node sleep current of 3.2 mA, that is most of it. The fix costs nothing:
+     return the pull-down to <code>D6(&minus;)</code> instead of <code>GND</code>. With the rail on, the
+     MOSFET holds <code>D6(&minus;)</code> at zero and the bias works exactly as before. With the rail off
+     the chain has no destination &mdash; the switched node floats up to <code>D6(+)</code>, the
+     differential is zero, and no current flows.</p>
+
+  <div class="win">
+    <span class="lbl">this one is worth doing on the hand-wired node today</span>
+    <p>Move one end of one resistor: the 680 &Omega; between <code>X2-4</code> and <code>X1-2</code> goes
+      to <code>D6(&minus;)</code> instead. Then measure sleep current again. If it drops by roughly
+      2.2 mA, this document just paid for itself before the board was ordered.</p>
+  </div>
+
+  <h3>Trap 3 &mdash; the slide switch that overrides the microcontroller</h3>
+
+  <p>Each Pololu #2810 has a mechanical slide switch that, in the ON position, ignores the <code>ON</code>
+     pin entirely. A module fitted with that switch in the wrong position runs its load permanently and
+     the firmware has no way to notice. Its indicator LED is a second, smaller version of the same
+     problem: observed lit right through sleep with the switch off, so it sits on the input side and costs
+     roughly 0.8 mA per module around the clock.</p>
+
+  <p>The board replaces both modules with a discrete high-side switch: a P-channel MOSFET, an N-channel
+     level shifter and three resistors. No mechanical switch to get wrong, no LED, about &euro;0.40 in
+     parts instead of &euro;5, and one capacitor buys a soft start that the module never offered.</p>
+
+  <figure>
+    <div class="canvas">
+      <svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Discrete high-side switch schematic. A P-channel MOSFET has its source on the protected battery rail and its drain feeding the load. A 100 kilohm resistor from gate to source holds it off. A 2N7002 N-channel MOSFET pulls the gate down when its own gate is driven high from the microcontroller through a 10 kilohm series resistor, with a 100 kilohm pulldown holding it off at boot. A 100 nanofarad capacitor from gate to source slows the turn-on to about ten milliseconds.">
+        <rect x="0" y="0" width="700" height="300" fill="none"/>
+
+        <line x1="60" y1="48" x2="640" y2="48" stroke="var(--batt)" stroke-width="2.4"/>
+        <text x="60" y="38" font-size="12" fill="var(--batt)" font-weight="600">+VBATT (after PTC / SS34)</text>
+
+        <!-- P-FET -->
+        <line x1="300" y1="48" x2="300" y2="96" stroke="var(--batt)" stroke-width="2"/>
+        <rect x="272" y="96" width="56" height="52" rx="3" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.6"/>
+        <text x="300" y="118" text-anchor="middle" font-size="11" fill="var(--ink)" font-weight="600">Q1</text>
+        <text x="300" y="134" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">AO3401A</text>
+        <line x1="300" y1="148" x2="300" y2="196" stroke="var(--rail12)" stroke-width="2.4"/>
+        <text x="312" y="176" font-size="12" fill="var(--rail12)" font-weight="600">to load</text>
+        <text x="312" y="191" font-size="10" fill="var(--ink-3)">U3V9F12 VIN, or the isolators</text>
+
+        <!-- gate network -->
+        <line x1="272" y1="122" x2="208" y2="122" stroke="var(--ink-2)" stroke-width="1.6"/>
+        <line x1="208" y1="122" x2="208" y2="48" stroke="var(--ink-2)" stroke-width="1.6"/>
+        <rect x="198" y="72" width="20" height="30" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="1.4"/>
+        <text x="186" y="92" text-anchor="end" font-size="11" fill="var(--ink-2)">100 k&#937;</text>
+        <circle cx="208" cy="48" r="3.5" fill="var(--batt)"/>
+
+        <!-- soft-start cap -->
+        <line x1="208" y1="122" x2="152" y2="122" stroke="var(--ink-2)" stroke-width="1.6"/>
+        <line x1="152" y1="122" x2="152" y2="62" stroke="var(--ink-2)" stroke-width="1.6"/>
+        <line x1="140" y1="86" x2="164" y2="86" stroke="var(--ink)" stroke-width="2"/>
+        <line x1="140" y1="94" x2="164" y2="94" stroke="var(--ink)" stroke-width="2"/>
+        <text x="130" y="94" text-anchor="end" font-size="11" fill="var(--ink-2)">100 nF</text>
+        <circle cx="152" cy="62" r="0.1" fill="none"/>
+        <line x1="152" y1="62" x2="152" y2="48" stroke="var(--ink-2)" stroke-width="1.6"/>
+        <circle cx="152" cy="48" r="3.5" fill="var(--batt)"/>
+        <circle cx="208" cy="122" r="3.5" fill="var(--ink-2)"/>
+
+        <!-- N-FET -->
+        <line x1="208" y1="122" x2="208" y2="186" stroke="var(--ink-2)" stroke-width="1.6"/>
+        <rect x="180" y="186" width="56" height="48" rx="3" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.6"/>
+        <text x="208" y="206" text-anchor="middle" font-size="11" fill="var(--ink)" font-weight="600">Q2</text>
+        <text x="208" y="222" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">2N7002</text>
+        <line x1="208" y1="234" x2="208" y2="262" stroke="var(--ink-2)" stroke-width="1.6"/>
+        <line x1="180" y1="262" x2="236" y2="262" stroke="var(--ink-2)" stroke-width="2.2"/>
+        <line x1="190" y1="268" x2="226" y2="268" stroke="var(--ink-2)" stroke-width="2.2"/>
+        <line x1="198" y1="274" x2="218" y2="274" stroke="var(--ink-2)" stroke-width="2.2"/>
+        <text x="248" y="270" font-size="11" fill="var(--ink-3)">GND</text>
+
+        <!-- drive -->
+        <line x1="180" y1="210" x2="96" y2="210" stroke="var(--rail33)" stroke-width="1.8"/>
+        <rect x="106" y="200" width="30" height="20" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="1.4"/>
+        <text x="121" y="194" text-anchor="middle" font-size="10.5" fill="var(--ink-2)">10 k&#937;</text>
+        <line x1="96" y1="210" x2="60" y2="210" stroke="var(--rail33)" stroke-width="1.8"/>
+        <text x="56" y="214" text-anchor="end" font-size="12" fill="var(--rail33)" font-weight="600">D5</text>
+        <text x="56" y="230" text-anchor="end" font-size="10" fill="var(--ink-3)">or A1</text>
+
+        <line x1="96" y1="210" x2="96" y2="256" stroke="var(--ink-2)" stroke-width="1.4"/>
+        <rect x="86" y="222" width="20" height="26" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="1.4"/>
+        <text x="78" y="240" text-anchor="end" font-size="10.5" fill="var(--ink-2)">100 k&#937;</text>
+        <line x1="82" y1="256" x2="110" y2="256" stroke="var(--ink-2)" stroke-width="2"/>
+        <circle cx="96" cy="210" r="3.5" fill="var(--ink-2)"/>
+
+        <g font-size="11" fill="var(--ink-3)">
+          <text x="400" y="96">Boots OFF: the 100 k&#937; pull-down on Q2's gate holds it off</text>
+          <text x="400" y="114">before the MCU has configured anything.</text>
+          <text x="400" y="146">Soft start: 100 nF against 100 k&#937; turns Q1 on over</text>
+          <text x="400" y="164">about 10 ms, so the U3V9F12's input capacitor is charged</text>
+          <text x="400" y="182">by a rising resistance instead of a closing contact.</text>
+          <text x="400" y="214">Fit one of these twice: once for the 12 V chain on D5,</text>
+          <text x="400" y="232">once for the isolator supply on A1.</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>Five parts per switch, all in JLCPCB's basic library. The soft start is the part the
+      #2810 could not do, and it is aimed straight at the rail sag measured during the wiper sweep.</figcaption>
+  </figure>
+
+  <h3>Trap 4 &mdash; the floating <code>RXI</code> that hangs the bootloader</h3>
+
+  <p>With no FTDI attached, the bootloader's receive pin floats, picks up phantom start bits and waits
+     for an upload that never comes. Neither <code>RESET</code> nor a watchdog clears it; only removing
+     power does.</p>
+
+  <div class="win">
+    <span class="lbl">this one turns out not to need the carrier at all</span>
+    <p>The FTDI header is <code>DTR &middot; TXD &middot; RXD &middot; 3.3V &middot; GND &middot; GND</code>,
+      so <strong><code>RXD</code> and <code>3.3V</code> are pins 3 and 4 &mdash; adjacent, 2.54 mm
+      apart.</strong> The entire fix is one 10 k&Omega; resistor soldered across those two pins of the
+      header. It does not fight an attached FTDI, because a pull-up cannot fight a push-pull driver.</p>
+    <p>Do that now, on the hand-wired node. It is a two-minute job and it removes a failure mode that
+      needs a power cycle in the field to clear.</p>
+  </div>
+
+  <h3>Trap 5 &mdash; <code>H1</code> is in the wrong position for a solar deployment</h3>
+
+  <p>The WaziSense v2 manual says this twice, and the second time it says why:</p>
+
+  <blockquote style="margin:1.2rem 0;padding-left:1.1rem;border-left:3px solid var(--line);color:var(--ink-2);max-width:40rem">
+    <p style="margin-bottom:.5rem">&ldquo;when deploying the WaziSense v2 with solar panel, it&rsquo;s advised
+      to move the <code>H1</code> jumper to BATT position.&rdquo;</p>
+    <p style="margin-bottom:0">&ldquo;It appears the solar circuit&rsquo;s highs and lows during operation
+      affects transmissions.&rdquo;</p>
+  </blockquote>
+
+  <p>This build has <code>H1</code> on <strong>3.3 V</strong>, and for a good reason: the MAX3485 is a
+     3.0&ndash;3.6 V part and a full cell at 4.2 V would destroy it. But that choice puts the whole sensor
+     load on the WaziSense&rsquo;s own HE2031A33 regulator &mdash; the same one feeding the MCU and the
+     radio. <strong>That is the cold-start brownout this build already fought and patched with
+     470 &micro;F.</strong> The manual&rsquo;s advice and that fault are the same phenomenon seen from two
+     sides.</p>
+
+  <p>The carrier resolves it instead of choosing between the two. <code>H1</code> goes to
+     <strong>BATT</strong>, so <code>D6(+)</code> carries cell voltage and the WaziSense&rsquo;s regulator
+     carries nothing but the MCU and the radio. A small LDO on the carrier then makes the clean 3.3 V that
+     the transceiver, the DS18B20 and the pull-ups need.</p>
+
+  <div class="note">
+    <span class="lbl">why the LDO&rsquo;s ground goes to GND and not to the island</span>
+    <p>It looks wrong at first: the LDO feeds devices that sit on <code>SWGND</code>, so why not reference
+      it there too? Because the I&sup2;C and <code>RXI</code> pull-ups need that clean 3.3 V as well, and
+      they belong to the MCU&rsquo;s ground domain &mdash; on the island they would float during the 200 ms
+      window where <code>A1</code> is already high and <code>D6</code> is not.</p>
+    <p>Referencing the LDO to <code>GND</code> costs nothing, because the low-side principle still does the
+      work: with <code>D6</code> open the transceiver&rsquo;s supply is held at 3.3 V while its
+      <em>ground</em> floats up to meet it. Zero volts across the part, no current, exactly as before. The
+      only permanent draw is the LDO&rsquo;s own quiescent current &mdash; <b>1.6 &micro;A</b> for an
+      MCP1700, against the 2.23 mA the bias network is giving back.</p>
+    <p><strong>The LDO is also what makes <code>H1</code> on BATT safe at all,</strong> which is not
+      obvious. Today the transceiver is fed from <code>SW_OUT</code> directly, so when <code>D6</code>
+      opens its ground floats up to <em>whatever <code>SW_OUT</code> is</em>. At 3.3 V that matches the
+      parked state of <code>D3</code>/<code>D4</code> and nothing flows. Move <code>H1</code> to BATT
+      without the LDO and that floating ground rises to 4.2 V while <code>D3</code>/<code>D4</code> sit at
+      3.3 V &mdash; almost a volt backwards into the transceiver&rsquo;s I/O pins, through its ESD clamps.
+      With the LDO in front, <code>SW_OUT</code> feeds only the LDO, and the island floats to the
+      LDO&rsquo;s 3.3 V instead. The differential is zero again.</p>
+  </div>
+
+  <div class="warn">
+    <span class="lbl">do not move H1 before the LDO exists</span>
+    <p>The LDO cannot make 3.3 V from a cell below about 3.35 V; it drops out and passes its input minus a
+      few tens of millivolts. That is acceptable &mdash; the MAX3485 works down to 3.0 V, and the
+      LDO&rsquo;s real job is clamping the <b>top</b> end, where a full cell at 4.2 V would otherwise reach
+      the transceiver. But it does mean <strong><code>H1</code> must stay on 3.3 V on the hand-wired
+      node.</strong> Moving it to BATT today puts 4.2 V on a 3.6 V part.</p>
+  </div>
+
+  <h2><span class="num">Section 03</span>Block diagram</h2>
+
+  <figure>
+    <div class="canvas">
+      <svg viewBox="0 0 880 470" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Block diagram. The 18650 cell enters the carrier through a protection chain of PTC, SS34 and SMBJ. The protected battery rail feeds three things: the WaziSense BAT_IN input, high-side switch A which feeds the U3V9F12 twelve volt regulator and the two Modbus probes, and high-side switch B which feeds the two Atlas isolators and through them the two EZO circuits. The WaziSense supplies the permanently live D6 plus terminal and the switched D6 minus return, which power the MAX3485 transceiver and the DS18B20 on the switched ground island. Logic signals D3, D4, D5, A1, A2, A4 and A5 cross on the WaziSense screw terminal blocks.">
+        <rect x="0" y="0" width="880" height="470" fill="none"/>
+
+        <!-- cell -->
+        <rect x="16" y="48" width="96" height="52" rx="3" fill="var(--surface-2)" stroke="var(--batt)" stroke-width="1.8"/>
+        <text x="64" y="70" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">18650</text>
+        <text x="64" y="88" text-anchor="middle" font-size="10" fill="var(--ink-3)">3.0&#8211;4.2 V</text>
+
+        <!-- protection -->
+        <line x1="112" y1="74" x2="148" y2="74" stroke="var(--batt)" stroke-width="2.2"/>
+        <rect x="148" y="42" width="112" height="64" rx="3" fill="var(--surface)" stroke="var(--line)" stroke-width="1.4"/>
+        <text x="204" y="62" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">protection</text>
+        <text x="204" y="78" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">PTC &#183; SS34</text>
+        <text x="204" y="93" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">SMBJ5.0A</text>
+
+        <line x1="260" y1="74" x2="308" y2="74" stroke="var(--batt)" stroke-width="2.4"/>
+        <circle cx="308" cy="74" r="4" fill="var(--batt)"/>
+        <text x="300" y="36" text-anchor="middle" font-size="11" fill="var(--batt)" font-weight="600">+VBATT</text>
+
+        <!-- three branches -->
+        <line x1="308" y1="74" x2="308" y2="404" stroke="var(--batt)" stroke-width="2.4"/>
+
+        <!-- to WaziSense -->
+        <line x1="308" y1="74" x2="600" y2="74" stroke="var(--batt)" stroke-width="2.2"/>
+        <rect x="600" y="42" width="180" height="150" rx="3" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.8"/>
+        <text x="690" y="66" text-anchor="middle" font-family="IBM Plex Sans Condensed, sans-serif" font-size="14" font-weight="700" fill="var(--ink)">WaziSense v2</text>
+        <text x="690" y="84" text-anchor="middle" font-size="10" fill="var(--ink-3)">BAT_IN &#183; SW_1 &#183; I2C_PORT &#8230;</text>
+        <text x="690" y="106" text-anchor="middle" font-size="10" fill="var(--rail33)">D6(+) permanent 3.3 V</text>
+        <text x="690" y="122" text-anchor="middle" font-size="10" fill="var(--swgnd)">D6(&#8722;) switched return</text>
+        <text x="690" y="146" text-anchor="middle" font-size="10" fill="var(--ink-3)">D3 D4 D5 A1 A2 A4 A5</text>
+        <text x="690" y="166" text-anchor="middle" font-size="10" fill="var(--ink-3)">RFM95W &#183; LoRaWAN</text>
+        <text x="690" y="184" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">H1 = 3.3 V</text>
+
+        <!-- switch A -->
+        <circle cx="308" cy="214" r="4" fill="var(--batt)"/>
+        <line x1="308" y1="214" x2="356" y2="214" stroke="var(--batt)" stroke-width="2.2"/>
+        <rect x="356" y="188" width="92" height="52" rx="3" fill="var(--surface)" stroke="var(--rail12)" stroke-width="1.8"/>
+        <text x="402" y="208" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">HS-SW A</text>
+        <text x="402" y="226" text-anchor="middle" font-size="9.5" fill="var(--rail33)">gate: D5</text>
+
+        <line x1="448" y1="214" x2="486" y2="214" stroke="var(--batt)" stroke-width="2.2"/>
+        <rect x="486" y="188" width="96" height="52" rx="3" fill="var(--surface)" stroke="var(--rail12)" stroke-width="1.6"/>
+        <text x="534" y="208" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">U3V9F12</text>
+        <text x="534" y="226" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">12 V &#177;4 %</text>
+
+        <line x1="582" y1="214" x2="640" y2="214" stroke="var(--rail12)" stroke-width="2.6"/>
+        <rect x="640" y="180" width="200" height="68" rx="3" fill="var(--surface-2)" stroke="var(--rail12)" stroke-width="1.6"/>
+        <text x="740" y="202" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">X3 / X4 &#8212; Modbus probes</text>
+        <text x="740" y="219" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">SEN0680 @ 4800 &#183; Y511-A @ 9600</text>
+        <text x="740" y="236" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">12 V &#183; GND &#183; A &#183; B, one block each</text>
+
+        <!-- switch B -->
+        <circle cx="308" cy="320" r="4" fill="var(--batt)"/>
+        <line x1="308" y1="320" x2="356" y2="320" stroke="var(--batt)" stroke-width="2.2"/>
+        <rect x="356" y="294" width="92" height="52" rx="3" fill="var(--surface)" stroke="var(--iso)" stroke-width="1.8"/>
+        <text x="402" y="314" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">HS-SW B</text>
+        <text x="402" y="332" text-anchor="middle" font-size="9.5" fill="var(--rail33)">gate: A1</text>
+
+        <line x1="448" y1="320" x2="486" y2="320" stroke="var(--batt)" stroke-width="2.2"/>
+        <rect x="486" y="280" width="354" height="94" rx="3" fill="var(--surface)" stroke="var(--iso)" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="663" y="300" text-anchor="middle" font-size="11" font-weight="600" fill="var(--iso)">isolated island &#8212; routed slot</text>
+        <rect x="500" y="310" width="150" height="50" rx="2" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="575" y="330" text-anchor="middle" font-size="10.5" fill="var(--ink)">isolator + EZO-pH</text>
+        <text x="575" y="347" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">0x63 &#183; SMA to probe</text>
+        <rect x="668" y="310" width="150" height="50" rx="2" fill="var(--surface-2)" stroke="var(--line)"/>
+        <text x="743" y="330" text-anchor="middle" font-size="10.5" fill="var(--ink)">isolator + EZO-EC</text>
+        <text x="743" y="347" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">0x64 &#183; 2-way block</text>
+
+        <!-- switched 3v3 domain -->
+        <rect x="16" y="396" width="560" height="60" rx="3" fill="var(--surface)" stroke="var(--swgnd)" stroke-width="1.8"/>
+        <text x="30" y="418" font-size="11" font-weight="600" fill="var(--swgnd)">SWGND island &#8212; returns to D6(&#8722;) only</text>
+        <text x="30" y="438" font-size="10" fill="var(--ink-3)">MAX3485 &#183; DS18B20 &#183; 680 &#937; bias pull-down &#183; 470 &#181;F bulk</text>
+
+        <line x1="576" y1="426" x2="616" y2="426" stroke="var(--swgnd)" stroke-width="2.2"/>
+        <line x1="616" y1="426" x2="616" y2="192" stroke="var(--swgnd)" stroke-width="2.2"/>
+      </svg>
+    </div>
+    <figcaption>The cell enters the carrier, not the WaziSense &mdash; so the protection chain is
+      unavoidably in circuit, which it currently is not.</figcaption>
+  </figure>
+
+  <h2><span class="num">Section 04</span>Interface to the WaziSense</h2>
+
+  <div class="warn">
+    <span class="lbl">Rev A was wrong about this</span>
+    <p>Rev A specified a 16-way ribbon into a pin header. <strong>The WaziSense v2 has no signal pin
+      headers.</strong> Everything a user can reach comes out on <b>3.5 mm screw terminal blocks</b>
+      (DB125-3.5), and the only 2.54 mm headers are <code>H1</code>, <code>H2</code>, the charge-status
+      pins, the SPI header and the FTDI socket. A ribbon has nothing to plug into.</p>
+  </div>
+
+  <h3>Everything the board brings out</h3>
+
+  <p>Read out of the EasyEDA PCB source, so these are net names as the designer assigned them rather than
+     as a manual describes them. <code>X</code> is the pad centre in the board&rsquo;s own coordinate
+     system.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Block</th><th>Pin</th><th>Net</th><th>X&nbsp;(mm)</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="2"><code>SW_1</code><br><span style="font-size:.85em;color:var(--ink-3)">Sensor Power 1</span></td><td class="n">1</td><td><code>SW_OUT</code></td><td class="n">&minus;50.01</td><td>the permanently live &ldquo;+&rdquo;, set by <code>H1</code></td></tr>
+        <tr><td class="n">2</td><td><code>U3</code> drain</td><td class="n">&minus;46.51</td><td><b>the switched return</b> &mdash; gated by <code>D6</code></td></tr>
+        <tr><td rowspan="2"><code>SW_2</code><br><span style="font-size:.85em;color:var(--ink-3)">Sensor Power 2</span></td><td class="n">1</td><td><code>SW_OUT</code></td><td class="n">&minus;42.39</td><td><b>same net as <code>SW_1</code> pin 1.</b> This is the 1.2 &Omega; you measured</td></tr>
+        <tr><td class="n">2</td><td><code>U4</code> drain</td><td class="n">&minus;38.89</td><td>a second switched return, gated by <code>D7</code> &mdash; unused here</td></tr>
+        <tr><td rowspan="3"><code>ANALOG_PINS</code></td><td class="n">1</td><td><code>A2</code></td><td class="n">&minus;34.74</td><td>1-Wire, the DS18B20</td></tr>
+        <tr><td class="n">2</td><td><code>A1</code></td><td class="n">&minus;31.24</td><td><code>ISO_EN</code></td></tr>
+        <tr><td class="n">3</td><td><code>GND</code></td><td class="n">&minus;27.74</td><td></td></tr>
+        <tr><td rowspan="3"><code>DIGITAL_PINS</code></td><td class="n">1</td><td><code>D4</code></td><td class="n">&minus;23.57</td><td>RS485 <code>TXD</code></td></tr>
+        <tr><td class="n">2</td><td><code>D3</code></td><td class="n">&minus;20.07</td><td>RS485 <code>RXD</code></td></tr>
+        <tr><td class="n">3</td><td><code>GND</code></td><td class="n">&minus;16.57</td><td></td></tr>
+        <tr><td rowspan="4"><code>I2C_PORT</code></td><td class="n">1</td><td><code>SCL</code></td><td class="n">&minus;12.36</td><td>= <code>A5</code></td></tr>
+        <tr><td class="n">2</td><td><code>SDA</code></td><td class="n">&minus;8.86</td><td>= <code>A4</code></td></tr>
+        <tr><td class="n">3</td><td><code>D5</code></td><td class="n">&minus;5.36</td><td><b><code>D5</code> lives on the I&sup2;C block</b>, not the digital one. <code>RAIL12_EN</code></td></tr>
+        <tr><td class="n">4</td><td><code>GND</code></td><td class="n">&minus;1.86</td><td></td></tr>
+        <tr><td rowspan="2"><code>BAT_IN</code></td><td class="n">1</td><td><code>BATT</code></td><td class="n">&minus;22.25</td><td>on the opposite edge, Y&nbsp;=&nbsp;+33.02</td></tr>
+        <tr><td class="n">2</td><td><code>GND</code></td><td class="n">&minus;25.75</td><td></td></tr>
+        <tr><td rowspan="3"><code>H1</code><br><span style="font-size:.85em;color:var(--ink-3)">2.54 mm</span></td><td class="n">1</td><td><code>BATT</code></td><td class="n">&minus;45.21</td><td rowspan="3">Y&nbsp;=&nbsp;13.84. Pin 2 is <code>SW_OUT</code>, which is why one jumper sets <em>both</em> Sensor Power blocks</td></tr>
+        <tr><td class="n">2</td><td><code>SW_OUT</code></td><td class="n">&minus;42.67</td></tr>
+        <tr><td class="n">3</td><td><code>3.3V</code></td><td class="n">&minus;40.13</td></tr>
+        <tr><td rowspan="6"><code>FTDI</code><br><span style="font-size:.85em;color:var(--ink-3)">2.54 mm, female</span></td><td class="n">1</td><td><code>DTR</code></td><td class="n" rowspan="6">14.86<br><span style="font-size:.85em;color:var(--ink-3)">Y &minus;11.37<br>&hellip; +1.33</span></td><td></td></tr>
+        <tr><td class="n">2</td><td><code>TXD</code></td><td></td></tr>
+        <tr><td class="n">3</td><td><code>RXD</code></td><td><b>trap 4 lives here</b> &mdash; 10 k&Omega; to pin 4</td></tr>
+        <tr><td class="n">4</td><td><code>3.3V</code></td><td>the only place the board&rsquo;s own regulated rail is reachable, besides SPI pin 2</td></tr>
+        <tr><td class="n">5</td><td><code>GND</code></td><td></td></tr>
+        <tr><td class="n">6</td><td><code>GND</code></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl">there is not one spare pin</span>
+    <p>Counting what the terminals expose: <code>D3</code>, <code>D4</code>, <code>D5</code>,
+      <code>A1</code>, <code>A2</code>, <code>SDA</code>, <code>SCL</code>. This build uses all seven.
+      <code>A0</code> is the battery divider, <code>A3</code>, <code>A6</code> and <code>A7</code> exist
+      only as pads in the prototyping area, and <code>D7</code> drives <code>SW_2</code>&rsquo;s MOSFET
+      and goes nowhere else.</p>
+    <p>So the pin map in the firmware is not one arrangement among several. It is <em>the</em>
+      arrangement, and anything further needs a wire soldered into the prototyping area.</p>
+  </div>
+
+  <h3>Mechanical</h3>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Item</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Board outline</td><td><b>70.37 &times; 52.85 mm</b> &mdash; X from &minus;52.08 to +18.29, Y from &minus;14.23 to +38.61</td></tr>
+        <tr><td>Mounting holes</td><td><b>3 &times; &empty;3.0 mm</b> at (&minus;46.99, 9.14), (8.38, &minus;0.25), (4.83, 36.20)</td></tr>
+        <tr><td>Signal edge</td><td>All four signal blocks on <b>one edge</b>, Y = &minus;5.72 (<code>I2C_PORT</code> at &minus;5.97)</td></tr>
+        <tr><td>Power edge</td><td><code>BAT_IN</code> and <code>SLR_IN</code> on the opposite edge, Y &asymp; +33</td></tr>
+        <tr><td>Block pitch</td><td>3.50 mm within a block; the gap between blocks is <b>4.1&ndash;4.2 mm</b>, so the row is <em>not</em> one continuous 3.5 mm grid</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Three ways to join the two boards</h3>
+
+  <p><strong>A &mdash; screw to screw, nothing changes on the WaziSense.</strong> The carrier carries its
+     own 3.5 mm blocks and fourteen short wires join them. That is 14 conductors in place of about 40,
+     every one of them short and fixed in length, and it works with the board exactly as it is today. It
+     is still a screwdriver job.</p>
+
+  <p><strong>B &mdash; pluggable terminals, and this is what I would build for ten boards.</strong> The
+     DB125-3.5 blocks are one BOM line on a board your own organisation makes. Replace them with the
+     <em>pluggable</em> 3.5 mm family (2EDGV / 2EDGK and equivalents): same footprint, same pitch, but the
+     board side becomes a keyed male header and the wires terminate in a plug. The carrier gets the same
+     headers, and a set of short pre-made jumpers joins them. Plug in, plug out, no screwdriver, and no
+     mechanical alignment to get right.</p>
+
+  <p><strong>C &mdash; a true mezzanine.</strong> Now designable: the outline, the three M3 holes and every
+     pad centre are known to a hundredth of a millimetre. It is the neatest result and the least
+     forgiving, and it needs the enclosure chosen first, because the two boards become one rigid assembly.
+     I would not do this before a Rev B carrier has been built and proven as option B.</p>
+
+  <h2><span class="num">Section 05</span>Complete netlist</h2>
+
+  <p>Reference designators are provisional and become fixed when the schematic is drawn. Nets in
+     <code>SWGND</code> and the two isolated groups are marked, because those are the ones that must not
+     be merged.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Ref</th><th>Part</th><th>From</th><th>To</th><th>Net class</th></tr></thead>
+      <tbody>
+        <tr><td><code>X1</code></td><td>2-way screw block, 5 mm</td><td>18650 +/&minus;</td><td><code>F1</code> / <code>GND</code></td><td>battery</td></tr>
+        <tr><td><code>F1</code></td><td>PTC 2.6 A hold</td><td><code>X1-1</code></td><td><code>D1</code> anode</td><td>battery</td></tr>
+        <tr><td><code>D1</code></td><td>SS34 Schottky</td><td><code>F1</code></td><td><code>+VBATT</code></td><td>battery</td></tr>
+        <tr><td><code>D2</code></td><td>SMBJ5.0A TVS</td><td><code>+VBATT</code></td><td><code>GND</code></td><td>battery</td></tr>
+        <tr><td><code>C1</code></td><td>100 &micro;F + 100 nF</td><td><code>+VBATT</code></td><td><code>GND</code></td><td>battery</td></tr>
+        <tr><td><code>Q1</code>/<code>Q2</code></td><td>AO3401A + 2N7002</td><td><code>+VBATT</code></td><td><code>V12IN</code></td><td>battery &rarr; 12 V</td></tr>
+        <tr><td><code>R1&ndash;R3</code></td><td>100 k / 100 k / 10 k</td><td>gate network A</td><td>&mdash;</td><td>&mdash;</td></tr>
+        <tr><td><code>C2</code></td><td>100 nF soft start</td><td><code>Q1</code> gate</td><td><code>+VBATT</code></td><td>&mdash;</td></tr>
+        <tr><td><code>U1</code></td><td>Pololu U3V9F12, socket</td><td><code>V12IN</code></td><td><code>+12V</code></td><td>12 V</td></tr>
+        <tr><td><code>C3</code></td><td>470&ndash;1000 &micro;F</td><td><code>+12V</code></td><td><code>GND</code></td><td>12 V</td></tr>
+        <tr><td><code>Q3</code>/<code>Q4</code></td><td>AO3401A + 2N7002</td><td><code>+VBATT</code></td><td><code>ISO_VIN</code></td><td>battery &rarr; isolators</td></tr>
+        <tr><td><code>R4&ndash;R6</code>, <code>C4</code></td><td>gate network B</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+        <tr><td><code>U7</code></td><td>MCP1700-3302E LDO</td><td><code>3V3P</code> (= <code>D6(+)</code>, cell voltage)</td><td><code>3V3REG</code>, ground on <code>GND</code></td><td>1.6 &micro;A quiescent</td></tr>
+        <tr><td><code>C7</code>/<code>C8</code></td><td>1 &micro;F ceramic each</td><td>LDO in / out</td><td><code>GND</code></td><td>required by the part</td></tr>
+        <tr><td><code>U2</code></td><td>MAX3485 module, socket</td><td><code>3V3REG</code> / <code>SWGND</code></td><td><code>RS485_A/B</code></td><td><b>SWGND</b> return</td></tr>
+        <tr><td><code>R7</code></td><td>680 &Omega; bias pull-up</td><td><code>RS485_A</code></td><td><code>3V3REG</code></td><td>&mdash;</td></tr>
+        <tr><td><code>R8</code></td><td>680 &Omega; bias pull-down</td><td><code>RS485_B</code></td><td><code>SWGND</code></td><td><b>SWGND</b> &mdash; trap 2</td></tr>
+        <tr><td><code>RT1</code></td><td>120 &Omega; terminator</td><td><code>RS485_A</code></td><td><code>RS485_B</code></td><td>&mdash;</td></tr>
+        <tr><td><code>R9</code></td><td>10 k&Omega;</td><td><code>RXI_PU</code></td><td><code>3V3REG</code></td><td>trap 4</td></tr>
+        <tr><td><code>R10</code></td><td>4.7 k&Omega;</td><td><code>OW_DATA</code></td><td><code>3V3REG</code></td><td>mandatory</td></tr>
+        <tr><td><code>R11</code>/<code>R12</code></td><td>2 &times; 4.7 k&Omega;</td><td><code>SDA</code>/<code>SCL</code></td><td><code>3V3REG</code></td><td><b>Fit these.</b> The manual says <code>I2C_J</code> is closed from the factory with 2 &times; 4.7 k&Omega; &mdash; but on this unit it measured 5.9 M&Omega;, and with <code>H1</code> on BATT the board&rsquo;s own pull-ups would be the wrong reference anyway. <b>Cut <code>I2C_J</code></b> and use these.</td></tr>
+        <tr><td><code>C5</code></td><td>470 &micro;F</td><td><code>3V3REG</code></td><td><code>GND</code></td><td>the cold-start brownout reserve, now on the carrier&rsquo;s own rail instead of the WaziSense&rsquo;s</td></tr>
+        <tr><td><code>C6</code></td><td>10 &micro;F X7R + 100 nF</td><td><code>3V3REG</code></td><td><code>GND</code></td><td>short leads &mdash; the electrolytic&rsquo;s ESR cannot supply the first microseconds</td></tr>
+        <tr><td><code>X2</code></td><td>3-way block</td><td>DS18B20</td><td><code>3V3REG</code>, <code>OW_DATA</code>, <code>SWGND</code></td><td><b>SWGND</b></td></tr>
+        <tr><td><code>X3</code>/<code>X4</code></td><td>2 &times; 4-way block</td><td>Modbus probes</td><td><code>+12V</code>, <code>GND</code>, <code>A</code>, <code>B</code></td><td>12 V</td></tr>
+        <tr><td><code>U3</code>/<code>U5</code></td><td>2 &times; BE-IVI isolator, socket</td><td><code>ISO_VIN</code>, <code>GND</code>, <code>SDA</code>, <code>SCL</code></td><td>isolated 3.9 V, data</td><td>crosses the barrier</td></tr>
+        <tr><td><code>U4</code>/<code>U6</code></td><td>EZO-pH / EZO-EC, socket</td><td>isolated side of <code>U3</code>/<code>U5</code></td><td>probes</td><td><b>ISO1 / ISO2</b></td></tr>
+        <tr><td><code>R13&ndash;R16</code></td><td>4 &times; 4.7 k&Omega;</td><td>isolated <code>SDA</code>/<code>SCL</code></td><td>isolated 3.9 V</td><td><b>ISO1 / ISO2</b> &mdash; measure first</td></tr>
+        <tr><td><code>J4</code></td><td>SMA jack</td><td>pH probe</td><td><code>U4</code> <code>PRB</code> / <code>PGND</code></td><td><b>guarded</b></td></tr>
+        <tr><td><code>X5</code></td><td>2-way block</td><td>EC probe</td><td><code>U6</code> probe pins</td><td>not polarised</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="num">Section 06</span>Layout rules</h2>
+
+  <ol>
+    <li><strong>Three isolated copper groups, and the DRC will complain about all three.</strong>
+      <code>SWGND</code>, <code>ISO1_GND</code> and <code>ISO2_GND</code> each form an island with no path
+      to <code>GND</code>. Declare them as separate net classes so the check reports them as expected
+      rather than as errors, and note it on the fabrication drawing.</li>
+    <li><strong>A routed slot under each isolator</strong>, 2 mm wide, running the full width of the
+      module's isolation barrier. The ADM3260 inside provides the isolation; the slot makes it visible and
+      stops anyone routing a trace across it later.</li>
+    <li><strong>Guard the <code>PRB</code> net.</strong> The pH electrode is a gigaohm source. Keep the
+      trace from J4 to the EZO pads under 15 mm, ring it with a guard track tied to <code>PGND</code>
+      (the reference electrode, <em>not</em> ground), and place a soldermask and paste keepout around it
+      so no flux residue bridges it. Specify a no-clean process or a wash, and say so on the assembly
+      drawing &mdash; a fingerprint across this net is a few hundred megohms and shifts the reading
+      visibly.</li>
+    <li><strong><code>C3</code> within 10 mm of the U3V9F12's <code>VOUT</code></strong>, and
+      <code>C5</code>/<code>C6</code> within 10 mm of J2. Both were fitted on the hand-wired node to cure
+      real faults; long traces give the inductance back.</li>
+    <li><strong>The RS485 pair is a pair.</strong> Route <code>RS485_A</code> and <code>RS485_B</code>
+      together at constant spacing from U2 to X3 and X4, with <code>RT1</code> at the transceiver end.
+      No termination at the probe blocks &mdash; the single terminator is the whole point.</li>
+    <li><strong>Test points on every rail:</strong> <code>+VBATT</code>, <code>V12IN</code>,
+      <code>+12V</code>, <code>3V3P</code>, <code>SWGND</code>, <code>ISO_VIN</code>, both isolated
+      3.9 V rails, <code>RS485_A</code>, <code>RS485_B</code>. This node gets probed constantly; make it
+      cheap.</li>
+    <li><strong>Two layers are enough.</strong> Bottom is a <code>GND</code> pour with the three islands
+      cut out of it; top carries signals and the switched rails.</li>
+  </ol>
+
+  <h2><span class="num">Section 07</span>What the board is expected to save</h2>
+
+  <p>Two of the four traps are also current draws, and both are continuous rather than per-cycle. The
+     figures below are the measured drains that the design removes, not a modelled budget.</p>
+
+  <div class="budget">
+    <div class="row"><span class="nm">RS485 fail-safe bias, pull-down returned to <code>SWGND</code></span><span class="vl">&minus;2.23 mA</span></div>
+    <div class="row"><span class="nm">Two #2810 indicator LEDs, modules removed</span><span class="vl">&minus;1.6 mA</span></div>
+    <div class="row"><span class="nm">Continuous saving</span><span class="vl">&minus;3.8 mA</span></div>
+  </div>
+
+  <p>That is about 91 mAh per day against a 3400 mAh cell, or roughly the difference between a fortnight
+     of autonomy and a month. The number to check it against is a sleep-current measurement, which has
+     still not been taken on the final topology &mdash; with the FTDI removed, since it feeds the battery
+     domain and hides exactly this class of fault.</p>
+
+  <h2><span class="num">Section 08</span>Confirm before routing</h2>
+
+  <p>These are the dimensions I could not verify. Each has to come from the manufacturer's drawing before
+     a footprint is drawn, and none of them changes the schematic.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Item</th><th>What is needed</th><th>Where from</th></tr></thead>
+      <tbody>
+        <tr><td>WaziSense v2</td><td><span class="tag t-new">settled</span> Outline, mounting holes, every pad centre and every net &mdash; see Section 04</td><td>From <code>PickAndPlace_PCB.csv</code>, <code>Gerber_PCB.zip</code> and the EasyEDA source in <code>Source_PCB.zip</code></td></tr>
+        <tr><td>Atlas EZO circuit</td><td><b>Pin functions settled</b> from the datasheet artwork: two opposite edges, <code>GND</code> &middot; <code>TX/SDA</code> &middot; <code>RX/SCL</code> on one and <code>VCC</code> &middot; <code>PRB</code> &middot; <code>PGND</code> on the other. Outline and pitch still open.</td><td>The datasheet is an 80-page image PDF with no dimensioned drawing in it. <b>Measure the circuit you have</b> &mdash; that is authoritative for your revision anyway.</td></tr>
+        <tr><td>Basic EZO Inline Voltage Isolator</td><td>Footprint, pin order both sides, barrier position for the slot</td><td>Its datasheet URL returns a server error. Measure the two you have fitted.</td></tr>
+        <tr><td>Pololu U3V9F12</td><td><span class="tag t-new">settled</span> <b>13.6 &times; 8.6 &times; 2.8 mm</b>, three pins at 0.1&Prime;: <b>1 = VOUT, 2 = GND, 3 = VIN</b></td><td>Dimensions from Pololu, pin order read off the board</td></tr>
+        <tr><td>MAX3485 module</td><td>Footprint &mdash; these vary between sellers</td><td>Measure the one you have</td></tr>
+        <tr><td>Enclosure</td><td>Board outline, mounting holes, gland positions for the six probe cables</td><td>Your choice of housing</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl">on LCSC part numbers</span>
+    <p>The BOM gives manufacturer part numbers rather than LCSC codes on purpose. JLCPCB's stock and
+      basic-part list change often enough that a code written today may be an extended part or out of
+      stock by the time you order, and an extended part carries a setup fee per line. Pull the codes from
+      their parts library at order time and prefer whatever is marked <em>basic</em>.</p>
+  </div>
+
+  <h3>What else the manual settled</h3>
+
+  <p>None of these change the schematic, and two of them change how the node should be run.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>From the manual</th><th>What follows</th></tr></thead>
+      <tbody>
+        <tr><td>Sleep current <b>29 &micro;A</b> with the solar circuit active, <b>6.5 &micro;A</b> without</td><td>The measured 3.2 mA is about <b>110&times;</b> the board&rsquo;s own figure. Whatever is drawing it is external, which is what the bias-network finding in Section 02 says it is.</td></tr>
+        <tr><td>The HE2031A33 regulator needs <b>3.5 V minimum input</b></td><td>A cell at 3.2 V is already below it. That, not the radio, sets the floor for a low-battery cut-off.</td></tr>
+        <tr><td>&ldquo;allow a delay of at least <b>1500 ms</b>&rdquo; after switching a sensor rail on</td><td><code>RAIL33_SETTLE_MS</code> is <b>1200</b>. It works, but it is under the manual&rsquo;s figure &mdash; worth raising if anything on that rail ever misbehaves at start-up.</td></tr>
+        <tr><td><code>A3</code>, <code>A6</code> and <code>A7</code> are brought out as pads in the prototyping area</td><td>Two more analog inputs than this build assumed. <code>A6</code>/<code>A7</code> are <b>input-only</b> on this part, so they cannot gate a switch &mdash; but they can read one more sensor each.</td></tr>
+        <tr><td>Square holes in the prototyping area are <b>ground</b>; the rest are unconnected</td><td>Useful if anything has to be bodged onto the WaziSense itself.</td></tr>
+        <tr><td><code>I2C_J</code> is closed from the factory with 2 &times; 4.7 k&Omega;</td><td>Confirms the open jumper on this unit is a <b>board fault</b>, not a documentation error. Worth checking on every board of a batch.</td></tr>
+        <tr><td>Cutting <code>MI_J</code>, <code>MO_J</code>, <code>SCK_J</code> frees the SPI header</td><td>Needed to flash a bootloader. Do not cut them otherwise &mdash; the radio lives on that bus.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="num">Section 09</span>Bring-up order</h2>
+
+  <p>The first board gets tested before any module is fitted. Every step below can only fail in one way,
+     which is the point of the order.</p>
+
+  <ol>
+    <li><strong>Bare board, meter only.</strong> <code>SWGND</code> to <code>GND</code> must read
+      <b>open</b>. <code>ISO1_GND</code> and <code>ISO2_GND</code> to <code>GND</code> must read
+      <b>open</b>. If any of them reads a few ohms, the pour was stitched and the board is wrong &mdash;
+      stop here.</li>
+    <li><strong>Cell only, nothing else fitted.</strong> <code>+VBATT</code> should read cell voltage
+      minus about 0.4 V across the SS34. Reversed, it should read zero and nothing should get warm.</li>
+    <li><strong>WaziSense connected, no other modules.</strong> It should boot and blink. Drive
+      <code>D5</code> and <code>A1</code> high by hand and watch <code>V12IN</code> and
+      <code>ISO_VIN</code> follow, then fall when driven low.</li>
+    <li><strong>Fit U1.</strong> <code>+12V</code> must be 12 V &plusmn; 0.5 V under no load, and stay
+      above 11 V with a 250 mA dummy load. This is the step that catches a converter like the XL6009 that
+      put out 30 V from a 3.6 V input.</li>
+    <li><strong>Fit U2 and the DS18B20.</strong> Check that with <code>D6</code> low, the current into
+      <code>SW_1</code> pin 1 is microamps, not milliamps. This is where a stitched <code>SWGND</code> would
+      show up if step 1 was somehow passed.</li>
+    <li><strong>Fit the isolators, then the EZO circuits.</strong> Power the isolators with the EZO
+      circuits unplugged and measure the isolated data lines against isolated ground: about 3.9 V means
+      <code>R13&ndash;R16</code> are right, near zero means they are missing and <code>Wire</code> will
+      hang with no message.</li>
+    <li><strong>Probes last</strong>, one at a time, checking each reads before adding the next.</li>
+  </ol>
+
+  <div class="note">
+    <span class="lbl">what does not change</span>
+    <p>No firmware change is needed for this board. The pin map, the rail sequencing with the isolators
+      up first and down last, the soft start on <code>D6</code> and the turbidity retry all apply
+      unchanged. The board is an interconnect, not a redesign.</p>
+  </div>
+
+</div>

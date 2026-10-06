@@ -193,7 +193,7 @@
   <p class="sub">A carrier board for the Lake Victoria water-quality node: the WaziSense v2, five modules
      and six probes reduced to plug-in connectors, with the four traps this build has already paid for
      designed out in copper.</p>
-  <p class="meta">Rev B &middot; design document &middot; 30 September 2026 &middot; not yet routed</p>
+  <p class="meta">Rev D &middot; schematic &middot; 5 October 2026 &middot; not yet routed</p>
 
   <p class="lede">This board exists because the wiring is now well understood and the mistakes are
      documented. Every trap below was found the expensive way on the hand-wired node. A PCB is the one
@@ -686,6 +686,342 @@
      forgiving, and it needs the enclosure chosen first, because the two boards become one rigid assembly.
      I would not do this before a Rev B carrier has been built and proven as option B.</p>
 
+  <h2><span class="num">Sheet A</span>Power input, protection and the two switches</h2>
+
+  <p>The cell enters here, not at the WaziSense, so the protection chain is unavoidably in circuit.
+     Everything downstream of <code>+VBATT</code> is switched by one of the two high-side stages.</p>
+
+  <figure>
+    <div class="canvas">
+      <svg viewBox="0 0 940 560" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Schematic sheet A. The cell connects to terminal X1. Its positive goes through PTC F1 and Schottky D1 to the VBATT net, with TVS D2 and capacitors C1 and C2 from VBATT to ground. VBATT feeds connector J6 to the WaziSense battery input, and two identical high-side switch stages. Each stage is a P-channel MOSFET with a 100 kilohm gate pull-up, a 100 nanofarad soft-start capacitor, and a 2N7002 pulling the gate down when driven from the microcontroller through 10 kilohm, with a 100 kilohm pulldown. Stage A is gated by D5 and feeds the U3V9F12 regulator which produces 12 volts with bulk capacitor C4. Stage B is gated by A1 and produces the ISO_VIN net.">
+        <rect width="940" height="560" fill="none"/>
+        <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-2)">
+
+          <!-- cell + protection -->
+          <rect x="16" y="40" width="74" height="44" rx="2" fill="var(--surface-2)" stroke="var(--batt)" stroke-width="1.6"/>
+          <text x="53" y="58" text-anchor="middle" font-size="11" fill="var(--ink)">X1</text>
+          <text x="53" y="74" text-anchor="middle" font-size="9.5">18650</text>
+
+          <line x1="90" y1="54" x2="128" y2="54" stroke="var(--batt)" stroke-width="2"/>
+          <rect x="128" y="43" width="40" height="22" fill="var(--surface)" stroke="currentColor" stroke-width="1.3"/>
+          <line x1="133" y1="62" x2="163" y2="46" stroke="currentColor" stroke-width="1.3"/>
+          <text x="148" y="34" text-anchor="middle" font-size="10">F1</text>
+          <text x="148" y="80" text-anchor="middle" font-size="9">PTC 2.6 A</text>
+
+          <line x1="168" y1="54" x2="206" y2="54" stroke="var(--batt)" stroke-width="2"/>
+          <polygon points="206,44 206,64 224,54" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="224" y1="42" x2="224" y2="66" stroke="currentColor" stroke-width="2"/>
+          <text x="215" y="34" text-anchor="middle" font-size="10">D1</text>
+          <text x="215" y="80" text-anchor="middle" font-size="9">SS34</text>
+
+          <line x1="224" y1="54" x2="900" y2="54" stroke="var(--batt)" stroke-width="2.2"/>
+          <text x="700" y="44" fill="var(--batt)" font-size="11" font-weight="600">+VBATT</text>
+
+          <!-- TVS + caps -->
+          <line x1="280" y1="54" x2="280" y2="104" stroke="var(--batt)" stroke-width="1.5"/>
+          <circle cx="280" cy="54" r="3" fill="var(--batt)"/>
+          <path d="M 268 96 L 268 104 L 292 104 L 292 112" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          <polygon points="271,124 289,124 280,104" fill="none" stroke="currentColor" stroke-width="1.4"/>
+          <line x1="280" y1="124" x2="280" y2="188" stroke="var(--ink-3)" stroke-width="1.5"/>
+          <text x="298" y="110" font-size="10">D2  SMBJ5.0A</text>
+
+          <line x1="348" y1="54" x2="348" y2="140" stroke="var(--batt)" stroke-width="1.5"/>
+          <circle cx="348" cy="54" r="3" fill="var(--batt)"/>
+          <line x1="334" y1="140" x2="362" y2="140" stroke="currentColor" stroke-width="2"/>
+          <path d="M 334 150 Q 348 158 362 150" fill="none" stroke="currentColor" stroke-width="2"/>
+          <line x1="348" y1="154" x2="348" y2="188" stroke="var(--ink-3)" stroke-width="1.5"/>
+          <text x="368" y="146" font-size="10">C1  100 &#181;F</text>
+          <line x1="412" y1="54" x2="412" y2="140" stroke="var(--batt)" stroke-width="1.5"/>
+          <circle cx="412" cy="54" r="3" fill="var(--batt)"/>
+          <line x1="400" y1="140" x2="424" y2="140" stroke="currentColor" stroke-width="2"/>
+          <line x1="400" y1="148" x2="424" y2="148" stroke="currentColor" stroke-width="2"/>
+          <line x1="412" y1="148" x2="412" y2="188" stroke="var(--ink-3)" stroke-width="1.5"/>
+          <text x="430" y="146" font-size="10">C2  100 nF</text>
+
+          <!-- to WaziSense -->
+          <line x1="490" y1="54" x2="490" y2="104" stroke="var(--batt)" stroke-width="1.5"/>
+          <circle cx="490" cy="54" r="3" fill="var(--batt)"/>
+          <rect x="452" y="104" width="76" height="34" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+          <text x="490" y="118" text-anchor="middle" font-size="10" fill="var(--ink)">J6</text>
+          <text x="490" y="131" text-anchor="middle" font-size="8.5">BAT_IN</text>
+          <line x1="490" y1="138" x2="490" y2="188" stroke="var(--ink-3)" stroke-width="1.5"/>
+
+          <!-- ============ switch A ============ -->
+          <text x="596" y="118" font-size="11" font-weight="600" fill="var(--rail12)">high-side switch A &#8212; 12 V chain</text>
+          <line x1="700" y1="54" x2="700" y2="140" stroke="var(--batt)" stroke-width="1.8"/>
+          <circle cx="700" cy="54" r="3" fill="var(--batt)"/>
+          <rect x="676" y="140" width="48" height="42" rx="2" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.4"/>
+          <text x="700" y="157" text-anchor="middle" font-size="10" fill="var(--ink)">Q1</text>
+          <text x="700" y="172" text-anchor="middle" font-size="8.5">AO3401A</text>
+          <line x1="700" y1="182" x2="700" y2="214" stroke="var(--rail12)" stroke-width="2"/>
+          <text x="710" y="202" fill="var(--rail12)" font-size="10">V12IN</text>
+
+          <line x1="676" y1="161" x2="628" y2="161" stroke="currentColor" stroke-width="1.3"/>
+          <line x1="628" y1="161" x2="628" y2="54" stroke="currentColor" stroke-width="1.3"/>
+          <rect x="619" y="78" width="18" height="26" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="612" y="95" text-anchor="end" font-size="9">R1 100k</text>
+          <circle cx="628" cy="54" r="3" fill="var(--batt)"/>
+          <line x1="628" y1="118" x2="596" y2="118" stroke="currentColor" stroke-width="1.2"/>
+          <line x1="584" y1="110" x2="584" y2="126" stroke="currentColor" stroke-width="1.8"/>
+          <line x1="592" y1="110" x2="592" y2="126" stroke="currentColor" stroke-width="1.8"/>
+          <line x1="592" y1="118" x2="596" y2="118" stroke="currentColor" stroke-width="1.2"/>
+          <line x1="584" y1="118" x2="560" y2="118" stroke="currentColor" stroke-width="1.2"/>
+          <line x1="560" y1="118" x2="560" y2="54" stroke="currentColor" stroke-width="1.2"/>
+          <circle cx="560" cy="54" r="3" fill="var(--batt)"/>
+          <text x="570" y="136" font-size="9">C3 100 nF soft start</text>
+
+          <line x1="628" y1="161" x2="628" y2="236" stroke="currentColor" stroke-width="1.3"/>
+          <circle cx="628" cy="161" r="3" fill="currentColor"/>
+          <rect x="604" y="236" width="48" height="40" rx="2" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.4"/>
+          <text x="628" y="252" text-anchor="middle" font-size="10" fill="var(--ink)">Q2</text>
+          <text x="628" y="266" text-anchor="middle" font-size="8.5">2N7002</text>
+          <line x1="628" y1="276" x2="628" y2="306" stroke="var(--ink-3)" stroke-width="1.3"/>
+
+          <line x1="604" y1="256" x2="536" y2="256" stroke="var(--rail33)" stroke-width="1.4"/>
+          <rect x="548" y="246" width="26" height="20" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="561" y="240" text-anchor="middle" font-size="9">R2 10k</text>
+          <line x1="536" y1="256" x2="496" y2="256" stroke="var(--rail33)" stroke-width="1.4"/>
+          <text x="492" y="260" text-anchor="end" fill="var(--rail33)" font-size="11" font-weight="600">D5</text>
+          <line x1="536" y1="256" x2="536" y2="300" stroke="currentColor" stroke-width="1.2"/>
+          <rect x="527" y="268" width="18" height="24" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="520" y="284" text-anchor="end" font-size="9">R3 100k</text>
+          <line x1="536" y1="300" x2="536" y2="306" stroke="var(--ink-3)" stroke-width="1.2"/>
+          <circle cx="536" cy="256" r="3" fill="var(--rail33)"/>
+
+          <!-- U3V9F12 -->
+          <rect x="652" y="214" width="96" height="46" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+          <text x="700" y="232" text-anchor="middle" font-size="10" fill="var(--ink)">U1  U3V9F12</text>
+          <text x="700" y="247" text-anchor="middle" font-size="8.5">3=VIN 2=GND 1=VOUT</text>
+          <line x1="748" y1="237" x2="810" y2="237" stroke="var(--rail12)" stroke-width="2.2"/>
+          <text x="790" y="228" fill="var(--rail12)" font-size="11" font-weight="600">+12V</text>
+          <line x1="700" y1="260" x2="700" y2="306" stroke="var(--ink-3)" stroke-width="1.3"/>
+
+          <line x1="810" y1="237" x2="810" y2="268" stroke="var(--rail12)" stroke-width="1.5"/>
+          <line x1="796" y1="268" x2="824" y2="268" stroke="currentColor" stroke-width="2"/>
+          <path d="M 796 278 Q 810 286 824 278" fill="none" stroke="currentColor" stroke-width="2"/>
+          <line x1="810" y1="282" x2="810" y2="306" stroke="var(--ink-3)" stroke-width="1.3"/>
+          <text x="830" y="274" font-size="10">C4 470 &#181;F</text>
+
+          <!-- ============ switch B ============ -->
+          <text x="120" y="368" font-size="11" font-weight="600" fill="var(--iso)">high-side switch B &#8212; isolators</text>
+          <line x1="224" y1="54" x2="224" y2="390" stroke="var(--batt)" stroke-width="1.5"/>
+          <rect x="200" y="390" width="48" height="42" rx="2" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.4"/>
+          <text x="224" y="407" text-anchor="middle" font-size="10" fill="var(--ink)">Q3</text>
+          <text x="224" y="422" text-anchor="middle" font-size="8.5">AO3401A</text>
+          <line x1="224" y1="432" x2="224" y2="476" stroke="var(--iso)" stroke-width="2.2"/>
+          <text x="234" y="462" fill="var(--iso)" font-size="11" font-weight="600">ISO_VIN</text>
+
+          <text x="276" y="398" font-size="9.5">R4 100k gate pull-up &#183; C5 100 nF soft start</text>
+          <text x="276" y="414" font-size="9.5">Q4 2N7002 &#183; R5 10k from A1 &#183; R6 100k pull-down</text>
+          <text x="276" y="430" font-size="9.5">identical to stage A, gated by</text>
+          <text x="432" y="430" fill="var(--rail33)" font-size="11" font-weight="600">A1</text>
+
+          <!-- ground rail -->
+          <line x1="16" y1="306" x2="900" y2="306" stroke="var(--ink-3)" stroke-width="2.4"/>
+          <line x1="53" y1="84" x2="53" y2="306" stroke="var(--ink-3)" stroke-width="1.5"/>
+          <line x1="224" y1="306" x2="224" y2="306" stroke="var(--ink-3)" stroke-width="1.5"/>
+          <text x="20" y="326" fill="var(--ink-3)" font-size="10">GND &#8212; the permanent ground. Note it is NOT the island on Sheet B.</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>Both switch stages are identical and use the same five parts. The soft start on
+      <code>C3</code>/<code>C5</code> is what the Pololu #2810 could not do, and it is aimed at the rail
+      sag measured during the wiper sweep.</figcaption>
+  </figure>
+
+  <h2><span class="num">Sheet B</span>The 3.3 V domain and the SWGND island</h2>
+
+  <p>Everything on this sheet returns to <code>SWGND</code>, except the three capacitors. That one
+     distinction is the whole reason the board exists.</p>
+
+  <figure>
+    <div class="canvas">
+      <svg viewBox="0 0 940 520" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Schematic sheet B. Connector J2 brings in the permanently live 3V3P from the Sensor Power plus terminal and SWGND from the minus terminal. 3V3P feeds either a link JP1 or the MCP1700 regulator U2, producing 3V3REG. 3V3REG supplies the MAX3485 module, the 4.7 kilohm one-wire pull-up R9, the 680 ohm bias pull-up R7, and capacitors C8, C9 and C10 which return to the main ground. The MAX3485 ground, the 680 ohm bias pull-down R8 and the DS18B20 ground all return to SWGND instead. The RS485 A and B lines carry a single 120 ohm terminator and run to two four-way probe terminals which also carry 12 volts and the main ground.">
+        <rect width="940" height="520" fill="none"/>
+        <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-2)">
+
+          <rect x="16" y="40" width="80" height="62" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+          <text x="56" y="58" text-anchor="middle" font-size="10" fill="var(--ink)">J2</text>
+          <text x="56" y="72" text-anchor="middle" font-size="8.5">SW_1</text>
+          <text x="56" y="86" text-anchor="middle" font-size="8">1=3V3P</text>
+          <text x="56" y="97" text-anchor="middle" font-size="8">2=SWGND</text>
+
+          <!-- 3V3P -> LDO or link -->
+          <line x1="96" y1="58" x2="150" y2="58" stroke="var(--rail33)" stroke-width="2"/>
+          <text x="100" y="50" fill="var(--rail33)" font-size="10">3V3P</text>
+          <rect x="150" y="40" width="92" height="42" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+          <text x="196" y="57" text-anchor="middle" font-size="10" fill="var(--ink)">U2 MCP1700</text>
+          <text x="196" y="71" text-anchor="middle" font-size="8.5">or JP1 link</text>
+          <line x1="242" y1="58" x2="900" y2="58" stroke="var(--rail33)" stroke-width="2.2"/>
+          <text x="760" y="50" fill="var(--rail33)" font-size="11" font-weight="600">3V3REG</text>
+
+          <!-- caps to real ground -->
+          <g stroke="currentColor" stroke-width="1.3">
+            <line x1="292" y1="58" x2="292" y2="112"/><line x1="340" y1="58" x2="340" y2="112"/><line x1="388" y1="58" x2="388" y2="112"/>
+          </g>
+          <g fill="var(--rail33)"><circle cx="292" cy="58" r="3"/><circle cx="340" cy="58" r="3"/><circle cx="388" cy="58" r="3"/></g>
+          <g stroke="currentColor" stroke-width="2">
+            <line x1="280" y1="112" x2="304" y2="112"/><line x1="280" y1="120" x2="304" y2="120"/>
+            <line x1="328" y1="112" x2="352" y2="112"/><line x1="328" y1="120" x2="352" y2="120"/>
+            <line x1="376" y1="112" x2="400" y2="112"/><line x1="376" y1="120" x2="400" y2="120"/>
+          </g>
+          <g stroke="var(--ink-3)" stroke-width="1.3">
+            <line x1="292" y1="120" x2="292" y2="180"/><line x1="340" y1="120" x2="340" y2="180"/><line x1="388" y1="120" x2="388" y2="180"/>
+          </g>
+          <text x="268" y="140" font-size="8.5">C8 470&#181;F</text>
+          <text x="322" y="155" font-size="8.5">C9 10&#181;F</text>
+          <text x="374" y="140" font-size="8.5">C10 100nF</text>
+
+          <!-- MAX3485 -->
+          <rect x="452" y="96" width="140" height="78" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+          <text x="522" y="116" text-anchor="middle" font-size="10" fill="var(--ink)">U3  MAX3485</text>
+          <text x="522" y="130" text-anchor="middle" font-size="8.5">auto-direction module</text>
+          <text x="462" y="150" font-size="8.5">RXD TXD 3V3 GND</text>
+          <text x="462" y="164" font-size="8.5">A   B</text>
+          <line x1="522" y1="58" x2="522" y2="96" stroke="var(--rail33)" stroke-width="1.6"/>
+          <circle cx="522" cy="58" r="3" fill="var(--rail33)"/>
+          <line x1="452" y1="140" x2="408" y2="140" stroke="var(--data)" stroke-width="1.5"/>
+          <text x="404" y="144" text-anchor="end" fill="var(--data)" font-size="10">D3 D4</text>
+
+          <!-- SWGND island -->
+          <rect x="430" y="300" width="470" height="92" rx="3" fill="none" stroke="var(--swgnd)" stroke-width="2" stroke-dasharray="6 4"/>
+          <text x="444" y="320" fill="var(--swgnd)" font-size="11" font-weight="600">SWGND island &#8212; no copper to GND anywhere</text>
+          <text x="444" y="338" font-size="9.5">U3 GND &#183; R8 680 &#937; bias pull-down &#183; DS18B20 GND &#183; U4/U5 isolator GND (Sheet C)</text>
+          <text x="444" y="356" fill="var(--danger)" font-size="9.5">the DRC will report this as an unconnected net. That is the intended result.</text>
+          <line x1="560" y1="174" x2="560" y2="300" stroke="var(--swgnd)" stroke-width="1.8"/>
+          <line x1="56" y1="102" x2="56" y2="346" stroke="var(--swgnd)" stroke-width="1.8"/>
+          <line x1="56" y1="346" x2="430" y2="346" stroke="var(--swgnd)" stroke-width="1.8"/>
+
+          <!-- A/B + bias + terminator -->
+          <line x1="592" y1="140" x2="900" y2="140" stroke="var(--data)" stroke-width="2"/>
+          <line x1="592" y1="164" x2="900" y2="164" stroke="var(--data)" stroke-width="2"/>
+          <text x="860" y="132" fill="var(--data)" font-size="10">A</text>
+          <text x="860" y="182" fill="var(--data)" font-size="10">B</text>
+          <rect x="632" y="142" width="20" height="20" fill="var(--surface)" stroke="var(--data)" stroke-width="1.3"/>
+          <text x="658" y="157" font-size="9">RT1 120 &#937;</text>
+          <line x1="642" y1="140" x2="642" y2="142" stroke="var(--data)" stroke-width="1.3"/>
+          <line x1="642" y1="162" x2="642" y2="164" stroke="var(--data)" stroke-width="1.3"/>
+
+          <line x1="700" y1="140" x2="700" y2="58" stroke="currentColor" stroke-width="1.2"/>
+          <rect x="691" y="84" width="18" height="24" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="714" y="100" font-size="9">R7 680 &#937;</text>
+          <circle cx="700" cy="58" r="3" fill="var(--rail33)"/>
+          <circle cx="700" cy="140" r="3" fill="var(--data)"/>
+          <line x1="760" y1="164" x2="760" y2="300" stroke="currentColor" stroke-width="1.2"/>
+          <rect x="751" y="216" width="18" height="24" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="774" y="232" font-size="9">R8 680 &#937; &#8594; SWGND</text>
+          <circle cx="760" cy="164" r="3" fill="var(--data)"/>
+
+          <!-- DS18B20 + 1-wire pull-up -->
+          <rect x="140" y="212" width="104" height="44" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+          <text x="192" y="230" text-anchor="middle" font-size="10" fill="var(--ink)">X2  DS18B20</text>
+          <text x="192" y="244" text-anchor="middle" font-size="8.5">3V3REG &#183; DQ &#183; SWGND</text>
+          <line x1="192" y1="212" x2="192" y2="58" stroke="var(--rail33)" stroke-width="1.4"/>
+          <circle cx="192" cy="58" r="3" fill="var(--rail33)"/>
+          <line x1="140" y1="234" x2="96" y2="234" stroke="currentColor" stroke-width="1.3"/>
+          <text x="92" y="238" text-anchor="end" font-size="10">A2</text>
+          <line x1="118" y1="234" x2="118" y2="170" stroke="currentColor" stroke-width="1.2"/>
+          <rect x="109" y="186" width="18" height="24" fill="var(--surface)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="104" y="180" text-anchor="end" font-size="9">R9 4.7k</text>
+          <line x1="118" y1="170" x2="118" y2="58" stroke="var(--rail33)" stroke-width="1.2"/>
+          <circle cx="118" cy="58" r="3" fill="var(--rail33)"/>
+
+          <!-- probe terminals -->
+          <rect x="800" y="416" width="110" height="52" rx="2" fill="var(--surface-2)" stroke="var(--rail12)" stroke-width="1.4"/>
+          <text x="855" y="436" text-anchor="middle" font-size="10" fill="var(--ink)">X3 / X4</text>
+          <text x="855" y="450" text-anchor="middle" font-size="8.5">+12V GND A B</text>
+          <text x="855" y="462" text-anchor="middle" font-size="8">one block per probe</text>
+          <line x1="900" y1="140" x2="920" y2="140" stroke="var(--data)" stroke-width="2"/>
+          <line x1="920" y1="140" x2="920" y2="416" stroke="var(--data)" stroke-width="2"/>
+
+          <line x1="16" y1="180" x2="400" y2="180" stroke="var(--ink-3)" stroke-width="2.2"/>
+          <text x="20" y="198" fill="var(--ink-3)" font-size="10">GND &#8212; capacitors only</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><code>JP1</code> and <code>U2</code> are alternatives, not both. Fit the link for
+      <code>H1</code> on 3.3 V, which is the build as it stands; fit the regulator if <code>H1</code> ever
+      moves to BATT as the WaziSense manual advises for solar deployments.</figcaption>
+  </figure>
+
+  <h2><span class="num">Sheet C</span>I&sup2;C, the isolators and the probes</h2>
+
+  <p>Each isolator carries <strong>its own 4.7 k&Omega; pull-ups on both sides</strong> &mdash; confirmed
+     in the Atlas datasheet &mdash; so the board fits none of its own by default.</p>
+
+  <figure>
+    <div class="canvas">
+      <svg viewBox="0 0 940 440" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Schematic sheet C. SDA and SCL arrive from connector J5 and run to the data A and B pins of both isolators U4 and U5. Each isolator takes its supply from ISO_VIN and its ground from SWGND, and leaves its enable pin unconnected. Beyond each isolator's barrier, an isolated 3.9 volt supply and a separate isolated ground feed an EZO circuit: U6 for pH with an SMA connector J7 for the probe, and U7 for conductivity with a two-way terminal X5. Optional 47 kilohm pull-ups R11 and R12 are marked do-not-populate.">
+        <rect width="940" height="440" fill="none"/>
+        <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-2)">
+
+          <line x1="16" y1="48" x2="900" y2="48" stroke="var(--data)" stroke-width="2"/>
+          <line x1="16" y1="72" x2="900" y2="72" stroke="var(--data)" stroke-width="2"/>
+          <text x="20" y="40" fill="var(--data)" font-size="10">SDA (A4)</text>
+          <text x="20" y="90" fill="var(--data)" font-size="10">SCL (A5)</text>
+          <line x1="16" y1="110" x2="900" y2="110" stroke="var(--iso)" stroke-width="2"/>
+          <text x="20" y="104" fill="var(--iso)" font-size="10">ISO_VIN</text>
+          <line x1="16" y1="134" x2="900" y2="134" stroke="var(--swgnd)" stroke-width="2"/>
+          <text x="20" y="150" fill="var(--swgnd)" font-size="10">SWGND</text>
+
+          <text x="150" y="176" fill="var(--ink-3)" font-size="9">R11 / R12  47 k&#937; to 3V3REG &#8212; DNP, see note</text>
+
+          <g>
+            <rect x="330" y="200" width="200" height="110" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+            <text x="430" y="222" text-anchor="middle" font-size="10" fill="var(--ink)">U4  isolator &#183; pH</text>
+            <text x="430" y="236" text-anchor="middle" font-size="8.5">EN open = enabled</text>
+            <line x1="330" y1="256" x2="530" y2="256" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="6 4"/>
+            <text x="430" y="276" text-anchor="middle" font-size="8.5">iso 3.9 V &#183; iso GND &#183; data A/B</text>
+            <rect x="330" y="340" width="200" height="56" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+            <text x="430" y="362" text-anchor="middle" font-size="10" fill="var(--ink)">U6  EZO-pH  0x63</text>
+            <text x="430" y="376" text-anchor="middle" font-size="8.5">VCC PRB PGND / GND TX RX</text>
+            <text x="560" y="366" font-size="9.5">J7 SMA &#8594; probe</text>
+            <line x1="530" y1="362" x2="552" y2="362" stroke="currentColor" stroke-width="1.4"/>
+          </g>
+          <g>
+            <rect x="640" y="200" width="200" height="110" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+            <text x="740" y="222" text-anchor="middle" font-size="10" fill="var(--ink)">U5  isolator &#183; EC</text>
+            <line x1="640" y1="256" x2="840" y2="256" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="6 4"/>
+            <text x="740" y="276" text-anchor="middle" font-size="8.5">iso 3.9 V &#183; iso GND &#183; data A/B</text>
+            <rect x="640" y="340" width="200" height="56" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+            <text x="740" y="362" text-anchor="middle" font-size="10" fill="var(--ink)">U7  EZO-EC  0x64</text>
+            <text x="740" y="376" text-anchor="middle" font-size="8.5">needs K,1.0 then Cal,dry</text>
+            <text x="862" y="366" font-size="9.5">X5 &#8594; probe</text>
+            <line x1="840" y1="362" x2="858" y2="362" stroke="currentColor" stroke-width="1.4"/>
+          </g>
+
+          <g stroke="var(--data)" stroke-width="1.5">
+            <line x1="366" y1="48" x2="366" y2="200"/><line x1="396" y1="72" x2="396" y2="200"/>
+            <line x1="676" y1="48" x2="676" y2="200"/><line x1="706" y1="72" x2="706" y2="200"/>
+          </g>
+          <g fill="var(--data)">
+            <circle cx="366" cy="48" r="3"/><circle cx="396" cy="72" r="3"/>
+            <circle cx="676" cy="48" r="3"/><circle cx="706" cy="72" r="3"/>
+          </g>
+          <g stroke="var(--iso)" stroke-width="1.5">
+            <line x1="470" y1="110" x2="470" y2="200"/><line x1="780" y1="110" x2="780" y2="200"/>
+          </g>
+          <g fill="var(--iso)"><circle cx="470" cy="110" r="3"/><circle cx="780" cy="110" r="3"/></g>
+          <g stroke="var(--swgnd)" stroke-width="1.5">
+            <line x1="500" y1="134" x2="500" y2="200"/><line x1="810" y1="134" x2="810" y2="200"/>
+          </g>
+          <g fill="var(--swgnd)"><circle cx="500" cy="134" r="3"/><circle cx="810" cy="134" r="3"/></g>
+          <g stroke="var(--ink-2)" stroke-width="1.4">
+            <line x1="366" y1="310" x2="366" y2="340"/><line x1="396" y1="310" x2="396" y2="340"/>
+            <line x1="470" y1="310" x2="470" y2="340"/><line x1="500" y1="310" x2="500" y2="340"/>
+            <line x1="676" y1="310" x2="676" y2="340"/><line x1="706" y1="310" x2="706" y2="340"/>
+            <line x1="780" y1="310" x2="780" y2="340"/><line x1="810" y1="310" x2="810" y2="340"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <figcaption>Two isolated islands, each with its own floating ground, each separated by a routed slot.
+      Neither isolated ground touches <code>GND</code>, <code>SWGND</code>, or the other one.</figcaption>
+  </figure>
+
   <h2><span class="num">Section 05</span>Complete netlist</h2>
 
   <p>Reference designators are provisional and become fixed when the schematic is drawn. Nets in
@@ -721,7 +1057,7 @@
         <tr><td><code>C6</code></td><td>10 &micro;F X7R + 100 nF</td><td><code>3V3REG</code></td><td><code>GND</code></td><td>short leads &mdash; the electrolytic&rsquo;s ESR cannot supply the first microseconds</td></tr>
         <tr><td><code>X2</code></td><td>3-way block</td><td>DS18B20</td><td><code>3V3REG</code>, <code>OW_DATA</code>, <code>SWGND</code></td><td><b>SWGND</b></td></tr>
         <tr><td><code>X3</code>/<code>X4</code></td><td>2 &times; 4-way block</td><td>Modbus probes</td><td><code>+12V</code>, <code>GND</code>, <code>A</code>, <code>B</code></td><td>12 V</td></tr>
-        <tr><td><code>U3</code>/<code>U5</code></td><td>2 &times; BE-IVI isolator, socket</td><td><code>ISO_VIN</code>, <code>GND</code>, <code>SDA</code>, <code>SCL</code></td><td>isolated 3.9 V, data</td><td>crosses the barrier</td></tr>
+        <tr><td><code>U3</code>/<code>U5</code></td><td>2 &times; BE-IVI isolator, socket</td><td><code>ISO_VIN</code>, <b><code>SWGND</code></b>, <code>SDA</code>, <code>SCL</code></td><td>isolated 3.9 V, data</td><td><b>MCU-side ground on the island, not on <code>GND</code></b> — even though the supply comes from the cell. Measured on the hand-wired node: grounding it to <code>GND</code> instead <b>added 0.4 mA</b>, because the pull-ups on the permanently live rail then drive current through the unpowered isolator’s input clamps. On the island its ground floats up with them.</td></tr>
         <tr><td><code>U4</code>/<code>U6</code></td><td>EZO-pH / EZO-EC, socket</td><td>isolated side of <code>U3</code>/<code>U5</code></td><td>probes</td><td><b>ISO1 / ISO2</b></td></tr>
         <tr><td><code>R13&ndash;R16</code></td><td>4 &times; 4.7 k&Omega;</td><td>isolated <code>SDA</code>/<code>SCL</code></td><td>isolated 3.9 V</td><td><b>ISO1 / ISO2</b> &mdash; measure first</td></tr>
         <tr><td><code>J4</code></td><td>SMA jack</td><td>pH probe</td><td><code>U4</code> <code>PRB</code> / <code>PGND</code></td><td><b>guarded</b></td></tr>
@@ -776,7 +1112,332 @@
      still not been taken on the final topology &mdash; with the FTDI removed, since it feeds the battery
      domain and hides exactly this class of fault.</p>
 
-  <h2><span class="num">Section 08</span>Confirm before routing</h2>
+  <h2><span class="num">Section 08</span>Footprints</h2>
+
+  <div class="warn">
+    <span class="lbl">a correction to Rev B</span>
+    <p>Rev B gave <b>20.16 &times; 13.97 mm</b> as the isolator's outline. <strong>It is not.</strong> That is
+      the <em>EZO circuit</em> drawing, which appears in the isolator datasheet as well because the two
+      boards mate &mdash; and it was read as the isolator's own. The isolator's outline is still unmeasured.</p>
+  </div>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Part</th><th>Outline</th><th>Pins</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td><code>U6 U7</code><br>EZO-pH, EZO-EC</td><td><b>20.16 &times; 13.97 mm</b><br><span style="font-size:.85em;color:var(--ink-3)">0.79&Prime; &times; 0.55&Prime;</span></td><td><b>Two 2.54 mm rows, 17.78 mm (0.7&Prime;) apart</b>, holes <b>&empty;1.05 mm</b>. One row <code>GND TX RX</code>, the other <code>VCC PRB PGND</code></td><td><span class="tag t-new">settled</span> both Atlas datasheets</td></tr>
+        <tr><td><code>U1</code><br>Pololu U3V9F12</td><td>13.6 &times; 8.6 &times; 2.8 mm</td><td>3 pins at 0.1&Prime;: <b>1 = VOUT, 2 = GND, 3 = VIN</b></td><td><span class="tag t-new">settled</span> Pololu + the board</td></tr>
+        <tr><td><code>U3</code><br>MAX3485 module</td><td><b>to measure</b></td><td>Front row 1 &times; 4 at 2.54 mm, left to right <b><code>VCC TXD RXD GND</code></b>. <b>The A/B side is still unknown</b> &mdash; screw block or header, and how many ways</td><td>partly from the board in hand</td></tr>
+        <tr><td><code>U4 U5</code><br>BE-IVI isolator</td><td><b>to measure</b></td><td>MCU side <code>3.0&ndash;5.0V</code> &middot; <code>data A</code> &middot; <code>data B</code> &middot; <code>on/off</code> &middot; <code>GND</code>; isolated side <code>3.9V</code> &middot; <code>data A</code> &middot; <code>data B</code> &middot; <code>GND</code></td><td>pin names settled, geometry not</td></tr>
+        <tr><td><code>J7</code><br>pH connector</td><td>fit an <b>SMA jack directly</b></td><td>centre &rarr; <code>PRB</code>, shell &rarr; <code>PGND</code></td><td>see the note below</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl">do not use the SMA breakout board here</span>
+    <p>Atlas sells an <b>SMA Breakout Board</b>, 18 &times; 27.5 &times; 1.7 mm with a 6.2 mm mounting hole and
+      <code>PRB</code>/<code>PGND</code> pads. It exists for people who have no PCB of their own. Using it on
+      the carrier would put the gigaohm node on a flying lead <em>between two boards</em>, which is the one
+      place this design cannot afford one. <strong>Fit the SMA jack on the carrier itself</strong> and keep
+      the trace under 15 mm with a guard ring.</p>
+  </div>
+
+  <h2><span class="num">Section 09</span>Placement plan</h2>
+
+  <p><strong>Target 100 &times; 100 mm.</strong> That is JLCPCB's cheapest tier, and everything fits inside it
+     comfortably &mdash; so there is no reason to design a board that costs more per piece than it needs to.</p>
+
+  <figure>
+    <div class="canvas">
+      <svg viewBox="0 0 620 560" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Placement plan, top view, drawn to scale on a 100 by 100 millimetre board. Along the bottom edge sit the five pluggable headers to the WaziSense, in the same left to right order as the WaziSense's own terminal blocks. The left third holds the power section: cell terminal, PTC, diodes, the two high-side switch stages, the U3V9F12 regulator and the bulk capacitors. The middle holds the switched-ground island with the MAX3485 module, the bias resistors, the terminator and the bulk capacitors. The right third holds two isolator and EZO chains stacked vertically, each separated from its isolator by a routed slot, with the pH chain's SMA connector on the right edge. The probe terminals and the DS18B20 terminal sit along the top edge.">
+        <rect width="620" height="560" fill="none"/>
+
+        <!-- board outline: 100 mm -> 500 px, 5 px per mm -->
+        <rect x="60" y="30" width="500" height="500" rx="4" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/>
+        <text x="310" y="20" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-3)">100 mm</text>
+        <text x="44" y="285" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-3)" transform="rotate(-90 44 285)">100 mm</text>
+
+        <!-- mounting holes -->
+        <g fill="none" stroke="var(--ink-3)" stroke-width="1.4">
+          <circle cx="78" cy="48" r="7"/><circle cx="542" cy="48" r="7"/>
+          <circle cx="78" cy="512" r="7"/><circle cx="542" cy="512" r="7"/>
+        </g>
+
+        <g font-family="IBM Plex Mono, monospace" font-size="10">
+
+          <!-- ===== bottom edge: to the WaziSense ===== -->
+          <rect x="60" y="486" width="500" height="44" fill="var(--surface-2)" stroke="none"/>
+          <g fill="var(--rail33)" stroke="var(--rail33)" stroke-width="1.3">
+            <rect x="84"  y="496" width="36" height="26" fill="none"/>
+            <rect x="132" y="496" width="52" height="26" fill="none"/>
+            <rect x="196" y="496" width="52" height="26" fill="none"/>
+            <rect x="260" y="496" width="68" height="26" fill="none"/>
+            <rect x="340" y="496" width="36" height="26" fill="none"/>
+          </g>
+          <g fill="var(--rail33)" font-size="9">
+            <text x="102" y="513" text-anchor="middle">J2</text>
+            <text x="158" y="513" text-anchor="middle">J3</text>
+            <text x="222" y="513" text-anchor="middle">J4</text>
+            <text x="294" y="513" text-anchor="middle">J5</text>
+            <text x="358" y="513" text-anchor="middle">J6</text>
+          </g>
+          <text x="400" y="513" fill="var(--ink-3)" font-size="9">&#8592; same order as the WaziSense blocks, so the loom never crosses</text>
+
+          <!-- ===== left: power ===== -->
+          <rect x="72" y="60" width="150" height="410" fill="none" stroke="var(--batt)" stroke-width="1.4" stroke-dasharray="5 4"/>
+          <text x="80" y="76" fill="var(--batt)" font-size="10" font-weight="600">POWER</text>
+
+          <rect x="84" y="86" width="60" height="30" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="114" y="105" text-anchor="middle" fill="var(--ink)">X1 cell</text>
+          <rect x="156" y="88" width="24" height="12" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+          <text x="190" y="98" fill="var(--ink-2)" font-size="9">F1</text>
+          <rect x="156" y="106" width="24" height="12" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+          <text x="190" y="116" fill="var(--ink-2)" font-size="9">D1 D2</text>
+
+          <rect x="84" y="140" width="130" height="54" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="149" y="160" text-anchor="middle" fill="var(--ink)">Q1 Q2 + R1-R3 C3</text>
+          <text x="149" y="178" text-anchor="middle" fill="var(--ink-3)" font-size="9">switch A &#183; from D5</text>
+
+          <rect x="84" y="206" width="130" height="46" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+          <text x="149" y="224" text-anchor="middle" fill="var(--ink)">U1 U3V9F12</text>
+          <text x="149" y="240" text-anchor="middle" fill="var(--ink-3)" font-size="9">13.6 &#215; 8.6 mm</text>
+          <circle cx="196" cy="272" r="13" fill="var(--surface-2)" stroke="var(--rail12)" stroke-width="1.4"/>
+          <text x="196" y="276" text-anchor="middle" font-size="8" fill="var(--rail12)">C4</text>
+          <text x="118" y="276" fill="var(--danger)" font-size="9">C4 within 10 mm of U1</text>
+
+          <rect x="84" y="300" width="130" height="54" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="149" y="320" text-anchor="middle" fill="var(--ink)">Q3 Q4 + R4-R6 C5</text>
+          <text x="149" y="338" text-anchor="middle" fill="var(--ink-3)" font-size="9">switch B &#183; from A1</text>
+
+          <rect x="84" y="372" width="130" height="40" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="149" y="390" text-anchor="middle" fill="var(--ink)">U2 / JP1 + C6 C7</text>
+          <text x="149" y="405" text-anchor="middle" fill="var(--ink-3)" font-size="9">one or the other</text>
+
+          <!-- ===== middle: SWGND island ===== -->
+          <rect x="236" y="60" width="140" height="410" fill="none" stroke="var(--swgnd)" stroke-width="2" stroke-dasharray="6 4"/>
+          <text x="244" y="76" fill="var(--swgnd)" font-size="10" font-weight="600">SWGND ISLAND</text>
+          <text x="244" y="90" fill="var(--swgnd)" font-size="8.5">no copper to GND</text>
+
+          <rect x="248" y="104" width="116" height="54" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+          <text x="306" y="124" text-anchor="middle" fill="var(--ink)">U3 MAX3485</text>
+          <text x="306" y="140" text-anchor="middle" fill="var(--ink-3)" font-size="9">VCC TXD RXD GND</text>
+
+          <rect x="248" y="176" width="116" height="40" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="306" y="194" text-anchor="middle" fill="var(--ink)">RT1 R7 R8</text>
+          <text x="306" y="209" text-anchor="middle" fill="var(--ink-3)" font-size="9">R8 returns here, not to GND</text>
+
+          <g fill="var(--surface-2)" stroke="var(--rail33)" stroke-width="1.3">
+            <circle cx="272" cy="252" r="15"/><circle cx="312" cy="250" r="10"/><circle cx="344" cy="250" r="7"/>
+          </g>
+          <text x="272" y="256" text-anchor="middle" font-size="8" fill="var(--rail33)">C8</text>
+          <text x="312" y="254" text-anchor="middle" font-size="7.5" fill="var(--rail33)">C9</text>
+          <text x="344" y="253" text-anchor="middle" font-size="7" fill="var(--rail33)">C10</text>
+          <text x="248" y="284" fill="var(--danger)" font-size="9">within 10 mm of J2</text>
+
+          <rect x="248" y="310" width="116" height="36" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="306" y="332" text-anchor="middle" fill="var(--ink)">R11 R12  DNP</text>
+
+          <!-- ===== right: the two isolated chains ===== -->
+          <rect x="392" y="60" width="156" height="200" fill="none" stroke="var(--iso)" stroke-width="1.6"/>
+          <text x="400" y="76" fill="var(--iso)" font-size="10" font-weight="600">pH CHAIN</text>
+          <rect x="404" y="86" width="101" height="70" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+          <text x="454" y="112" text-anchor="middle" fill="var(--ink)">U4 isolator</text>
+          <text x="454" y="128" text-anchor="middle" fill="var(--ink-3)" font-size="8.5">outline TBC</text>
+          <rect x="398" y="162" width="144" height="8" fill="var(--danger)" opacity="0.25"/>
+          <text x="470" y="169" text-anchor="middle" fill="var(--danger)" font-size="8">routed slot, 2 mm</text>
+          <rect x="404" y="178" width="101" height="70" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+          <text x="454" y="204" text-anchor="middle" fill="var(--ink)">U6 EZO-pH</text>
+          <text x="454" y="220" text-anchor="middle" fill="var(--ink-3)" font-size="8.5">20.16 &#215; 13.97 mm</text>
+          <rect x="516" y="196" width="26" height="26" fill="var(--surface-2)" stroke="var(--danger)" stroke-width="1.4"/>
+          <text x="529" y="213" text-anchor="middle" font-size="8" fill="var(--danger)">J7</text>
+          <text x="398" y="262" fill="var(--danger)" font-size="9">PRB: &lt;15 mm, guard ring to PGND, mask + paste keepout</text>
+
+          <rect x="392" y="282" width="156" height="188" fill="none" stroke="var(--iso)" stroke-width="1.6"/>
+          <text x="400" y="298" fill="var(--iso)" font-size="10" font-weight="600">EC CHAIN</text>
+          <rect x="404" y="306" width="101" height="64" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+          <text x="454" y="334" text-anchor="middle" fill="var(--ink)">U5 isolator</text>
+          <rect x="398" y="376" width="144" height="8" fill="var(--danger)" opacity="0.25"/>
+          <rect x="404" y="390" width="101" height="64" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+          <text x="454" y="418" text-anchor="middle" fill="var(--ink)">U7 EZO-EC</text>
+          <rect x="516" y="408" width="26" height="26" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+          <text x="529" y="425" text-anchor="middle" font-size="8">X5</text>
+
+          <!-- ===== top edge: wet side ===== -->
+          <rect x="60" y="30" width="500" height="26" fill="var(--surface-2)" opacity="0.6"/>
+          <g stroke="var(--rail12)" stroke-width="1.3" fill="none">
+            <rect x="240" y="34" width="56" height="18"/><rect x="306" y="34" width="56" height="18"/>
+          </g>
+          <text x="268" y="47" text-anchor="middle" fill="var(--rail12)" font-size="8.5">X3</text>
+          <text x="334" y="47" text-anchor="middle" fill="var(--rail12)" font-size="8.5">X4</text>
+          <rect x="376" y="34" width="44" height="18" stroke="currentColor" stroke-width="1.2" fill="none"/>
+          <text x="398" y="47" text-anchor="middle" font-size="8.5">X2</text>
+          <text x="440" y="47" fill="var(--ink-3)" font-size="9">&#8592; wet side: all glands on this edge</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>Drawn to scale at 5 px per millimetre. Dry connectors on the bottom edge, wet ones on the
+      top, so no cable crosses the board and the two cable bundles leave the enclosure at opposite ends.</figcaption>
+  </figure>
+
+  <h3>The five decisions this plan encodes</h3>
+
+  <ol>
+    <li><strong>The WaziSense headers keep the WaziSense's own order.</strong> <code>SW_1</code>,
+      <code>ANALOG_PINS</code>, <code>DIGITAL_PINS</code>, <code>I2C_PORT</code>, <code>BAT_IN</code> left to
+      right &mdash; so the loom is five straight jumpers with no crossovers, and a mis-plug is visible.</li>
+    <li><strong>Wet and dry on opposite edges.</strong> Probe terminals, the DS18B20 and the SMA on the top;
+      everything that goes to the WaziSense on the bottom. The glands then sit at one end of the enclosure.</li>
+    <li><strong>The <code>SWGND</code> island is one contiguous region in the middle</strong>, not scattered.
+      Everything that returns to it lives inside that rectangle, which makes the pour a single shape and the
+      rule visually checkable.</li>
+    <li><strong>Each isolated chain is a column with the slot across it.</strong> The EZO sits on the far
+      side of the slot from its isolator, so the isolated pour is the region beyond the slot and nothing has
+      to be routed back across.</li>
+    <li><strong>The SMA sits beside the EZO-pH, on the board edge.</strong> That is what keeps the
+      <code>PRB</code> trace under 15 mm &mdash; it is the one dimension in this layout that is not
+      negotiable.</li>
+  </ol>
+
+  <h2><span class="num">Section 10</span>Footprint coordinates</h2>
+
+  <p>All four library parts, complete. Origin at the body centre, long axis along X, millimetres. Pad
+     &empty;1.8 mm on a 1.05 mm drill throughout.</p>
+
+  <h3>EZO circuit &mdash; <code>U6</code>, <code>U7</code></h3>
+  <pre>Body 20.16 &times; 13.97        rows 17.78 apart, 2.54 pitch
+
+ 1  GND       -8.89  +2.54        4  VCC       +8.89  +2.54
+ 2  TX/SDA    -8.89   0.00        5  PRB       +8.89   0.00
+ 3  RX/SCL    -8.89  -2.54        6  PGND      +8.89  -2.54</pre>
+
+  <h3>Isolator &mdash; <code>U4</code>, <code>U5</code></h3>
+  <pre>Body 20.00 &times; 14.50 (measured)   rows 17.78 apart, 2.54 pitch
+
+ 1  VCC       -8.89  +5.08        6  3.9V      +8.89  +5.08
+ 2  OFF       -8.89  +2.54        7  N/C       +8.89  +2.54
+ 3  GND       -8.89   0.00        8  GND       +8.89   0.00
+ 4  A         -8.89  -2.54        9  A         +8.89  -2.54
+ 5  B         -8.89  -5.08       10  B         +8.89  -5.08</pre>
+
+  <h3>Pololu U3V9F12 &mdash; <code>U1</code></h3>
+  <pre>Body 13.60 (Y) &times; 8.60 (X)   pins on the short edge, 1.3 mm in from it
+
+ 1  VOUT      -2.54  -5.50
+ 2  GND        0.00  -5.50
+ 3  VIN       +2.54  -5.50</pre>
+
+  <h3>MAX3485 module &mdash; <code>U3</code></h3>
+  <pre>Four pads, 2.54 pitch, in a line. The module stands on them.
+
+ 1  VCC       -3.81   0.00
+ 2  TXD       -1.27   0.00
+ 3  RXD       +1.27   0.00
+ 4  GND       +3.81   0.00</pre>
+
+  <div class="warn">
+    <span class="lbl">two things about this part</span>
+    <p><strong>Mark pin 1 on the silkscreen.</strong> The order along the row is fixed, but which end you turn
+      it towards is decided at assembly &mdash; and <code>VCC</code> swapped with <code>GND</code> destroys the
+      transceiver on first power-up.</p>
+    <p><strong>It is 53 mm tall.</strong> That is an enclosure dimension, not a board one. Check it against
+      your housing before you commit to this module.</p>
+  </div>
+
+  <h2><span class="num">Section 11</span>Preliminary placement</h2>
+
+  <p>Origin at the bottom-left corner of a 100 &times; 100 mm board, coordinates are component centres in
+     millimetres, all parts on the <strong>top</strong> layer.</p>
+
+  <div class="ok">
+    <span class="lbl">what has been checked, and what has not</span>
+    <p>Every pair of bounding boxes was tested for overlap, every part for board fit, and every part against
+      the four mounting holes and the two slots. <strong>Seven collisions were found and fixed</strong> before
+      this table was written; it now reports clean.</p>
+    <p>What that does <em>not</em> prove: that the routing works, that the pours have room, or that the
+      footprint sizes used for the check match the parts you will actually draw. Treat it as a starting
+      arrangement to nudge, not as a finished layout.</p>
+  </div>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Ref</th><th>X</th><th>Y</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td><code>X2</code></td><td class="n">20</td><td class="n">94</td><td>DS18B20, 3-way 3.5 mm</td></tr>
+        <tr><td><code>X3</code></td><td class="n">38</td><td class="n">94</td><td>probe 1, 4-way: +12V GND A B</td></tr>
+        <tr><td><code>X4</code></td><td class="n">56</td><td class="n">94</td><td>probe 2, 4-way</td></tr>
+        <tr><td><code>F1</code></td><td class="n">24</td><td class="n">84</td><td>PTC 2.6 A, 1812</td></tr>
+        <tr><td><code>D1</code></td><td class="n">31</td><td class="n">84</td><td>SS34, SMA</td></tr>
+        <tr><td><code>U4</code></td><td class="n">76</td><td class="n">84</td><td>isolator, pH chain</td></tr>
+        <tr><td><code>X1</code></td><td class="n">12</td><td class="n">80</td><td>cell in, 5 mm 2-way screw</td></tr>
+        <tr><td><code>D2</code></td><td class="n">31</td><td class="n">78</td><td>SMBJ5.0A, SMB</td></tr>
+        <tr><td><code>C1</code></td><td class="n">23</td><td class="n">74</td><td>100 &micro;F</td></tr>
+        <tr><td><code>U3</code></td><td class="n">52</td><td class="n">72</td><td>MAX3485 &mdash; 4 pads. Body 22 mm wide, <b>53 mm tall</b></td></tr>
+        <tr><td><code>Q1</code></td><td class="n">12</td><td class="n">68</td><td>AO3401A &mdash; switch A</td></tr>
+        <tr><td><code>Q2</code></td><td class="n">18</td><td class="n">68</td><td>2N7002</td></tr>
+        <tr><td><code>C3</code></td><td class="n">24</td><td class="n">68</td><td>100 nF soft start</td></tr>
+        <tr><td><code>R1</code></td><td class="n">12</td><td class="n">64</td><td>100 k&Omega;</td></tr>
+        <tr><td><code>R2</code></td><td class="n">18</td><td class="n">64</td><td>10 k&Omega;</td></tr>
+        <tr><td><code>R3</code></td><td class="n">24</td><td class="n">64</td><td>100 k&Omega;</td></tr>
+        <tr><td><code>J8</code></td><td class="n">62</td><td class="n">64</td><td><b>A / B down from the module&rsquo;s screw terminal</b></td></tr>
+        <tr><td><code>RT1</code></td><td class="n">48</td><td class="n">62</td><td>120 &Omega; terminator</td></tr>
+        <tr><td><code>R7</code></td><td class="n">53</td><td class="n">62</td><td>680 &Omega; bias pull-up &rarr; 3V3REG</td></tr>
+        <tr><td><code>R8</code></td><td class="n">58</td><td class="n">62</td><td>680 &Omega; bias pull-down &rarr; <b>SWGND</b></td></tr>
+        <tr><td><code>U6</code></td><td class="n">76</td><td class="n">62</td><td>EZO-pH</td></tr>
+        <tr><td><code>J7</code></td><td class="n">93</td><td class="n">62</td><td>SMA &mdash; PRB run is 8.1 mm</td></tr>
+        <tr><td><code>U1</code></td><td class="n">14</td><td class="n">56</td><td>U3V9F12</td></tr>
+        <tr><td><code>C4</code></td><td class="n">28</td><td class="n">56</td><td>470 &micro;F &mdash; 9 mm from U1</td></tr>
+        <tr><td><code>C9</code></td><td class="n">52</td><td class="n">52</td><td>10 &micro;F 0805</td></tr>
+        <tr><td><code>C10</code></td><td class="n">56</td><td class="n">52</td><td>100 nF</td></tr>
+        <tr><td><code>Q3</code></td><td class="n">12</td><td class="n">44</td><td>AO3401A &mdash; switch B</td></tr>
+        <tr><td><code>Q4</code></td><td class="n">18</td><td class="n">44</td><td>2N7002</td></tr>
+        <tr><td><code>C5</code></td><td class="n">24</td><td class="n">44</td><td>100 nF soft start</td></tr>
+        <tr><td><code>C8</code></td><td class="n">38</td><td class="n">44</td><td>470 &micro;F &mdash; at the LDO output</td></tr>
+        <tr><td><code>R11</code></td><td class="n">48</td><td class="n">44</td><td>47 k&Omega; <b>DNP</b></td></tr>
+        <tr><td><code>R12</code></td><td class="n">53</td><td class="n">44</td><td>47 k&Omega; <b>DNP</b></td></tr>
+        <tr><td><code>U5</code></td><td class="n">76</td><td class="n">44</td><td>isolator, EC chain</td></tr>
+        <tr><td><code>R4</code></td><td class="n">12</td><td class="n">40</td><td>100 k&Omega;</td></tr>
+        <tr><td><code>R5</code></td><td class="n">18</td><td class="n">40</td><td>10 k&Omega;</td></tr>
+        <tr><td><code>R6</code></td><td class="n">24</td><td class="n">40</td><td>100 k&Omega;</td></tr>
+        <tr><td><code>U2</code></td><td class="n">12</td><td class="n">32</td><td>MCP1700 &mdash; fit <b>either</b> this</td></tr>
+        <tr><td><code>C6</code></td><td class="n">18</td><td class="n">32</td><td>1 &micro;F</td></tr>
+        <tr><td><code>C7</code></td><td class="n">24</td><td class="n">32</td><td>1 &micro;F</td></tr>
+        <tr><td><code>JP1</code></td><td class="n">12</td><td class="n">28</td><td>0 &Omega; &mdash; <b>or</b> this</td></tr>
+        <tr><td><code>U7</code></td><td class="n">76</td><td class="n">22</td><td>EZO-EC</td></tr>
+        <tr><td><code>X5</code></td><td class="n">93</td><td class="n">22</td><td>EC probe, 2-way</td></tr>
+        <tr><td><code>J2</code></td><td class="n">20</td><td class="n">7</td><td>SW_1 &mdash; SW_OUT / D6(&minus;)</td></tr>
+        <tr><td><code>J3</code></td><td class="n">34</td><td class="n">7</td><td>ANALOG &mdash; A2 / A1 / GND</td></tr>
+        <tr><td><code>J4</code></td><td class="n">50</td><td class="n">7</td><td>DIGITAL &mdash; D4 / D3 / GND</td></tr>
+        <tr><td><code>J5</code></td><td class="n">68</td><td class="n">7</td><td>I2C_PORT &mdash; SCL / SDA / D5 / GND</td></tr>
+        <tr><td><code>J6</code></td><td class="n">86</td><td class="n">7</td><td>BAT_IN &mdash; BATT / GND</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Slots, holes and the fixed points</h3>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Feature</th><th>Geometry</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Slot, pH chain</td><td class="n">x 65&ndash;89, y 71.8&ndash;74.2</td><td>2.4 mm wide &mdash; between <code>U4</code> and <code>U6</code></td></tr>
+        <tr><td>Slot, EC chain</td><td class="n">x 65&ndash;89, y 31.8&ndash;34.2</td><td>between <code>U5</code> and <code>U7</code></td></tr>
+        <tr><td>Mounting holes</td><td class="n">(5,5) (95,5) (5,95) (95,95)</td><td>M3, &empty;3.2 mm, 3.2 mm keepout</td></tr>
+        <tr><td><code>PRB</code> run</td><td class="n">8.1 mm</td><td><code>U6</code> pin 5 at x&nbsp;84.89 &rarr; <code>J7</code> at x&nbsp;93. Limit 15 mm, and it must not cross the slot</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl">why the two electrode cables leave on the right</span>
+    <p><code>J7</code> and <code>X5</code> sit on the right edge rather than the top with the others. That is
+      forced: the <code>PRB</code> net must stay short <em>and</em> stay on the EZO&rsquo;s side of the slot.
+      Moving the SMA to the top edge would send it across the barrier. So the enclosure gets two gland groups
+      &mdash; three cables on top, the two electrode cables on the right, on the shortest path.</p>
+  </div>
+
+  <h2><span class="num">Section 12</span>Confirm before routing</h2>
 
   <p>These are the dimensions I could not verify. Each has to come from the manufacturer's drawing before
      a footprint is drawn, and none of them changes the schematic.</p>
@@ -822,7 +1483,7 @@
     </table>
   </div>
 
-  <h2><span class="num">Section 09</span>Bring-up order</h2>
+  <h2><span class="num">Section 13</span>Bring-up order</h2>
 
   <p>The first board gets tested before any module is fitted. Every step below can only fail in one way,
      which is the point of the order.</p>
@@ -855,6 +1516,71 @@
     <p>No firmware change is needed for this board. The pin map, the rail sequencing with the isolators
       up first and down last, the soft start on <code>D6</code> and the turbidity retry all apply
       unchanged. The board is an interconnect, not a redesign.</p>
+    <h2><span class="num">Section 14</span>Bill of materials</h2>
+
+  <p>Manufacturer part numbers rather than LCSC codes, for the reason in Section&nbsp;08: JLCPCB's stock
+     and its <em>basic</em> list move, and an extended part carries a setup fee per line. Pull the codes at
+     order time and prefer whatever is marked basic. Quantities are per board.</p>
+
+  <h3>Assembled by JLCPCB &mdash; all SMD, all common</h3>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Ref</th><th>Qty</th><th>Part</th><th>Package</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td><code>Q1 Q3</code></td><td class="n">2</td><td>AO3401A</td><td>SOT-23</td><td>P-channel, &minus;30 V, 4 A. The high-side pass element</td></tr>
+        <tr><td><code>Q2 Q4</code></td><td class="n">2</td><td>2N7002</td><td>SOT-23</td><td>level shifter for the gate</td></tr>
+        <tr><td><code>U2</code></td><td class="n">1</td><td>MCP1700T-3302E/TT</td><td>SOT-23</td><td><b>Fit <em>or</em> <code>JP1</code>, never both.</b> 1.6 &micro;A quiescent</td></tr>
+        <tr><td><code>JP1</code></td><td class="n">1</td><td>0 &Omega;</td><td>0603</td><td>the alternative to <code>U2</code>, for <code>H1</code> on 3.3 V</td></tr>
+        <tr><td><code>D1</code></td><td class="n">1</td><td>SS34</td><td>SMA</td><td>reverse polarity. Cathode ring faces the load</td></tr>
+        <tr><td><code>D2</code></td><td class="n">1</td><td>SMBJ5.0A</td><td>SMB</td><td>TVS, cathode to <code>+VBATT</code></td></tr>
+        <tr><td><code>F1</code></td><td class="n">1</td><td>PTC, 2.6 A hold</td><td>1812</td><td>resettable &mdash; no field visit to change a fuse</td></tr>
+        <tr><td><code>R1 R3 R4 R6</code></td><td class="n">4</td><td>100 k&Omega; 1 %</td><td>0603</td><td>gate pull-up and pull-down, both stages</td></tr>
+        <tr><td><code>R2 R5</code></td><td class="n">2</td><td>10 k&Omega; 1 %</td><td>0603</td><td>GPIO series to the level shifter</td></tr>
+        <tr><td><code>R7 R8</code></td><td class="n">2</td><td>680 &Omega; 1 %</td><td>0603</td><td>RS485 fail-safe bias. <b><code>R8</code> returns to <code>SWGND</code></b></td></tr>
+        <tr><td><code>RT1</code></td><td class="n">1</td><td>120 &Omega; 1 %</td><td>0603</td><td>the only terminator on the bus</td></tr>
+        <tr><td><code>R9</code></td><td class="n">1</td><td>4.7 k&Omega; 1 %</td><td>0603</td><td>1-Wire pull-up &mdash; <b>mandatory</b></td></tr>
+        <tr><td><code>R11 R12</code></td><td class="n">2</td><td>47 k&Omega; 1 %</td><td>0603</td><td><b>DNP.</b> The isolators carry their own 4.7 k&Omega; on both sides; fit these only as insurance against a missing isolator</td></tr>
+        <tr><td><code>C2 C3 C5 C10</code></td><td class="n">4</td><td>100 nF X7R 50 V</td><td>0603</td><td><code>C3</code>/<code>C5</code> are the soft starts</td></tr>
+        <tr><td><code>C6 C7</code></td><td class="n">2</td><td>1 &micro;F X7R 16 V</td><td>0603</td><td>required by the MCP1700</td></tr>
+        <tr><td><code>C9</code></td><td class="n">1</td><td>10 &micro;F X7R 16 V</td><td>0805</td><td>the fast half of the bulk</td></tr>
+      </tbody>
+    </table>
   </div>
+
+  <h3>Fitted by hand &mdash; modules, electrolytics and connectors</h3>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Ref</th><th>Qty</th><th>Part</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td><code>U1</code></td><td class="n">1</td><td>Pololu U3V9F12</td><td>13.6 &times; 8.6 mm, 3 pins at 0.1&Prime;, <b>1 = VOUT, 2 = GND, 3 = VIN</b></td></tr>
+        <tr><td><code>U3</code></td><td class="n">1</td><td>MAX3485 auto-direction module</td><td>Kept as a module: a bare MAX3485 needs <code>DE</code> driven, and there is no spare GPIO. Footprint must be measured</td></tr>
+        <tr><td><code>U4 U5</code></td><td class="n">2</td><td>Atlas Basic EZO Inline Voltage Isolator</td><td>20.16 &times; 13.97 mm, 1 mm holes. <code>EN</code> left open</td></tr>
+        <tr><td><code>U6 U7</code></td><td class="n">2</td><td>Atlas EZO-pH, EZO-EC</td><td>Footprint still to be measured. Pins: <code>GND TX RX</code> on one edge, <code>VCC PRB PGND</code> on the other</td></tr>
+        <tr><td><code>C1</code></td><td class="n">1</td><td>100 &micro;F 10 V electrolytic</td><td>on <code>+VBATT</code></td></tr>
+        <tr><td><code>C4</code></td><td class="n">1</td><td>470 &micro;F 25 V electrolytic</td><td>on the 12 V rail, within 10 mm of <code>U1</code></td></tr>
+        <tr><td><code>C8</code></td><td class="n">1</td><td>470 &micro;F 10 V electrolytic</td><td>the cold-start brownout reserve</td></tr>
+        <tr><td><code>X1</code></td><td class="n">1</td><td>2-way screw terminal, 5 mm</td><td>cell</td></tr>
+        <tr><td><code>X2</code></td><td class="n">1</td><td>3-way terminal, 3.5 mm</td><td>DS18B20</td></tr>
+        <tr><td><code>X3 X4</code></td><td class="n">2</td><td>4-way terminal, 3.5 mm</td><td>one block per Modbus probe, deliberately not shared</td></tr>
+        <tr><td><code>X5</code></td><td class="n">1</td><td>2-way terminal, 3.5 mm</td><td>EC probe, not polarised</td></tr>
+        <tr><td><code>J7</code></td><td class="n">1</td><td>SMA jack, edge or vertical</td><td>pH probe. <b>Guard ring to <code>PGND</code></b>, trace under 15 mm</td></tr>
+        <tr><td><code>J2&ndash;J6</code></td><td class="n">5</td><td>3.5 mm pluggable headers, 2/3/3/4/2-way</td><td>to the WaziSense &mdash; see Section 04, option B</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl">what a batch of ten actually costs you in effort</span>
+    <p>Every part in the first table is a jellybean that JLCPCB will place for you. Everything in the
+      second is through-hole and goes in by hand &mdash; which for ten boards is an evening, and which you
+      would be doing anyway, because the Atlas modules and the Pololu regulator are not in anyone's
+      pick-and-place library.</p>
+    <p><strong>Order a few spares of <code>Q1</code>&ndash;<code>Q4</code> and the 0603 values.</strong> They
+      cost cents and the alternative is a second shipment for one resistor.</p>
+  </div>
+
+</div>
 
 </div>

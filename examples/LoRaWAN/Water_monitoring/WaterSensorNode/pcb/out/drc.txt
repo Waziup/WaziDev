@@ -1,0 +1,51 @@
+** Drc report for KijaniCarrier.kicad_pcb **
+** Created on 2026-10-06T17:19:40 **
+** Report includes: Errors, Warnings **
+
+** Found 11 DRC violations **
+[lib_footprint_mismatch]: Footprint "TerminalBlock_4Ucon_1x02_P3.50mm_Vertical" stimmt nicht mit Kopie in Bibliothek "TerminalBlock_4Ucon" überein.
+    Local override; warning
+    @(40.0000 mm, 27.0000 mm): Footprint J2
+[lib_footprint_mismatch]: Footprint "R_0603_1608Metric" stimmt nicht mit Kopie in Bibliothek "Resistor_SMD" überein.
+    Local override; warning
+    @(84.0000 mm, 46.0000 mm): Footprint R12
+[lib_footprint_mismatch]: Footprint "R_0603_1608Metric" stimmt nicht mit Kopie in Bibliothek "Resistor_SMD" überein.
+    Local override; warning
+    @(84.0000 mm, 50.0000 mm): Footprint R11
+[lib_footprint_mismatch]: Footprint "EZO_Circuit" stimmt nicht mit Kopie in Bibliothek "KijaniSpace" überein.
+    Local override; warning
+    @(84.0000 mm, 96.0000 mm): Footprint U6
+[lib_footprint_mismatch]: Footprint "EZO_Circuit" stimmt nicht mit Kopie in Bibliothek "KijaniSpace" überein.
+    Local override; warning
+    @(106.0000 mm, 96.0000 mm): Footprint U7
+[lib_footprint_mismatch]: Footprint "TerminalBlock_4Ucon_1x03_P3.50mm_Vertical" stimmt nicht mit Kopie in Bibliothek "TerminalBlock_4Ucon" überein.
+    Local override; warning
+    @(54.0000 mm, 27.0000 mm): Footprint J3
+[lib_footprint_mismatch]: Footprint "BE_IVI_Isolator" stimmt nicht mit Kopie in Bibliothek "KijaniSpace" überein.
+    Local override; warning
+    @(84.0000 mm, 70.0000 mm): Footprint U4
+[lib_footprint_mismatch]: Footprint "TerminalBlock_4Ucon_1x04_P3.50mm_Vertical" stimmt nicht mit Kopie in Bibliothek "TerminalBlock_4Ucon" überein.
+    Local override; warning
+    @(88.0000 mm, 27.0000 mm): Footprint J5
+[lib_footprint_mismatch]: Footprint "TerminalBlock_4Ucon_1x03_P3.50mm_Vertical" stimmt nicht mit Kopie in Bibliothek "TerminalBlock_4Ucon" überein.
+    Local override; warning
+    @(70.0000 mm, 27.0000 mm): Footprint J4
+[lib_footprint_mismatch]: Footprint "TerminalBlock_4Ucon_1x02_P3.50mm_Vertical" stimmt nicht mit Kopie in Bibliothek "TerminalBlock_4Ucon" überein.
+    Local override; warning
+    @(106.0000 mm, 27.0000 mm): Footprint J6
+[lib_footprint_mismatch]: Footprint "BE_IVI_Isolator" stimmt nicht mit Kopie in Bibliothek "KijaniSpace" überein.
+    Local override; warning
+    @(106.0000 mm, 70.0000 mm): Footprint U5
+
+** Found 0 unconnected pads **
+
+** Found 0 Footprint errors **
+
+** Ignored checks **
+    - Footprint has no courtyard defined
+    - Track endpoint not centered on via
+    - Tuning profile track geometries
+    - Footprint doesn't match symbol's footprint filters
+    - Footprint component type doesn't match footprint pads
+
+** End of Report **

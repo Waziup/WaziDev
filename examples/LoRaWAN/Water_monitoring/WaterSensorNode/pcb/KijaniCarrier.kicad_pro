@@ -1,0 +1,7 @@
+{
+  "board": {"design_settings": {}},
+  "libraries": {"pinned_footprint_libs": [], "pinned_symbol_libs": []},
+  "meta": {"filename": "KijaniCarrier.kicad_pro", "version": 3},
+  "sheets": [],
+  "text_variables": {}
+}

@@ -1,0 +1,668 @@
+<title>Carrier Board in EasyEDA Pro</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: a single measured column; stages numbered because they are a real
+     sequence — each one's output is the next one's input. */
+  :root {
+    --bg:        #F7F6F2;
+    --surface:   #FFFFFF;
+    --surface-2: #EDEBE4;
+    --border:    #DAD6CB;
+    --ink:       #1E1D19;
+    --ink-2:     #4C4940;
+    --ink-3:     #7D786C;
+    --accent:    #7A5A1E;
+    --ok:        #2C6447;
+    --ok-bg:     #E9F2EC;
+    --warn:      #A33718;
+    --warn-bg:   #FBEDE9;
+    --note-bg:   #F2EFE4;
+    --font-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    --font-head: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:        #15140F;
+      --surface:   #1D1C17;
+      --surface-2: #27251E;
+      --border:    #3A3730;
+      --ink:       #EDEBE3;
+      --ink-2:     #C0BBAE;
+      --ink-3:     #8C8779;
+      --accent:    #D7A85C;
+      --ok:        #6CBE92;
+      --ok-bg:     #142319;
+      --warn:      #E8826A;
+      --warn-bg:   #261310;
+      --note-bg:   #22201A;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:        #15140F;
+    --surface:   #1D1C17;
+    --surface-2: #27251E;
+    --border:    #3A3730;
+    --ink:       #EDEBE3;
+    --ink-2:     #C0BBAE;
+    --ink-3:     #8C8779;
+    --accent:    #D7A85C;
+    --ok:        #6CBE92;
+    --ok-bg:     #142319;
+    --warn:      #E8826A;
+    --warn-bg:   #261310;
+    --note-bg:   #22201A;
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.64;
+    padding-block: 3rem 6rem;
+    padding-inline: 16px;
+  }
+  .wrap { max-width: 44rem; margin: 0 auto; }
+
+  h1 {
+    font-family: var(--font-head);
+    font-size: clamp(2rem, 6vw, 3rem);
+    line-height: 1.05;
+    font-weight: 700;
+    margin: 0 0 .5rem;
+    text-wrap: balance;
+    letter-spacing: -.01em;
+  }
+  .sub { color: var(--ink-2); font-size: 1.08rem; margin: 0 0 .6rem; }
+  .meta {
+    font-family: var(--font-mono); font-size: .74rem; color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: .09em; margin: 0 0 2.6rem;
+  }
+
+  h2 {
+    font-family: var(--font-head); font-weight: 700;
+    font-size: clamp(1.3rem, 3.4vw, 1.7rem);
+    margin: 3.2rem 0 .8rem; line-height: 1.18; text-wrap: balance;
+    padding-top: 1.2rem; border-top: 2px solid var(--border);
+  }
+  h2 .n {
+    display: block; font-family: var(--font-mono); font-size: .7rem;
+    letter-spacing: .13em; color: var(--accent); margin-bottom: .3rem; font-weight: 500;
+  }
+  h3 {
+    font-family: var(--font-head); font-weight: 600; font-size: 1.08rem;
+    margin: 2rem 0 .5rem; text-wrap: balance;
+  }
+  p { margin: 0 0 1rem; }
+  ul, ol { padding-left: 1.25rem; margin: 0 0 1rem; }
+  li { margin-bottom: .45rem; }
+  code {
+    font-family: var(--font-mono); font-size: .86em;
+    background: var(--surface-2); padding: .1em .36em; border-radius: 2px;
+  }
+  .path {
+    font-family: var(--font-mono); font-size: .86em;
+    background: var(--surface-2); padding: .1em .4em; border-radius: 2px;
+    color: var(--accent); white-space: nowrap;
+  }
+  strong { font-weight: 600; }
+  a { color: var(--accent); }
+
+  .lede {
+    font-size: 1.1rem; color: var(--ink-2);
+    border-left: 3px solid var(--accent); padding-left: 1.1rem; margin-bottom: 2rem;
+  }
+
+  .box { border-radius: 3px; padding: 1rem 1.15rem; margin: 1.3rem 0; font-size: .95rem; }
+  .note { background: var(--note-bg); border: 1px solid var(--border); }
+  .warn { background: var(--warn-bg); border: 1px solid var(--warn); border-left-width: 4px; }
+  .ok   { background: var(--ok-bg);   border: 1px solid var(--ok);   border-left-width: 4px; }
+  .box p:last-child { margin-bottom: 0; }
+  .lbl {
+    display: block; font-family: var(--font-mono); font-size: .68rem;
+    text-transform: uppercase; letter-spacing: .1em; margin-bottom: .4rem; font-weight: 500;
+  }
+  .warn .lbl { color: var(--warn); }
+  .ok .lbl   { color: var(--ok); }
+  .note .lbl { color: var(--ink-3); }
+
+  .tw { overflow-x: auto; margin: 1.1rem 0 1.6rem; }
+  table { border-collapse: collapse; width: 100%; font-size: .87rem; min-width: 30rem; }
+  th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th {
+    font-family: var(--font-head); font-weight: 600; font-size: .78rem;
+    text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3);
+    border-bottom: 2px solid var(--border); white-space: nowrap;
+  }
+  td.n { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  pre {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 3px; padding: .9rem 1rem; overflow-x: auto;
+    font-family: var(--font-mono); font-size: .8rem; line-height: 1.6; margin: 1rem 0;
+  }
+
+  .cost { margin: 1.2rem 0 1.6rem; }
+  .cost .row {
+    display: flex; gap: .9rem; align-items: baseline;
+    padding: .4rem 0; border-bottom: 1px solid var(--border);
+  }
+  .cost .row:last-child { border-bottom: none; font-weight: 600; }
+  .cost .nm { flex: 1; min-width: 0; }
+  .cost .vl { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+</style>
+
+<div class="wrap">
+
+  <h1>Carrier Board in EasyEDA Pro</h1>
+  <p class="sub">From an empty project to ten assembled boards at JLCPCB &mdash; written for someone who has
+     never opened an EDA tool, and only for this board.</p>
+  <p class="meta">6 October 2026 &middot; companion to the carrier schematic</p>
+
+  <p class="lede">Every menu path below was checked against EasyEDA's own documentation and JLCPCB's own
+     capability and price pages, then checked a second time by someone whose job was to prove it wrong. Where
+     the second pass found an error, the corrected version is what you are reading. Where nothing could be
+     confirmed, it says so.</p>
+
+  <div class="warn">
+    <span class="lbl">two things must happen before you start</span>
+    <p><strong>Measure the isolator and the MAX3485 module.</strong> Outline, pad positions, pitch, and for
+      the MAX3485 the A/B side as well. You cannot place a part whose size nobody knows, and no amount of
+      software skill works around it.</p>
+    <p><strong>Set the interface language to English.</strong> Every name in this guide comes from the English
+      documentation. On a German or Chinese UI the labels differ and you will spend the evening translating
+      back.</p>
+  </div>
+
+  <h2><span class="n">Stage 0</span>Settings, and one library</h2>
+
+  <p>EasyEDA Pro's hierarchy is <strong>Project &rarr; Board &rarr; (Schematic + PCB)</strong>. A schematic and
+     a PCB only talk to each other if they sit under the <em>same</em> Board. Creating a project creates all
+     three for you, so if you never touch the Board level you cannot get this wrong &mdash; and you should not
+     touch it.</p>
+
+  <ol>
+    <li><strong>Sign in and work online.</strong> Offline mode costs you the LCSC search, the one-click order
+      and any backup &mdash; all three are things the rest of this guide leans on. There is no reason to run
+      this project offline.</li>
+    <li><span class="path">Settings</span> &rarr; <strong>language: English</strong>. Every path below comes
+      from the English documentation; on another language none of them match.</li>
+    <li><span class="path">Settings</span> &rarr; set units to <strong>mm</strong>. The in-canvas shortcut
+      <code>Q</code> toggles units later.</li>
+    <li><strong>Create a library first.</strong> On the start page click <strong>New Library</strong>, or
+      <span class="path">File &gt; New &gt; Library</span>. Call it <code>KijaniSpace</code>. In offline mode
+      there is no cloud account to own your parts, so without this step you have nowhere to save them.</li>
+    <li><span class="path">File &gt; New &gt; Project</span>. Board, schematic and PCB appear together.</li>
+  </ol>
+
+  <div class="warn">
+    <span class="lbl">pick the parts before you draw, not at export</span>
+    <p>Go through the BOM now and find each SMD part in the LCSC library, filtering for <strong>Basic</strong>
+      or <strong>Preferred Extended</strong>. Note the LCSC number against each line.</p>
+    <p>Do it the other way round &mdash; draw first, shop later &mdash; and you will be swapping footprints
+      into a finished schematic, which is exactly how pin numbering and rotation errors get in. At ten boards
+      the $3.07-per-unique-Extended-part fee is also the item most likely to dominate the bill, so the
+      substitutions have to happen now, while they are free.</p>
+  </div>
+
+  <div class="note">
+    <span class="lbl">where your files actually live</span>
+    <p>The data directory is <code>Documents/LCEDA-Pro</code> &mdash; note <em>LCEDA</em>, not EasyEDA. Rather
+      than trusting that, read the configured library and project paths in Settings, or right-click in the
+      bottom Library panel and choose <strong>Open the component Library directory</strong>. Back that folder
+      up; it is not in your project file.</p>
+  </div>
+
+  <h2><span class="n">Stage 1</span>Three parts nobody else has</h2>
+
+  <p>The EZO circuits, the isolators, the Pololu regulator and the MAX3485 module are not in LCSC's library.
+     You draw them once. This is the stage where a mistake becomes scrap, so it comes first and it gets
+     checked before anything else is built on it.</p>
+
+  <p>For each part: <span class="path">File &gt; New &gt; Symbol</span>, then
+     <span class="path">File &gt; New &gt; Footprint</span>, then
+     <span class="path">File &gt; New &gt; Device</span> to bind them together. In EasyEDA Pro a
+     <strong>Device = symbol + footprint + 3D model + properties</strong>, and <em>only a Device can be
+     placed</em> &mdash; a loose symbol or footprint cannot.</p>
+
+  <h3>The EZO circuit &mdash; Atlas gives you the recipe</h3>
+
+  <p>The pH datasheet has a page called <strong>Circuit footprint</strong> that spells the construction out:
+     place an 8-position header, then put a 3-position header at each end of it. The 8-position header is a
+     measuring jig &mdash; eight positions at 0.1&Prime; span exactly 0.7&Prime;, which is the row spacing.
+     Delete it afterwards.</p>
+
+  <p>In coordinates, with the origin at the body centre and the long axis along X:</p>
+
+  <pre>Body outline   20.16 &times; 13.97 mm   (0.79" &times; 0.55")
+Drill          1.05 mm        Pad &empty; 1.8 mm, round, layer "Multi"
+
+Row A   X = -8.89    Y = +2.54 / 0 / -2.54      GND  TX/SDA  RX/SCL
+Row B   X = +8.89    Y = +2.54 / 0 / -2.54      VCC  PRB     PGND</pre>
+
+  <div class="warn">
+    <span class="lbl">count the pins on your own boards first</span>
+    <p>Three pads per row is what the datasheet's own footprint recipe produces. <strong>Confirm it on the
+      two circuits in front of you</strong> &mdash; pH and EC &mdash; and note which end of each row is pin 1.
+      A footprint with holes where the module has no pins is not a cosmetic error: the board is scrap.</p>
+  </div>
+
+  <h3>The Pololu U3V9F12 &mdash; the row is on the short edge</h3>
+
+  <p>Body <strong>13.6 &times; 8.6 mm</strong>. The three pins sit on the <strong>8.6 mm edge</strong>, not the
+     long one &mdash; Pololu's dimensioned photo puts the 0.34&Prime; measurement across the pin row. Lay the
+     footprint out with the pins spanning 5.08 mm (3 &times; 2.54 mm) across the short dimension, and
+     <strong>measure the pin-to-edge inset</strong> on the part itself; that one number is not published.</p>
+
+  <p>Pin order from the board's own silkscreen: <strong>1 = VOUT, 2 = GND, 3 = VIN</strong>.</p>
+
+  <h3>Drawing the footprints</h3>
+
+  <ul>
+    <li>Pad tool: <code>P</code>. Set the drill and the pad diameter in the right-hand property panel, and the
+      layer to the through-hole option (the Pad Manager calls it <strong>M</strong>, the Layer Manager calls it
+      <strong>Multi</strong> &mdash; read your own dropdown).</li>
+    <li>Place pads by coordinate rather than by eye: press <code>C</code> for the command input and type the
+      offset, or set the grid to 2.54 mm and snap.</li>
+    <li>Silkscreen rectangle: <code>R</code>. <strong>Not <code>Alt+R</code></strong>.</li>
+    <li>Keep the silkscreen on the body edge so it never crosses a pad. <span class="path">Routing &gt; Auto
+      Trim Silkscreen</span> exists but <em>only works on polylines</em> &mdash; it ignores rectangles
+      entirely.</li>
+    <li>Set the origin deliberately. The body centre is the easiest reference for the placement coordinates in
+      the carrier plan.</li>
+  </ul>
+
+  <div class="ok">
+    <span class="lbl">the check that costs nothing and catches everything</span>
+    <p>When each footprint is drawn, <strong>print it at 1:1 and lay the real module on the paper.</strong>
+      Pins through holes, body inside the silkscreen. Two of the footprint figures in this project were already
+      wrong once &mdash; a five-per-row EZO and a Pololu rotated 90&deg; &mdash; and both were caught by reading
+      a datasheet twice. A sheet of paper catches what reading does not.</p>
+  </div>
+
+  <div class="warn">
+    <span class="lbl">do not take a footprint from the Public Repository</span>
+    <p>EasyEDA's library panel includes a <strong>Public Repository</strong> and a <strong>Std Edition Public
+      Repository</strong>. Those are user-contributed and <strong>nobody vets the footprints</strong>. For a
+      board you are paying to have assembled, draw the part yourself or use the System Library, which is
+      LCSC's own.</p>
+  </div>
+
+  <h2><span class="n">Stage 2</span>The schematic</h2>
+
+  <ol>
+    <li>Place parts: <span class="path">Place &gt; Device</span>, or <code>Shift+F</code>, or <code>S</code>
+      for the bottom library panel. The search box has two engines &mdash; <strong>LCSC Mall</strong> shows only
+      parts LCSC actually sells, <strong>EasyEDA Pro</strong> shows more. Use LCSC Mall for anything you want
+      JLCPCB to place.</li>
+    <li>Wire: <code>W</code> from the menu <span class="path">Place &gt; Wire</span>.</li>
+    <li>Name a net by double-clicking the wire. In Pro a net label is <em>not</em> a separate object &mdash; it
+      is the wire's name attribute shown on screen. <span class="path">Place &gt; Net Label</span> or
+      <code>N</code>.</li>
+    <li>Second sheet: <span class="path">File &gt; New &gt; Page</span>, or right-click the project.</li>
+  </ol>
+
+  <p>Work through the three sheets of the carrier schematic in order: power and the two switches, then the
+     3.3&nbsp;V domain, then the isolators. Name every net exactly as the netlist does &mdash;
+     <code>SWGND</code>, <code>ISO1_GND</code> and <code>ISO2_GND</code> especially, because those names are
+     what keep the four copper pours apart later.</p>
+
+  <div class="warn">
+    <span class="lbl">cross-page nets are a project setting in v3</span>
+    <p>Two wires with the same name on different pages are <em>not</em> automatically one net. Open
+      <span class="path">Design &gt; Project Setting</span> and check the connection scope for net labels is
+      project-wide. Then verify on the PCB side that a ratline really exists between the two pins &mdash; the
+      Nets list in the left panel, or the unrouted count. Do not trust the schematic for this.</p>
+  </div>
+
+  <h3>Four grounds, or you have built an ordinary board</h3>
+
+  <p>This is the one that undoes everything if you miss it, and it happens silently.</p>
+
+  <p><strong>The standard ground symbol carries the net name <code>GND</code>.</strong> Place it four times and
+     you have <em>one</em> net, not four. The schematic looks right &mdash; four ground symbols, one per domain
+     &mdash; and at transfer to the PCB the four copper regions you so carefully drew become a single plane.
+     No warning, no DRC error: electrically it <em>is</em> one net, so nothing is violated.</p>
+
+  <p>So give each domain its own explicitly named net:</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Domain</th><th>Net name</th><th>What returns to it</th></tr></thead>
+      <tbody>
+        <tr><td>permanent ground</td><td><code>GND</code></td><td>cell, converter, probe terminals, capacitors</td></tr>
+        <tr><td>switched return</td><td><code>SWGND</code></td><td>MAX3485, DS18B20, bias pull-down, both isolators&rsquo; MCU side</td></tr>
+        <tr><td>isolated, pH</td><td><code>ISO1_GND</code></td><td>EZO-pH only</td></tr>
+        <tr><td>isolated, EC</td><td><code>ISO2_GND</code></td><td>EZO-EC only</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><strong>Then count them.</strong> Open the Nets list in the PCB editor&rsquo;s left panel after transfer
+     and confirm all four exist as separate nets with the pins you expect. This is a manual gate because no
+     automatic check will ever flag it.</p>
+
+  <p>When the schematic is done: <span class="path">Design &gt; Schematic to PCB</span>. That is the
+     <strong>first</strong> conversion only. Every later change goes across with <strong>Update PCB</strong>, or
+     from the PCB side <span class="path">Design &gt; Import Changes from Schematic</span> &mdash; and in that
+     dialog tick <strong>Also update wire nets</strong>, or traces you have already routed keep their old net
+     names.</p>
+
+  <h2><span class="n">Stage 3</span>Outline and placement</h2>
+
+  <ol>
+    <li><span class="path">Place &gt; Board Outline</span>, rectangle. Set the grid to 1 mm and draw 100
+      steps by 100 steps, or press <code>C</code> while drawing and enter the increments numerically. Verify
+      with <span class="path">Tools &gt; Measure Distance</span> before you trust it.</li>
+    <li><span class="path">Design &gt; Design Rules</span> &mdash; set these before routing, so the defaults are
+      right and real-time DRC flags violations as you draw. It does <em>not</em> stop you drawing them.</li>
+    <li>Place the modules first, in the regions from the placement plan, then the passives around them.</li>
+  </ol>
+
+  <h3>Decide the board itself first</h3>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Setting</th><th>Choose</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Layers / thickness</td><td class="n">2 / 1.6 mm</td><td>Economic PCBA only accepts 0.8&ndash;1.6 mm. A 2 mm board forces Standard PCBA and about $50 more</td></tr>
+        <tr><td>Copper</td><td class="n">1 oz</td><td>standard stack-up only on Economic</td></tr>
+        <tr><td>Finish / colour</td><td>lead-free HASL, green</td><td>other colours are quantity-banded</td></tr>
+        <tr><td>Order number</td><td>&ldquo;specify a location&rdquo;</td><td>the free option &mdash; you choose an unimportant spot instead of being surprised by one</td></tr>
+        <tr><td>Assembled side</td><td><strong>top</strong></td><td>see below &mdash; this is not arbitrary</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warn">
+    <span class="lbl">SMT on top, and the reason is your soldering iron</span>
+    <p>Economic PCBA places on one side only. Put it on the <strong>top</strong>, with the through-hole module
+      bodies also on top and their joints soldered from below. Then your iron works on a bare surface.</p>
+    <p>Choose the bottom for SMT and you will be hand-soldering at 350&nbsp;&deg;C in among already-placed
+      0402s.</p>
+  </div>
+
+  <div class="note">
+    <span class="lbl">100 &times; 100 mm is exactly on a price boundary</span>
+    <p>A sloppy frame of 100.2 mm jumps JLCPCB into the next size class. Draw it on the grid, measure it, and
+      after uploading the Gerbers <strong>check the board size JLCPCB reports back</strong>: it must say
+      100.00 &times; 100.00 mm and 2 layers. That echo is the only dimensional check that actually binds.</p>
+  </div>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Rule</th><th>Value</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Track / clearance</td><td class="n">0.2 mm</td><td>JLCPCB allows 0.1 mm; 0.2 gives you margin for nothing</td></tr>
+        <tr><td>Via drill / diameter</td><td class="n">0.3 / 0.6 mm</td><td>capability is 0.15 / 0.25 &mdash; this is a safe margin</td></tr>
+        <tr><td>Copper to board edge</td><td class="n">&ge; 0.3 mm</td><td>capability 0.2 mm</td></tr>
+        <tr><td>Pad to silkscreen</td><td class="n">0.25 mm</td><td>capability 0.15 mm; the default 6 mil already passes, but legibility is worth the extra</td></tr>
+        <tr><td>Silkscreen text</td><td class="n">&ge; 1.0 mm</td><td>below this the fab may drop it</td></tr>
+        <tr><td>PTH annular ring</td><td class="n">&ge; 0.25 mm</td><td>minimum is 0.20 mm</td></tr>
+        <tr><td>Copper to board outline</td><td class="n">&ge; 0.3 mm</td><td><b>this rule also governs the slot</b>, because the slot lives on the outline layer</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="n">Stage 4</span>Four grounds and one slot</h2>
+
+  <p>This is the stage the whole board exists for, and it is the one a beginner cannot guess. Four copper
+     regions that must never touch: <code>GND</code>, <code>SWGND</code>, <code>ISO1_GND</code>,
+     <code>ISO2_GND</code>.</p>
+
+  <h3>The pours</h3>
+
+  <ol>
+    <li><span class="path">Place &gt; Copper Region</span>, polygon. Draw each region around the area it owns.
+      You may draw past the board edge &mdash; EasyEDA trims it at the frame.</li>
+    <li><strong>Set the Net property immediately after drawing each one</strong>, in the right-hand panel. Also
+      give each a Name like <code>SWGND_TOP</code>; the Copper Manager lists them by name.</li>
+    <li>Repeat per layer. Top and bottom are separate regions.</li>
+    <li><span class="path">Tools &gt; Copper Manager</span> &mdash; check all four net names are distinct.
+      <strong>Two regions that accidentally share a net silently merge into one plane, and DRC will not
+      complain</strong>, because electrically it is one net. This is the error that would undo the entire
+      design.</li>
+    <li>Press <code>Shift+B</code> after every change. Copper does not reflow on its own; the screen can be
+      right while the Gerbers are wrong.</li>
+  </ol>
+
+  <div class="warn">
+    <span class="lbl">use Copper Region, never Fill Region</span>
+    <p>EasyEDA's own page says a Fill Region <em>&ldquo;cannot create gaps with elements of different
+      nets&rdquo;</em>. It would short straight across any foreign trace crossing it.</p>
+  </div>
+
+  <h3>Keeping an isolated pour alive</h3>
+
+  <p>A copper region whose net has no pad or via inside it on that layer is classed as dead copper and
+     silently deleted on rebuild. Your two isolated grounds are exactly that case.</p>
+
+  <p><strong>The fix is not to switch Keep islands on.</strong> Make sure at least one pad of that net sits
+     inside the region on that layer &mdash; which it will, because the EZO's ground pin is there. Leave
+     <strong>Keep islands = No</strong> so stray fragments near the barrier are still removed, press
+     <code>Shift+B</code>, and look at what survived.</p>
+
+  <h3>Thermal relief, or you cannot solder the board you ordered</h3>
+
+  <p>Each copper region has a <strong>connect-to-pad</strong> property: direct connection, or a thermal spoke.
+     <strong>Set every pour to thermal spokes.</strong></p>
+
+  <p>A through-hole pad tied directly into a 1 oz plane the size of this board is a heatsink. A normal
+     soldering station cannot bring it to temperature, so you hold the iron there longer and longer until the
+     pad lifts. Every module on this board is hand-soldered through-hole &mdash; this setting decides whether
+     the boards are assemblable at all.</p>
+
+  <h3>The isolation gap</h3>
+
+  <p>Different nets are held apart automatically &mdash; but only at the default clearance, around 0.25 mm,
+     which is nothing like an isolation distance. Two named parameters govern it:</p>
+
+  <ul>
+    <li><span class="path">Design &gt; Design Rules</span> &rarr; <strong>Copper Zone &rarr; Network
+      Spacing</strong> &mdash; pour to foreign-net elements.</li>
+    <li><strong>Copper Zone &rarr; Distance To Border Outline</strong> &mdash; pour to the board edge
+      <em>and to the slot</em>.</li>
+  </ul>
+
+  <p>Raise both via a <strong>Net-to-Net rule</strong> between <code>GND</code> and each isolated ground, not
+     by raising global clearance &mdash; that would wreck the routing everywhere else. Then measure the
+     resulting gap on both layers.</p>
+
+  <h3>The slot</h3>
+
+  <p><span class="path">Place &gt; Slot Region</span>, rectangle, under each isolator&rsquo;s barrier. It
+     exports into <code>Gerber_BoardOutlineLayer.GKO</code>, which is what JLCPCB expects.</p>
+
+  <div class="warn">
+    <span class="lbl">work the slot width out, do not copy a number</span>
+    <p>The milling tolerance on a non-plated slot is <strong>&plusmn;0.2 mm</strong>. So a slot drawn at
+      2.0 mm can arrive at 1.8 mm. If the creepage distance you need is 2.0 mm, the slot must be drawn at
+      <strong>2.2 to 2.4 mm</strong>:</p>
+    <pre>nominal slot = required creepage + 0.2 mm   (minimum)</pre>
+    <p>Take the required figure from the isolator&rsquo;s datasheet and whatever standard applies to you
+      &mdash; not from this page, and not from EasyEDA or JLCPCB, neither of which knows what you are
+      isolating.</p>
+  </div>
+
+  <div class="warn">
+    <span class="lbl">nothing crosses the barrier &mdash; and this is the whole point of the board</span>
+    <p>Over the slot and over the gap between two ground regions there goes <strong>no trace, no pour spur, no
+      via, no silkscreen, not even a dimension line</strong>.</p>
+    <p>There is a consequence that is easy to miss on a 2-layer board: with four separate grounds there is
+      <em>no continuous return plane</em>. Any signal that crosses a domain boundary needs a defined return
+      path &mdash; which is what the isolators are for. A signal that simply runs across the gap as a trace has
+      no return at all, and you have paid for an isolation barrier that a single track walks straight
+      through.</p>
+  </div>
+
+  <div class="note">
+    <span class="lbl">size it against the real tolerance</span>
+    <p>JLCPCB's binding figure for a non-plated slot is <strong>&plusmn;0.2 mm</strong>, not the
+      &plusmn;0.1 mm quoted in blog posts. Minimum width is 1.0 mm, so 2 mm is comfortable. Design the copper
+      keepout around the slot independently, so the barrier never depends on the milling tolerance.</p>
+    <p>There is a second, accidental route to a slot: a second board frame drawn inside the first becomes one.
+      Use Slot Region deliberately instead.</p>
+  </div>
+
+  <h2><span class="n">Stage 5</span>DRC</h2>
+
+  <ol>
+    <li><span class="path">Design &gt; Check DRC</span>. Violations land in the bottom panel with an X on the
+      board.</li>
+    <li>Your isolated grounds may raise a complaint about a net connected to nothing else.
+      <strong>That is the intended result.</strong> Use <span class="path">Design &gt; Check DRC
+      (Custom)</span> to untick that specific check rather than silencing the whole run.</li>
+    <li><span class="path">Design &gt; Clear Errors</span> wipes the markers once you have read them.</li>
+  </ol>
+
+  <div class="warn">
+    <span class="lbl">do not apply the standard fix to your isolated pours</span>
+    <p>The documented remedy for an &ldquo;orphaned copper region&rdquo; warning is to set Keep Island to No on
+      that region. Applied to an isolated ground, that deletes exactly the copper you need. Read each warning
+      before acting on it.</p>
+  </div>
+
+  <h2><span class="n">Stage 6</span>Export and order</h2>
+
+  <div class="warn">
+    <span class="lbl">this decides your layout, so read it before routing</span>
+    <p><strong>Economic PCBA assembles one side only.</strong> JLCPCB's capability table is explicit: Economic
+      is <em>single-sided placement</em>; only Standard PCBA does both sides, at $51.12 setup instead of $8.18,
+      and it refuses boards under 70 &times; 70 mm.</p>
+    <p>So: <strong>every machine-placed part on the top layer</strong>, bottom layer for routing and ground
+      only. The placement plan already does this &mdash; do not drift from it.</p>
+  </div>
+
+  <p>Three separate exports, or one combined route:</p>
+
+  <ul>
+    <li><span class="path">File &gt; Export &gt; PCB Fabrication File (Gerber)</span></li>
+    <li><span class="path">File &gt; Export &gt; Bill of Materials (BOM)</span></li>
+    <li>the Pick and Place / CPL export</li>
+    <li>or <span class="path">Export &gt; PCB Order</span>, which pushes all three into the JLCPCB cart</li>
+  </ul>
+
+  <div class="ok">
+    <span class="lbl">how to keep the hand-soldered parts out of the order</span>
+    <p>EasyEDA has a &ldquo;do not populate&rdquo; attribute, but its name is not in the official docs and
+      differs between versions. <strong>Do not fight it.</strong> Export the BOM and the CPL in full, open both
+      CSVs, and <strong>delete the rows for every through-hole module</strong> before uploading.</p>
+    <p>JLCPCB assembles exactly what the BOM lists. A part that is not in the file does not exist for them, so
+      there is nothing to mark and nothing to go wrong. Two minutes, version-independent, and you can see in
+      the file that it worked.</p>
+  </div>
+
+  <div class="note">
+    <span class="lbl">Order Parts is not the BOM export</span>
+    <p><span class="path">Export &gt; Order Parts</span> uploads an existing BOM to LCSC to <em>buy loose
+      components</em>, billed separately from the assembly order. Easy to click by mistake.</p>
+  </div>
+
+  <h3>Before you pay</h3>
+
+  <ul>
+    <li><strong>Check every part's rotation in JLCPCB's placement preview.</strong> CPL rotation mismatches are
+      the classic way to get ten boards with parts turned 90&deg;. The red dots in that preview are
+      <em>orientation markers, not pin 1</em> &mdash; JLCPCB says so themselves.</li>
+    <li><strong>Filter the parts library by Basic and Preferred Extended.</strong> Both are fee-free on
+      Economic PCBA; plain Extended costs $3.07 per unique part number. Do not design against a remembered
+      part count &mdash; the label on the quote page is the only authority.</li>
+    <li>Tick <strong>Confirm Parts Placement</strong> ($0.45). For a first board it is worth it.</li>
+    <li>Stay on 2 layers, 1.6 mm, green, HASL. Economic restricts thickness to 0.8&ndash;1.6 mm, standard
+      stack-up only, and some colours are quantity-banded.</li>
+    <li>Do not hand-panelise. Order the single design and let JLCPCB handle quantity.</li>
+  </ul>
+
+  <h3>What ten boards should cost</h3>
+
+  <div class="cost">
+    <div class="row"><span class="nm">PCB, 100 &times; 100 mm, 2 layers, 10 pcs</span><span class="vl">~$5</span></div>
+    <div class="row"><span class="nm">Economic PCBA setup</span><span class="vl">$8.18</span></div>
+    <div class="row"><span class="nm">Stencil</span><span class="vl">$1.53</span></div>
+    <div class="row"><span class="nm">SMT joints, $0.0016 each</span><span class="vl">~$3</span></div>
+    <div class="row"><span class="nm">Extended parts, $3.07 per unique number</span><span class="vl">aim for $0</span></div>
+    <div class="row"><span class="nm">Confirm Parts Placement</span><span class="vl">$0.45</span></div>
+    <div class="row"><span class="nm">Before components and shipping</span><span class="vl">~$18</span></div>
+  </div>
+
+  <p>Add the parts themselves and shipping. <strong>Choose DDP</strong> &mdash; duty and import VAT settled
+     up front, no customs paperwork landing on you. The $31 figure that gets quoted around is for the site&rsquo;s
+     default origin country and is not reliable for Germany; read your own quote. One coupon may be applied per
+     order &mdash; they do not stack, whatever the coupon centre suggests.</p>
+
+  <p>All of these prices are from October 2026. <strong>Check them against the live quote</strong>, and budget
+     without assuming a coupon.</p>
+
+  <h3>In the JLCDFM preview, look for three specific things</h3>
+
+  <ul>
+    <li><strong>Is the slot there at all?</strong> It is the one feature most likely to be lost in export.</li>
+    <li><strong>Does the drill file contain every through-hole?</strong> All four module footprints are
+      through-hole and they are the parts you cannot re-order cheaply.</li>
+    <li><strong>Are the four ground regions genuinely separate?</strong> Last chance to catch a merge.</li>
+  </ul>
+
+  <p>Use the order remarks: one sentence saying the internal slot is intentional, with a screenshot. That
+     saves a query mail and three to five days. And answer JLCPCB&rsquo;s review mail quickly &mdash; the job
+     sits until you do.</p>
+
+  <h2><span class="n">Stage 7</span>When the boards arrive</h2>
+
+  <div class="ok">
+    <span class="lbl">before anything is soldered and before anything is powered</span>
+    <p><strong>Meter the four grounds against each other.</strong> <code>GND</code> to <code>SWGND</code>,
+      <code>GND</code> to each isolated ground, and the two isolated grounds to one another. Every one of those
+      must read <strong>open</strong>.</p>
+    <p>This is a five-minute test on a bare board that tells you whether the central idea of the design
+      survived manufacture. Do it before you spend an evening populating ten of them.</p>
+  </div>
+
+  <ol>
+    <li>Hand-solder in height order: resistors and small parts first, modules last. The populated side must not
+      rest on the bench while you solder &mdash; the placed SMD parts are on it.</li>
+    <li>Bring the first board up on a <strong>current-limited supply</strong>, not the cell.</li>
+    <li>Then the bring-up sequence from the runbook: bare board, cell only, WaziSense, then one module at a
+      time.</li>
+  </ol>
+
+  <div class="note">
+    <span class="lbl">archive before you move on</span>
+    <p>Gerbers are not a design you can edit. Keep, in one dated folder with a revision number: the project
+      archive, your own library (<code>.elibz</code>), and <em>exactly</em> the Gerber, BOM and CPL files you
+      uploaded. Put that same revision on the silkscreen, so a board in your hand can always be matched to the
+      files that made it.</p>
+  </div>
+
+  <h2><span class="n">Last</span>What is still unverified</h2>
+
+  <p>Honest list, so you know where to look twice rather than trusting this page:</p>
+
+  <ul>
+    <li><strong>The exact in-app wording</strong> of several menu items. The documentation is machine-translated
+      in places and is not version-stamped against the build you installed. The menu <em>structure</em> has been
+      stable; individual words may differ.</li>
+    <li><strong>The DNP / &ldquo;do not populate&rdquo; attribute name.</strong> Official docs do not name it;
+      forum sources call it a <em>Mounted</em> attribute. Find it before you rely on it for
+      <code>R11</code>/<code>R12</code>.</li>
+    <li><strong>Whether EasyEDA's DRC has a silkscreen-over-pad check at all.</strong> Not in the documented
+      check list. Inspect the silkscreen by eye.</li>
+    <li><strong>Economic PCBA's maximum quantity</strong> &mdash; the capability page says 2&ndash;50, other
+      sources say 30. Not decision-critical at ten.</li>
+    <li><strong>Hotkeys</strong> differ between the quick-start and the hotkey reference, because they depend on
+      the active hotkey theme. Read yours in Settings rather than memorising these.</li>
+  </ul>
+
+  <div class="ok">
+    <span class="lbl">the order to work in</span>
+    <p>Measure the two unknown parts &rarr; draw the four library parts and check them against the physical
+      modules &rarr; schematic &rarr; outline and rules &rarr; placement &rarr; routing &rarr; the four pours and
+      the slot &rarr; DRC &rarr; export. Do not start the schematic before the library parts exist; every later
+      stage inherits their mistakes.</p>
+  </div>
+
+</div>

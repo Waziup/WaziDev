@@ -22,9 +22,9 @@
  *    TWO isolators are fitted, but only the pH one is needed: a galvanic loop
  *    needs two grounded ends, so floating the pH side already opens it. The
  *    EC one is the first thing to remove if autonomy ever binds - it costs
- *    ~82 mA and is one more device that clamps the I2C bus when unpowered.
+ *    ~130 mA and is one more device that clamps the I2C bus when unpowered.
  *
- *    The isolator does NOT run off the switched 3.3 V. It draws 82 mA
+ *    The isolator does NOT run off the switched 3.3 V. It draws 130 mA
  *    measured, and switching that onto the board's own 3.3 V regulator - the
  *    one feeding this MCU - browns the MCU out at every rail switch-on. Its
  *    input is rated 3.0-5.0 V, so it runs from the cell behind its own
@@ -502,7 +502,7 @@ uint8_t        turbReadCount = 0;
 // Rail settling times.
 //   3.3 V: the EZO circuits need roughly a second to boot after power-up.
 //   12 V : boost start-up plus charging the 1000 uF bulk capacitor.
-const uint16_t ISO_SETTLE_MS     = 200;    // isolator DC-DC before the bus
+const uint16_t ISO_SETTLE_MS     = 1500;   // isolator DC-DC + EZO boot
 const uint16_t RAIL33_SETTLE_MS  = 1500;   // WaziSense manual: "at least 1500 ms"
 // 3000, not 500. At 500 ms the first Modbus command went out 522 ms after
 // the rail came up (measured from the log timestamps) and the Y511-A had not
@@ -724,6 +724,20 @@ void sleep(int sec_to_sleep) {
   // the last characters need to leave the UART, rather than a fixed second.
   Serial.flush();
 
+  //  THE RADIO IS NOT ASLEEP UNTIL IT IS TOLD TO BE.
+  //
+  //  Neither sendLoRaWAN() nor receiveLoRaWAN() leaves the SX1276 in sleep
+  //  mode - the library returns it to STANDBY, which is roughly 1.5 mA. That
+  //  runs for the whole 30-minute interval, so it costs about 36 mAh a day
+  //  while the entire measurement burst costs a fraction of that. It was
+  //  invisible for a long time because the FTDI feeds the battery domain and
+  //  hides exactly this class of drain.
+  //
+  //  LORA_SLEEP_MODE keeps the LoRa bit set and preserves every register
+  //  except the FIFO, so the next send needs no re-initialisation. Expect
+  //  0.2-1 uA afterwards, against 1.5 mA before.
+  sx1272.setSleepMode();
+
   parkPinsForSleep();
 
   for (int i = 0; i < sec_to_sleep / 8; i++) {
@@ -788,26 +802,47 @@ void railOnSoft(uint8_t pin) {
   digitalWrite(pin, HIGH);
 }
 
-// THE ISOLATOR COMES UP FIRST, AND GOES DOWN LAST.
-//
-// An unpowered isolator on a live I2C bus is not a neutral state: the
-// ADM3260's lines are open-drain on both sides, and with no supply they hold
-// SDA and SCL down. That takes the EZO-EC with them - measured here, both
-// circuits reported FAIL with the isolator's cell disconnected and both
-// answered with it connected, even though EC sits nowhere near the isolator.
-//
-// So the invariant is: isolator powered whenever the bus is powered. Never
-// the other way round, and never a window where D6 is high and ISO_EN is not.
 void rails33On() {
-  Serial.println(F("pH isolator ON       (A1)"));
-  Serial.flush();
-  digitalWrite(ISO_EN, HIGH);
-  delay(ISO_SETTLE_MS);           // its DC-DC needs to be up before the bus is
-
   Serial.println(F("3.3 V sensor rail ON  (D6)"));
   Serial.flush();                 // a brownout here must not eat the evidence
   railOnSoft(RAIL33_EN);
-  delay(RAIL33_SETTLE_MS);        // EZO boot time
+  delay(RAIL33_SETTLE_MS);
+}
+
+//  THE ISOLATORS RUN ONLY FOR THE I2C READS.
+//
+//  Together they draw 130 mA measured - the datasheet gives 57 mA for the
+//  pH pair and 82 mA for the EC pair at 3.3 V - and pH plus EC take under two
+//  seconds. Leaving them on for the whole cycle - which this sketch did
+//  until 2026-10-01 - spent roughly 165 mA for the 45 s that the turbidity
+//  and DO warm-ups need anyway. Measured: 130 mA for 46 s too long, 48 times
+//  a day - about 80 mAh, a large share of the node's entire budget, for
+//  nothing.
+//
+//  An unpowered isolator holds SDA and SCL down - the ADM3260 is open-drain
+//  on both sides - and that is exactly why the old code kept them powered.
+//  It does not matter here: while they are off, nothing speaks I2C. The
+//  Modbus probes and the DS18B20 are on different buses entirely.
+//
+//  It is not quite free. The I2C pull-ups sit on the permanently live
+//  D6(+), so while D6 is high and the isolators are not, each line pushes
+//  roughly 0.7 mA through their input clamps into D6(-). That is about
+//  0.8 mAh a day against the ~100 mAh saved, so it stays as it is. Do not
+//  "fix" it by moving the pull-ups: there is no switched positive rail on
+//  the MCU side, which is what low-side switching costs you.
+//
+//  The EZO circuits lose power with the isolators, so they need their ~1 s
+//  boot back on every cycle. ISO_SETTLE_MS covers it.
+void isolatorsOn() {
+  Serial.println(F("Isolators ON          (A1)"));
+  Serial.flush();
+  digitalWrite(ISO_EN, HIGH);
+  delay(ISO_SETTLE_MS);
+}
+
+void isolatorsOff() {
+  digitalWrite(ISO_EN, LOW);
+  Serial.println(F("Isolators OFF"));
 }
 
 // D7 gets a HARD switch-on, deliberately. The soft-start reasoning does not
@@ -828,7 +863,7 @@ void rails12On() {
 void railsOff() {
   digitalWrite(RAIL12_EN, LOW);
   digitalWrite(RAIL33_EN, LOW);
-  digitalWrite(ISO_EN,    LOW);   // last: see the note above rails33On()
+  digitalWrite(ISO_EN,    LOW);   // normally already low - belt and braces
   Serial.println(F("Both sensor rails OFF"));
 }
 
@@ -1309,6 +1344,12 @@ void readAllSensors(bool doTurbidity) {
 #endif
 
   // --- pH and EC, temperature-compensated ---
+  //     The isolators come up here and go down again a few lines below, so
+  //     their 165 mA runs for seconds instead of for the whole cycle.
+#if ENABLE_PH || ENABLE_EC
+  isolatorsOn();
+#endif
+
 #if ENABLE_PH
   ezoSetTemperature(EZO_PH_ADDR, v_temp);
   v_ph = ezoRead(EZO_PH_ADDR);
@@ -1336,6 +1377,10 @@ void readAllSensors(bool doTurbidity) {
   Serial.print(F("Conductivity: "));
   if (isnan(v_ec)) Serial.println(F("FAIL"));
   else { Serial.print(v_ec, 1); Serial.println(F(" uS/cm")); }
+#endif
+
+#if ENABLE_PH || ENABLE_EC
+  isolatorsOff();
 #endif
 
   // --- turbidity: read once the wiper sweep has finished ---

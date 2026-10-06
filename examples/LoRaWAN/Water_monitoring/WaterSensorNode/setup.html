@@ -594,16 +594,17 @@ SDA (A4): idle=H  driven-low=12 mV  rise=0 us   <span class="g">ok</span>
          it, and refuses unless exactly one device is present — but nothing needs it to work.</p>
       <div class="gate">
         <span class="lbl">gate</span>
-<pre>pH isolator ON       (A1)
-3.3 V sensor rail ON  (D6)
+<pre>3.3 V sensor rail ON  (D6)
 12 V sensor rail ON   (D5)
 Turbidity: start measurement (acknowledged)
 Temperature (DS18B20): <span class="g">22.19 degC</span>
 DO: warming up optics...
 Dissolved oxygen: <span class="g">8.77 mg/L</span>
 Temperature (DO probe): <span class="g">24.91 degC</span>   (DS18B20 differs by 2.73 K)
+Isolators ON          (A1)
 pH: <span class="g">5.65</span>
 Conductivity: <span class="g">0.0 uS/cm</span>
+Isolators OFF
 Turbidity: waiting 1 s for wiper/optics
 Turbidity: <span class="g">2.36 NTU</span>
 Both sensor rails OFF
@@ -615,6 +616,10 @@ LoRaWAN send ... <span class="g">OK</span></pre>
            the reading was saved; followed by <code>FAIL</code>, the fault is supply or wiring.</p>
         <p><b>There is no brush line, and that is correct.</b> The wiper still sweeps — listen
            for it right after the 12 V rail comes up. It is the probe doing that by itself.</p>
+        <p><b><code>Isolators ON</code> appears late, and that is also correct.</b> They draw ~165 mA and
+           pH plus EC take under two seconds, so <code>A1</code> is raised only for that window instead of
+           for the whole cycle. About <b>100 mAh a day</b>, roughly a third of the node's budget. If the two
+           isolator lines bracket anything other than the pH and EC reads, something has been reordered.</p>
       </div>
       <div class="note">
         <span class="lbl">why the brush is no longer commanded</span>
@@ -807,6 +812,16 @@ LoRaWAN send ... <span class="g">OK</span></pre>
            missing I²C pull-up does that. Suspect the call before the sensor.</p>
       </div>
       <div class="lesson">
+        <h3>A library that transmits does not necessarily sleep afterwards</h3>
+        <p>Neither <code>sendLoRaWAN()</code> nor <code>receiveLoRaWAN()</code> returns the SX1276
+           to sleep — it sits in STANDBY, <b>measured at 2.3 mA</b>, for the whole 30-minute
+           interval. That was more than twice everything else on the node put together, and it
+           survived every wiring fix because nothing in the log mentions the radio after the send.
+           One call to <code>sx1272.setSleepMode()</code> before power-down removed it. <b>Sleep
+           current is measured, not inferred</b>, and the FTDI must be off when you measure it,
+           because it feeds the battery domain and hides exactly this.</p>
+      </div>
+      <div class="lesson">
         <h3>A power-gated node breaks anything with an internal timer</h3>
         <p>The turbidity sensor's brush interval, the EZO circuits' sleep command, the
            MAX31865's configuration register — all assume continuous power. On a node that
@@ -832,7 +847,7 @@ LoRaWAN send ... <span class="g">OK</span></pre>
                 genuinely unpowered between measurements rather than idling. The replacement
                 converter is a <b>U3V9F12</b>, fixed 12 V — the old one failed by putting out
                 30 V at a 3.6 V input.</td>
-            <td class="num">sleep 20.8 → 3.2 mA</td>
+            <td class="num">sleep 20.8 → 1.08 mA</td>
           </tr>
           <tr>
             <td><strong>Measure the DO settling time</strong></td>
@@ -851,14 +866,17 @@ LoRaWAN send ... <span class="g">OK</span></pre>
             <td class="num">0.08 → 8.88 NTU</td>
           </tr>
           <tr>
-            <td><strong>pH isolator — fitted, on the battery</strong></td>
-            <td>One Basic EZO Inline Voltage Isolator on the pH channel; a loop needs two
-                grounded ends, so EC needs none. It draws <b>82 mA</b> measured, and switching
-                that onto the board's own 3.3 V regulator browns the MCU out at every rail
-                switch-on — so it runs off the cell behind a second <b>#2810</b> on
-                <code>D5</code>. Still to check: whether its isolated side has its own I²C
-                pull-ups.</td>
-            <td class="num">+1.3 mA average</td>
+            <td><strong>Isolators — two fitted, windowed</strong></td>
+            <td>A loop needs two grounded ends, so the pH one alone would do; the EC one is the
+                first to remove if autonomy ever binds. The pH pair draws <b>57 mA</b> and the EC pair <b>82 mA</b> at 3.3 V per the datasheet, and <b>130 mA was measured for the two together</b>, and
+                switching that onto the board's own 3.3 V regulator browns the MCU out at every
+                rail switch-on — so both run off the cell behind <b>#2810&nbsp;(B)</b> on
+                <code>A1</code>. <b>Their MCU-side ground goes to <code>D6(&minus;)</code>, not to
+                board ground</b>: on board ground it cost a measured 0.4 mA of sleep current.
+                <code>A1</code> is now raised only for the pH and EC reads — about four seconds
+                instead of fifty. Still to check: whether the isolated sides carry their own
+                I²C pull-ups.</td>
+            <td class="num">≈100 mAh/day saved</td>
           </tr>
           <tr>
             <td><strong>Antenna</strong></td>

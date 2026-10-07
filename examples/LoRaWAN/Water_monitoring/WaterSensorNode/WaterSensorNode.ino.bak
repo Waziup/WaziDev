@@ -704,7 +704,9 @@ void unparkPinsAfterSleep() {
   pinMode(A4, INPUT);
   pinMode(A5, INPUT);
   Wire.begin();
+#if defined(WIRE_HAS_TIMEOUT)
   Wire.setWireTimeout(25000, true);
+#endif
 #if ENABLE_DS18B20
   pinMode(ONE_WIRE_PIN, INPUT);
 #endif
@@ -1111,7 +1113,9 @@ void i2cBusRecover() {
   pinMode(A5, INPUT);
 
   Wire.begin();                         // re-arm the TWI unit
+#if defined(WIRE_HAS_TIMEOUT)
   Wire.setWireTimeout(25000, true);
+#endif
 }
 
 // ===========================================================================
@@ -1651,22 +1655,17 @@ void setup() {
 
   Wire.begin();                           // A4/A5, pull-ups are on-board
 
-  // Without a timeout, a device holding SDA or SCL low makes endTransmission()
-  // block in a hardware wait loop: the sketch stops dead, no message, no
-  // reset, the log just ends. setWireTimeout() has been in the AVR core since
-  // 1.8.1 and is called unconditionally here ON PURPOSE.
-  //
-  //   Do NOT wrap this in a feature test. It was once guarded by
-  //   #if defined(WIRE_HAS_TIMEOUT), and that macro DOES NOT EXIST - the core
-  //   defines WIRE_HAS_END and nothing else. The guard was therefore never
-  //   true on any core, the timeout was always compiled out, and the node hung
-  //   on a stuck bus while the banner blamed an "old core". If this line ever
-  //   fails to compile, the core is genuinely too old: update it.
-  //
-  // i2cBusIdle() below stays as the pre-flight net - it catches a bus that is
-  // already stuck, where this catches one that goes stuck mid-transfer.
+  // The AVR Wire library has NO timeout before core 1.8.1: if a device holds
+  // SDA or SCL low, endTransmission() blocks in a hardware wait loop and the
+  // sketch stops dead - no message, no reset, the log just ends. Use the
+  // native timeout where the core provides it; i2cBusIdle() below is the
+  // fallback, and it is a net, not a cure (see its comment).
+#if defined(WIRE_HAS_TIMEOUT)
   Wire.setWireTimeout(25000 /* us */, true /* reset the bus on timeout */);
-  Serial.println(F(" I2C guard: 25 ms timeout + pre-flight"));
+  Serial.println(F(" I2C guard: native 25 ms"));
+#else
+  Serial.println(F(" I2C guard: pre-flight only (old core)"));
+#endif
 
   blink_led();
 

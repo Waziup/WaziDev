@@ -216,34 +216,40 @@ fitted.
 ## Fabrication files
 
 `out/fab/` holds everything a board house needs, and `out/KijaniCarrier-gerber.zip`
-is the upload.
+is the upload: nine layers, the Excellon drill file and the job file. The drill
+*map* is deliberately left out of the zip — it is a human-readable drawing with
+a frame around it, not a fabrication layer, and it only confuses layer
+detection.
 
 | File | What it is |
 |---|---|
-| `*.gbr`, `KijaniCarrier.drl`, `*.gbrjob` | Gerber X2 and Excellon, 2 layers, absolute origin, mm |
-| `KijaniCarrier-cpl-smt.csv` | placement for the **24 SMT parts only** |
-| `KijaniCarrier-bom-smt.csv` | 14 lines, with an empty `LCSC Part #` column to fill in |
+| `KijaniCarrier-bom-jlcpcb.csv` + `-cpl-jlcpcb.csv` | **49 parts, 23 lines** — SMT and through-hole |
+| `KijaniCarrier-bom-smt.csv` + `-cpl-smt.csv` | 24 parts — reflow only, if you order Economic without THT |
 | `KijaniCarrier-cpl.csv` | the full placement, every part, for reference |
 
-Drill sizes run 0.4 to 3.2 mm; the smallest trace is 0.25 mm and the smallest
-annular ring 0.2 mm, all inside JLCPCB's standard process.
+The `LCSC Part #` column is empty on purpose. JLCPCB's upload matches parts
+interactively, and the `Comment` column carries what it needs to match on
+(`AO3401A`, `SMBJ5.0A`, `SS34`, `KF128-3.5-3P` and so on). A part number
+guessed here would put the wrong component on every board.
 
-**24 parts are deliberately left out of the assembly files**: the modules,
-screw terminals, SMA jacks and electrolytics are through-hole and are fitted
-here, and `R11`, `R12` and `U2` are not fitted at all.
+### The socket rows
 
-### Two things the assembler would otherwise get wrong
+The board has one footprint per module, `U4` to `U7`, but each takes **two**
+socket strips 17.78 mm apart, and an assembly line places one part per
+designator. The assembly files therefore name the rows `U4A` … `U7B`, with
+positions computed from the real pad coordinates, and those names are printed
+on the silkscreen beside each row so nobody has to read the CPL alone to find
+them.
 
-`JP1` and `U2` are alternatives for the same job, and both were marked SMT, so
-an assembler would have fitted both and shorted the regulator. **`JP1` is now
-the fitted one and `U2` is DNP.** `JP1` links `3V3P` straight to `3V3REG`;
-`U2` is an MCP1700, which cannot regulate 3.3 V out of a 3.3 V input, so it
-only earns its place if `3V3P` is ever fed from something higher. Swap them in
-`gen/nets.py` if that day comes.
+Splitting the footprints in the board itself would have been the other way
+round. It was rejected on purpose: it would have moved about sixty net
+references, and a net swapped in that edit would have passed every check,
+because it would still be connected — just connected wrongly.
 
-`R11` and `R12` are the I2C pull-ups and are **DNP**: the BE-IVI isolators carry
-their own 4.7 k on both sides, so fitting these as well would load the bus
-twice.
+### Only three positions stay empty
+
+`R11` and `R12` (the isolators carry their own pull-ups) and `U2` (`JP1` does
+its job). Everything else is fitted; you plug in the six modules.
 
 ## Rebuilding
 

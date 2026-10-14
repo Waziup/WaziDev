@@ -96,14 +96,25 @@ t('ISOLATED', 95.0, 70.0, 90, H_NOTE)
 t('PGND NEVER TO GND', 95.0, 112.0, 90, H_NOTE)
 
 # ---- legend, in the free area right of the WaziSense connectors -----------
+#  The revision on the silkscreen is the only thing that tells two physical
+#  boards apart once they are in a drawer. Rev B was set when D1 became Q5.
+#  The three 4-pole terminals were split into ganged 2-pole pairs AFTER that,
+#  which changes what you can plug in - so it is Rev C. Bump this whenever the
+#  copper or the connectors change, not only when a part changes.
 LEGEND = [
-    'KIJANISPACE CARRIER Rev A',
+    'KIJANISPACE CARRIER Rev C',
     '',
     'A1=ISOLATORS D5=12V D6=3V3',
     'X1 = 18650 CELL IN',
     'J6 = POWER OUT TO WAZISENSE',
     '',
     'D6- IS NOT GND - KEEP APART',
+    '',
+    'Q5 = IDEAL DIODE, NOT A',
+    'SCHOTTKY. REV A HAD D1 HERE.',
+    '',
+    'J5/X3/X4 ARE TWO 2-POLE',
+    'BLOCKS EACH, GANGED (REV C)',
     '',
     'LEAVE OPEN, DO NOT BRIDGE:',
     'R11 R12 U2 (JP1 REPLACES U2)',

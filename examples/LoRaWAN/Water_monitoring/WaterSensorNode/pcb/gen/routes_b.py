@@ -59,12 +59,12 @@ ROUTES = [
 
     # --- +12V on down to the two RS485 probe terminals ------------------------
     ('+12V', 'F.Cu', W_PWR, [('C4.1', 'C4.1'), (49.5, 'C4.1'), (49.5, 104.0),
-                             (49.5, 108.0), ('X3.1', 108.0), ('X3.1', 'X3.1')]),
+                             (49.5, 108.0), ('X3A.1', 108.0), ('X3A.1', 'X3A.1')]),
     # the second probe terminal is fed underneath, so the RS485 descent can
     # pass down the front layer
     ('+12V', 'B.Cu', W_PWR, [(49.5, 104.0), (54.0, 104.0)]),
     ('+12V', 'F.Cu', W_PWR, [(54.0, 104.0), (59.0, 104.0)]),
-    ('+12V', 'B.Cu', W_PWR, [(59.0, 104.0), ('X4.1', 104.0), ('X4.1', 'X4.1')]),
+    ('+12V', 'B.Cu', W_PWR, [(59.0, 104.0), ('X4A.1', 104.0), ('X4A.1', 'X4A.1')]),
 ]
 
 VIAS = [

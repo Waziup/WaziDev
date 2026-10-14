@@ -160,6 +160,56 @@ unsigned char devAddr[4]      = {0x26, 0x01, 0x1B, 0xEE};
 const int interval  = 3000;   // downlink RX window (ms)
 int       sleep_sec = 1800;   // 30 min base cycle; downlink-settable
 
+//  ####################################################################
+//  ##  VERBOSE_LOG - narration on or off                             ##
+//  ##                                                                ##
+//  ##  1 for the bench: the full log, every rail transition and      ##
+//  ##    every wait, which is what made this node debuggable.        ##
+//  ##  0 for deployment: measured values, FAILs and errors only.     ##
+//  ##                                                                ##
+//  ##  Nothing is lost by setting it to 0 except words. No line was  ##
+//  ##  deleted to make room - they are all still here, and flipping  ##
+//  ##  this back to 1 restores the log verbatim.                     ##
+//  ##                                                                ##
+//  ##  It buys about 600 bytes of flash, which is what hibernation   ##
+//  ##  cost. The sketch sits at 99 % and every feature from here on  ##
+//  ##  has to be paid for out of something.                          ##
+//  ####################################################################
+#define VERBOSE_LOG  0
+
+//  NEVER put anything with a side effect inside LOG() or LOGLN(). At
+//  VERBOSE_LOG 0 they expand to do {} while (0), which discards the argument
+//  whole - a function call in there is simply never made. Hoist the call into
+//  a local first and log the result. Two lines in this sketch had exactly
+//  that shape (turbStartMeasurement, turbActivateBrush) and gating them
+//  naively would have stopped the turbidity measurement with no error.
+//
+//  And gate the WHOLE print group, not just its first line. A half-gated
+//  group prints its tail with no head: "15 s for wiper/optics" on a line of
+//  its own, which is how this was found.
+#if VERBOSE_LOG
+  #define LOG(x)    Serial.print(x)
+  #define LOGLN(x)  Serial.println(x)
+#else
+  #define LOG(x)    do {} while (0)
+  #define LOGLN(x)  do {} while (0)
+#endif
+
+//  ---- hibernation --------------------------------------------------------
+//  Measured on the bench: 3.6 V and 3.5 V transmit everything, 3.4 V loses
+//  pH, EC and turbidity, below 3.4 V it bootloops. The sensors are what the
+//  cell cannot afford down there - the uplink itself still works - so below
+//  HIBERNATE_ENTER_V the node stops measuring and keeps reporting its own
+//  voltage. That is the difference between a station that says "I am dying"
+//  and one that simply stops.
+//
+//  The gap between the two thresholds is deliberate: a cell sitting near the
+//  line would otherwise measure, sag, hibernate, recover, measure again.
+const float    HIBERNATE_ENTER_V = 3.60;
+const float    HIBERNATE_EXIT_V  = 3.80;
+const int      HIBERNATE_SLEEP_S = 3600;   // once an hour, battery only
+bool           hibernate         = false;
+
 // ---------------------------------------------------------------------------
 //  ENERGY BUDGET, measured and calculated for the 30 min cycle
 //
@@ -350,12 +400,55 @@ const uint16_t DO_TEMP_REG       = 0x0004;
 //  ##  101 kPa at sea level - about 13 % lower. Left at a sea-level  ##
 //  ##  default, every DO reading is biased by far more than the      ##
 //  ##  sensor's own +/-3 % FS accuracy.                              ##
-//  ##                                                                ##
-//  ##  Write the local pressure to 0x1022 before deployment. Look up ##
-//  ##  the unit and scaling in DFRobot's protocol document first -   ##
-//  ##  it is not stated on the specification page, so do NOT guess.  ##
-//  ##  Salinity (0x1020) stays at 0 for fresh water.                 ##
 //  ####################################################################
+//
+//  THE UNIT IS STILL UNCONFIRMED, AND THERE IS NO NEED TO GUESS IT.
+//
+//  DFRobot does not state the scaling of 0x1022 anywhere public. But the
+//  register ships with a sea-level default, and that default announces the
+//  unit by itself - the three plausible encodings are far apart and cannot
+//  be mistaken for one another:
+//
+//      reads 101.33 as a float     -> kPa, IEEE-754, two registers
+//      reads 1013   as an integer  -> hPa / mbar, one register
+//      reads 101325 as an integer  -> Pa, two registers
+//      reads 1013250 or 10132      -> some fixed-point scaling of the above
+//
+//  DOCompensation/DOCompensation.ino reads the register and prints it in all
+//  of those readings at once. Run it, see which line is a recognisable
+//  pressure, set DO_PRESSURE_RAW to match, then write it once. Writing a
+//  number in the wrong unit would not fail loudly - it would quietly bias
+//  every reading, which is the failure this whole section exists to prevent.
+//
+//  Site pressure from the barometric formula,
+//      p = 101.325 kPa * (1 - 2.25577e-5 * h)^5.25588
+//  which for a few altitudes gives:
+//      0 m -> 101.33    500 m -> 95.46    1135 m -> 88.42
+//   1500 m ->  84.56   2000 m -> 79.50
+//  Local weather moves this by +/-2 kPa, about 2 %. The altitude term is
+//  13 %, so the altitude is worth correcting and the weather is not.
+
+const uint16_t DO_SALINITY_REG   = 0x1020;   // stays 0 for fresh water
+const uint16_t DO_PRESSURE_REG   = 0x1022;
+
+//  ---- the site. Change this one number when the node moves. ----
+const uint16_t DO_SITE_ALTITUDE_M  = 1135;   // Lake Victoria
+const float    DO_SITE_PRESSURE_KPA = 88.42; // from the formula above
+
+//  READING the register back is done by DOCompensation/, not here. This
+//  sketch sits at 99 % of flash, and a diagnostic that runs once in the life
+//  of a probe has no business taking space from one that runs every cycle.
+//  Run DOCompensation once, read the unit off its printout, come back.
+
+//  Leave at 0 until DOCompensation has identified the unit, then set
+//  DO_PRESSURE_RAW to match it and flip this to 1 for ONE run. The value is
+//  stored in the sensor, so it does not need writing on every cycle - and a
+//  write on every cycle wears the sensor's EEPROM for nothing.
+#define DO_WRITE_ATM_PRESSURE   0
+
+//  What to put in the register, in whatever unit the printout revealed.
+//  8842 = 88.42 kPa in hundredths; 884 would be tenths; 88420 would be Pa.
+const uint16_t DO_PRESSURE_RAW   = 8842;
 
 //  Datasheet response time is "<= 60 s", which describes tracking a step
 //  change in DO - not how long the optics need after a cold power-up, which
@@ -364,7 +457,23 @@ const uint16_t DO_TEMP_REG       = 0x0004;
 //  every 2 s until it stops moving, then set this just above that. Too short
 //  and every uplink carries a value that is still settling; too long and you
 //  are paying for awake time you do not need.
-const uint16_t DO_WARMUP_MS      = 30000;
+//  MEASURED 2026-10-09 with SettleTime/, logging every 2 s for four minutes
+//  from rail-on: 8 s of zeros, first real value 8.36 mg/L at 10 s, then a
+//  slow sag to 8.13 by 200 s.
+//
+//  The number that matters is NOT when the reading stops moving. It is when
+//  the reading is closer to the truth than the sensor can resolve, and this
+//  probe is +/-3 % of a 20 mg/L full scale = +/-0.6 mg/L. Against that:
+//
+//      15 s -> 8.33    30 s -> 8.29    72 s -> 8.23    200 s -> 8.13
+//
+//  So moving from 30 s to 15 s costs 0.04 mg/L, a fifteenth of what the probe
+//  can resolve, and gives back 15 of the node's 48 active seconds - about
+//  20 mAh a day, a fifth of the whole budget.
+//
+//  Raise it to 20000 if you want the extra 0.01 mg/L; the curve is almost
+//  flat between 14 s and 40 s and nothing happens in there.
+const uint16_t DO_WARMUP_MS      = 15000;
 
 // --- Yosemitech Y511-A turbidity (self-cleaning) ---------------------------
 //  Registers from the EnviroDIY YosemitechModbus library; byte order and the
@@ -714,9 +823,9 @@ void unparkPinsAfterSleep() {
 }
 
 void sleep(int sec_to_sleep) {
-  Serial.print(F("Will sleep now for approximately "));
-  Serial.print(sec_to_sleep);
-  Serial.println(F(" seconds."));
+  LOG(F("Will sleep now for approximately "));
+  LOG(sec_to_sleep);
+  LOGLN(F(" seconds."));
 
   // Serial.flush() instead of delay(1000): it waits for exactly as long as
   // the last characters need to leave the UART, rather than a fixed second.
@@ -801,7 +910,7 @@ void railOnSoft(uint8_t pin) {
 }
 
 void rails33On() {
-  Serial.println(F("3.3 V sensor rail ON  (D6)"));
+  LOGLN(F("3.3 V sensor rail ON  (D6)"));
   Serial.flush();                 // a brownout here must not eat the evidence
   railOnSoft(RAIL33_EN);
   delay(RAIL33_SETTLE_MS);
@@ -832,7 +941,7 @@ void rails33On() {
 //  The EZO circuits lose power with the isolators, so they need their ~1 s
 //  boot back on every cycle. ISO_SETTLE_MS covers it.
 void isolatorsOn() {
-  Serial.println(F("Isolators ON          (A1)"));
+  LOGLN(F("Isolators ON          (A1)"));
   Serial.flush();
   digitalWrite(ISO_EN, HIGH);
   delay(ISO_SETTLE_MS);
@@ -840,7 +949,7 @@ void isolatorsOn() {
 
 void isolatorsOff() {
   digitalWrite(ISO_EN, LOW);
-  Serial.println(F("Isolators OFF"));
+  LOGLN(F("Isolators OFF"));
 }
 
 // D7 gets a HARD switch-on, deliberately. The soft-start reasoning does not
@@ -852,7 +961,7 @@ void isolatorsOff() {
 // motor attached. That is the same symptom seen when the boost was set to
 // 12 V: the LED pulsing and the wiper creeping round.
 void rails12On() {
-  Serial.println(F("12 V sensor rail ON   (D5)"));
+  LOGLN(F("12 V sensor rail ON   (D5)"));
   Serial.flush();
   digitalWrite(RAIL12_EN, HIGH);
   delay(RAIL12_SETTLE_MS);        // boost start-up + bulk cap charge
@@ -862,7 +971,7 @@ void railsOff() {
   digitalWrite(RAIL12_EN, LOW);
   digitalWrite(RAIL33_EN, LOW);
   digitalWrite(ISO_EN,    LOW);   // normally already low - belt and braces
-  Serial.println(F("Both sensor rails OFF"));
+  LOGLN(F("Both sensor rails OFF"));
 }
 
 // ===========================================================================
@@ -1042,6 +1151,29 @@ bool turbStartMeasurement() {
                         0x00, 0x00};
   return rs485RawCommand(f, 6);
 }
+
+#if DO_WRITE_ATM_PRESSURE
+// Writes the site's pressure into the sensor and says so. Everything here is
+// inside the #if, call site included, so at flag 0 not one byte of it is
+// compiled - which is the only reason it can live in a sketch at 99 % flash.
+//
+// The sensor stores the value, so this is a ONE-RUN operation: flash with the
+// flag at 1, watch for "write OK", set it back to 0 and flash again. Writing
+// on every cycle would wear the sensor's EEPROM for no gain.
+void doApplyCompensation() {
+  Serial.print(F("  0x1022 <- "));
+  Serial.print(DO_PRESSURE_RAW);
+  Serial.print(F("  ("));
+  Serial.print(DO_SITE_ALTITUDE_M);
+  Serial.print(F(" m = "));
+  Serial.print(DO_SITE_PRESSURE_KPA, 2);
+  Serial.println(F(" kPa)"));
+  if (modbusWriteRegister(DO_ADDR, DO_PRESSURE_REG, DO_PRESSURE_RAW))
+    Serial.println(F("  OK - now set DO_WRITE_ATM_PRESSURE back to 0"));
+  else
+    Serial.println(F("  FAILED - value not stored"));
+}
+#endif
 
 float modbusReadValue(uint8_t slave, uint16_t reg, uint8_t fmt, float scale) {
   uint16_t r[2];
@@ -1232,12 +1364,20 @@ float readPT1000() {
 void readAllSensors(bool doTurbidity) {
   v_temp = v_do = v_turb = v_ph = v_ec = v_temp2 = NAN;
 
+  //  Hibernating: every value stays NAN and is therefore ABSENT from the
+  //  uplink rather than zero - the same rule the decoder relies on. Returning
+  //  here also means neither rail is ever switched on, which is the saving.
+  //  This one is NOT gated by VERBOSE_LOG. Why a station stopped measuring
+  //  is a report, not narration - it is the first thing you need from the
+  //  log of a node that went quiet in the field.
+  if (hibernate) { Serial.println(F("HIBERNATE - low cell")); return; }
+
   rails33On();      // transceiver, DS18B20 + pull-up, RS485 bias, EZO circuits
 
 #if (ENABLE_DO || ENABLE_TURBIDITY || RAIL12_FORCE_ON)
   rails12On();      // the two RS485 probes (or a bench check of the rail)
 #else
-  Serial.println(F("12 V rail left OFF - nothing needs it"));
+  LOGLN(F("12 V rail left OFF - nothing needs it"));
 #endif
 
   // --- kick off turbidity first: its wiper is by far the slowest step ---
@@ -1248,29 +1388,37 @@ void readAllSensors(bool doTurbidity) {
 #if TURB_TRIGGER_PROBE
     // Nothing is sent during this window. If the wiper moves here, the rail
     // coming up is what triggers it and no command is needed at all.
-    Serial.print(F("Turbidity: silent pause, no command sent - "));
-    Serial.print(TURB_PROBE_MS / 1000);
-    Serial.println(F(" s. Does the wiper move NOW?"));
+    LOG(F("Turb: silent pause "));
+    LOG(TURB_PROBE_MS / 1000);
+    LOGLN(F(" s. Does the wiper move NOW?"));
     Serial.flush();
     delay(TURB_PROBE_MS);
-    Serial.println(F("Turbidity: pause over, sending commands from here on"));
+    LOGLN(F("Turb: pause over"));
 #endif
 
     rs485SetBaud(TURB_BAUD);
 
 #if TURB_BRUSH_BEFORE_READ
     if (TURB_BRUSH_EVERY_N <= 1 || (turbReadCount % TURB_BRUSH_EVERY_N) == 0) {
-      Serial.print(F("Turbidity: brush sweep ("));
-      Serial.print(turbActivateBrush() ? F("acknowledged") : F("NO REPLY"));
-      Serial.println(F(") - ~10 s"));
+      //  The call is hoisted: LOG() discards its argument when VERBOSE_LOG
+      //  is 0, so a sweep invoked inside one would never happen.
+      const bool brushOk = turbActivateBrush();
+      (void)brushOk;
+      LOG(F("Turbidity: brush sweep ("));
+      LOG(brushOk ? F("acknowledged") : F("NO REPLY"));
+      LOGLN(F(") - ~10 s"));
     }
     turbReadCount++;
 #endif
 
     if (TURB_NEEDS_START) {
-      Serial.print(F("Turbidity: start measurement ("));
-      Serial.print(turbStartMeasurement() ? F("acknowledged") : F("NO REPLY"));
-      Serial.println(F(")"));
+      //  Hoisted for the same reason, and this one matters more: inside a
+      //  LOG() the measurement would simply never be started.
+      const bool startOk = turbStartMeasurement();
+      (void)startOk;
+      LOG(F("Turbidity: start measurement ("));
+      LOG(startOk ? F("acknowledged") : F("NO REPLY"));
+      LOGLN(F(")"));
     }
     turbStart = millis();
   }
@@ -1313,16 +1461,28 @@ void readAllSensors(bool doTurbidity) {
 
   // --- dissolved oxygen ---
 #if ENABLE_DO
-  Serial.println(F("DO: warming up optics..."));
+  LOGLN(F("DO: warming up optics..."));
   delay(DO_WARMUP_MS);
   rs485SetBaud(DO_BAUD);
+#if DO_WRITE_ATM_PRESSURE
+  doApplyCompensation();         // one run only - see the flag's comment
+#endif
   v_do = modbusReadValue(DO_ADDR, DO_REG, DO_FMT, DO_SCALE);
+
+  // Temperature is read FIRST now, because it is the readiness witness: a
+  // booting probe returns exactly 0.00 in both registers, while a genuinely
+  // anoxic pond returns a real temperature alongside its real zero.
+  float t3 = modbusReadValue(DO_ADDR, DO_TEMP_REG, DO_FMT, 1.0);
+  if (v_do == 0.0 && t3 == 0.0) {
+    v_do = NAN;                                   // not ready, not anoxic
+    Serial.println(F("DO: not ready"));
+  }
+
   Serial.print(F("Dissolved oxygen: "));
   if (isnan(v_do)) Serial.println(F("FAIL"));
   else { Serial.print(v_do, 2); Serial.println(F(" mg/L")); }
 
 #if ENABLE_DO_TEMP
-  float t3 = modbusReadValue(DO_ADDR, DO_TEMP_REG, DO_FMT, 1.0);
   if (t3 > -20.0 && t3 < 60.0) v_temp2 = t3;      // same sanity band as above
   Serial.print(F("Temperature (DO probe): "));
   if (isnan(v_temp2)) Serial.println(F("FAIL"));
@@ -1385,9 +1545,9 @@ void readAllSensors(bool doTurbidity) {
     if (TURB_NEEDS_START) {
       long remaining = (long)TURB_WARMUP_MS - (long)(millis() - turbStart);
       if (remaining > 0) {
-        Serial.print(F("Turbidity: waiting "));
-        Serial.print(remaining / 1000);
-        Serial.println(F(" s for wiper/optics"));
+        LOG(F("Turbidity: waiting "));
+        LOG(remaining / 1000);
+        LOGLN(F(" s for wiper/optics"));
         delay(remaining);
       }
     }
@@ -1418,7 +1578,7 @@ void readAllSensors(bool doTurbidity) {
     if (isnan(v_turb)) Serial.println(F("FAIL"));
     else { Serial.print(v_turb, 2); Serial.println(F(" NTU")); }
   } else {
-    Serial.println(F("Turbidity: skipped this cycle (energy saving)"));
+    LOGLN(F("Turb: skipped (energy)"));
   }
 #endif
 
@@ -1464,7 +1624,11 @@ uint8_t uplink() {
   if (!isnan(v_temp))  xlpp.addTemperature(1, v_temp);
 
   v_batt = readVolts();
-  if (!isnan(v_batt))  xlpp.addVoltage(2, v_batt);
+  if (!isnan(v_batt)) {
+    xlpp.addVoltage(2, v_batt);
+    if (v_batt < HIBERNATE_ENTER_V)     hibernate = true;
+    else if (v_batt > HIBERNATE_EXIT_V) hibernate = false;
+  }
 
   if (!isnan(v_ph))    xlpp.addAnalogInput(3, v_ph);
   if (!isnan(v_do))    xlpp.addAnalogInput(4, v_do);
@@ -1495,24 +1659,24 @@ uint8_t uplink() {
 uint8_t downlink_with_logs(uint16_t timeout) {
   uint8_t e;
 
-  Serial.print(F("Waiting for RX1, for a time of(in ms): "));
-  Serial.println(timeout);
+  LOG(F("RX1 wait ms: "));
+  LOGLN(timeout);
 
   long startSend = millis();
   e = wazidev.receiveLoRaWAN(xlpp.buf, &xlpp.offset, &xlpp.len, timeout);
   long endSend = millis();
 
   if (e == ERR_LORA_TIMEOUT) {
-    Serial.println(F("RX1 Timeout. Waiting for RX2..."));
+    LOGLN(F("RX1 Timeout. Waiting for RX2..."));
     delay(2000);
     e = wazidev.receiveLoRaWAN(xlpp.buf, &xlpp.offset, &xlpp.len, timeout);
     if (e == ERR_LORA_TIMEOUT) {
-      Serial.println(F("RX2 Timeout. No downlink received."));
+      LOGLN(F("RX2 Timeout. No downlink received."));
       return ERR_LORA_TIMEOUT;
     }
-    Serial.println(F("Downlink received in RX2."));
+    LOGLN(F("Downlink received in RX2."));
   } else {
-    Serial.println(F("Downlink received in RX1."));
+    LOGLN(F("Downlink received in RX1."));
   }
 
   serialPrintf("Time On Air: %d ms\n", endSend - startSend);
@@ -1700,7 +1864,7 @@ void loop(void) {
     // 3. LoRaWAN downlink
     downlink_with_logs(interval);
     cycleCount++;
-    sleep(sleep_sec);
+    sleep(hibernate ? HIBERNATE_SLEEP_S : sleep_sec);
   } else {
     Serial.print(F("Error: "));
     Serial.println(e);

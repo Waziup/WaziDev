@@ -12,10 +12,19 @@ W_PWR, W_SIG = 0.5, 0.25
 ROUTES = [
     # --- cell -> PTC -> reverse-polarity diode --------------------------------
     ('VB1', 'F.Cu', W_PWR, [('X1.1', 'X1.1'), ('X1.1', 34.5), ('F1.1', 34.5), ('F1.1', 'F1.1')]),
-    ('VB2', 'F.Cu', W_PWR, [('F1.2', 'F1.2'), ('F1.2', 31.5), ('D1.2', 31.5), ('D1.2', 'D1.2')]),
+    ('VB2', 'F.Cu', W_PWR, [('F1.2', 'F1.2'), ('F1.2', 31.5), ('Q5.3', 31.5), ('Q5.3', 'Q5.3')]),
 
     # --- +VBATT: diode -> bulk cap -> TVS -> both gate blocks ------------------
-    ('+VBATT', 'F.Cu', W_PWR, [('D1.1', 'D1.1'), ('D1.1', 41.5), ('C1.1', 41.5), ('C1.1', 'C1.1')]),
+    # Q5.2 is the NORTH pad and the gate Q5.1 sits directly south of it, so the
+    # supply cannot drop straight down past its own gate. It steps east to x 56,
+    # runs south clear of R13, and joins the existing y 48 rail at D2.1 - from
+    # there the segment below already carries it west to the bulk cap.
+    ('+VBATT', 'F.Cu', W_PWR, [('Q5.2', 'Q5.2'), (56.0, 'Q5.2'), (56.0, 48.0),
+                               ('D2.1', 48.0)]),
+
+    # --- the ideal diode's gate: straight across to R13, whose far end sits
+    #     on the GND pour. Nothing switches this net, it is a static pull-down.
+    ('Q5_G', 'F.Cu', W_SIG, [('Q5.1', 'Q5.1'), ('Q5.1', 'R13.1'), ('R13.1', 'R13.1')]),
     ('+VBATT', 'F.Cu', W_PWR, [('C1.1', 'C1.1'), ('C1.1', 48.0), ('D2.1', 48.0), ('D2.1', 'D2.1')]),
     ('+VBATT', 'F.Cu', W_PWR, [('D2.1', 'D2.1'), ('D2.1', 'C3.2'), ('C3.2', 'C3.2')]),
     ('+VBATT', 'F.Cu', W_PWR, [('C3.2', 'C3.2'), (46.5, 'C3.2'), (46.5, 64.5),

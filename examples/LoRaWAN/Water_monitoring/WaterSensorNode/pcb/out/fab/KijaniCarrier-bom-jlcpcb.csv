@@ -1,24 +1,22 @@
-Comment,Designator,Footprint,LCSC Part #
-100uF 10V electrolytic,C1,CP_Radial_D8.0mm_P3.50mm,
-100nF X7R 50V,"C10,C3,C5",C_0603,
-470uF 25V / 10V electrolytic,"C4,C8",CP_Radial_D10.0mm_P5.00mm,
-1uF X7R 16V,"C6,C7",C_0603,
-10uF X7R 16V,C9,C_0805,
-SS34,D1,D_SMA,
-SMBJ5.0A,D2,D_SMB,
-PTC 2.6A hold,F1,R_1812,
-"screw terminal 2P, 3.50 mm (KF128-3.5-2P or equal)","J2,J6,J8,X1",TerminalBlock 1x02 P3.50,
-"screw terminal 3P, 3.50 mm (KF128-3.5-3P or equal)","J3,J4,X2",TerminalBlock 1x03 P3.50,
-"screw terminal 4P, 3.50 mm (KF128-3.5-4P or equal)","J5,X3,X4",TerminalBlock 1x04 P3.50,
-"SMA jack, vertical","J7,J9",SMA_Amphenol_132134-10,
-0R,JP1,R_0603,
-AO3401A,"Q1,Q3",SOT-23,
-2N7002,"Q2,Q4",SOT-23,
-100k 1%,"R1,R3,R4,R6",R_0603,
-10k 1%,"R2,R5",R_0603,
-680R 1%,"R7,R8",R_0603,
-4k7 1%,R9,R_0603,
-120R 1%,RT1,R_0603,
-"female header 1x3, 2.54 mm","U1,U6A,U6B,U7A,U7B",PinSocket_1x03_P2.54mm,
-"female header 1x4, 2.54 mm",U3,PinSocket_1x04_P2.54mm,
-"female header 1x5, 2.54 mm","U4A,U4B,U5A,U5B",PinSocket_1x05_P2.54mm,
+Comment,Designator,Footprint,LCSC Part #,Lib,Unit EUR
+100uF 16V electrolytic,C1,CP_Radial_D5.0mm_P2.00mm,C47344171,Extended,0.0257
+100nF X7R 50V,"C10,C3,C5",C_0603,C14663,Basic,0.0125
+470uF 25V electrolytic,"C4,C8",CP_Radial_D10.0mm_P5.00mm,C49256798,Extended,0.0851
+1uF X5R 50V,"C6,C7",C_0603,C15849,Basic,0.0141
+10uF X5R 25V,C9,C_0805,C15850,Basic,0.0614
+SMBJ5.0A,D2,D_SMB,C19077558,Extended,0.0419
+PTC 2.6A hold,F1,R_1812,C70129,Extended,0.0633
+"screw terminal 2P, 3.50 mm (KF350-3.5-2P)","J2,J5A,J5B,J6,J8,X1,X3A,X3B,X4A,X4B",TerminalBlock 1x02 P3.50,C474892,Extended,
+"screw terminal 3P, 3.50 mm (KF350-3.5-3P)","J3,J4,X2",TerminalBlock 1x03 P3.50,C474893,Extended,
+"SMA jack, vertical","J7,J9",SMA_Vertical_5pin_P5.08,C496549,Extended,0.3516
+0R,JP1,R_0603,C21189,Basic,0.0020
+AO3401A,"Q1,Q3,Q5",SOT-23,C15127,Basic,0.0909
+2N7002,"Q2,Q4",SOT-23,C8545,Basic,0.0156
+100k 1%,"R1,R13,R3,R4,R6",R_0603,C25803,Basic,0.0028
+10k 1%,"R2,R5",R_0603,C25804,Basic,0.0046
+680R 1%,"R7,R8",R_0603,C23228,Basic,0.0019
+4k7 1%,R9,R_0603,C23162,Basic,0.0025
+120R 1%,RT1,R_0603,C22787,Basic,0.0017
+"female header 1x3, 2.54 mm","U1,U6A,U6B,U7A,U7B",PinSocket_1x03_P2.54mm,C146243,Extended,
+"female header 1x4, 2.54 mm",U3,PinSocket_1x04_P2.54mm,C2718488,Extended,0.0734
+"female header 1x5, 2.54 mm","U4A,U4B,U5A,U5B",PinSocket_1x05_P2.54mm,C50950,Extended,

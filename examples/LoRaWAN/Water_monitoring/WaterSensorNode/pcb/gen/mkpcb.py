@@ -33,14 +33,20 @@ C = [
     ('J2', 20, 93, 180, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x02_P3.50mm_Vertical', 'SW_1'),
     ('J3', 34, 93, 180, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x03_P3.50mm_Vertical', 'ANALOG'),
     ('J4', 50, 93, 180, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x03_P3.50mm_Vertical', 'DIGITAL'),
-    ('J5', 68, 93, 180, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x04_P3.50mm_Vertical', 'I2C_PORT'),
+    # J5/X3/X4 were 4-pole parts JLCPCB does not stock. Two ganged 2-pole
+    # blocks 7.00 mm apart put the pads exactly where they were.
+    ('J5A', 68, 93, 180, 'KijaniSpace:TerminalBlock_KF350_1x02', 'I2C_PORT'),
+    ('J5B', 61, 93, 180, 'KijaniSpace:TerminalBlock_KF350_1x02', 'I2C_PORT'),
     ('J6', 86, 93, 180, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x02_P3.50mm_Vertical', 'BAT_IN'),
 
     ('X1', 12, 80, 0, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x02_P3.50mm_Vertical', 'CELL'),
     ('F1', 25, 82, 0, 'Resistor_SMD:R_1812_4532Metric', 'PTC 2.6A'),
-    ('D1', 32, 82, 0, 'Diode_SMD:D_SMA', 'SS34'),
+    # Ideal diode, not a Schottky. rot 180 puts the drain on the left,
+    # towards F1, where the old cathode band used to face.
+    ('Q5', 32, 82, 180, 'Package_TO_SOT_SMD:SOT-23', 'AO3401A'),
+    ('R13', 32.0, 78.5, 270, 'Resistor_SMD:R_0603_1608Metric', '100k'),
     ('D2', 33, 70, 0, 'Diode_SMD:D_SMB', 'SMBJ5.0A'),
-    ('C1', 22, 75, 0, 'Capacitor_THT:CP_Radial_D8.0mm_P3.50mm', '100uF'),
+    ('C1', 22, 75, 0, 'Capacitor_THT:CP_Radial_D5.0mm_P2.00mm', '100uF'),
     ('Q1', 12, 66, 0, 'Package_TO_SOT_SMD:SOT-23', 'AO3401A'),
     ('Q2', 18, 66, 0, 'Package_TO_SOT_SMD:SOT-23', '2N7002'),
     ('C3', 24, 66, 0, 'Capacitor_SMD:C_0603_1608Metric', '100nF'),
@@ -77,8 +83,10 @@ C = [
     ('U7', 86, 24, 270, 'KijaniSpace:EZO_Circuit', 'EZO-EC'),
 
     ('X2', 9, 7, 0, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x03_P3.50mm_Vertical', 'DS18B20'),
-    ('X3', 26, 7, 0, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x04_P3.50mm_Vertical', 'PROBE1'),
-    ('X4', 45, 7, 0, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x04_P3.50mm_Vertical', 'PROBE2'),
+    ('X3A', 26, 7, 0, 'KijaniSpace:TerminalBlock_KF350_1x02', 'PROBE1'),
+    ('X3B', 33, 7, 0, 'KijaniSpace:TerminalBlock_KF350_1x02', 'PROBE1'),
+    ('X4A', 45, 7, 0, 'KijaniSpace:TerminalBlock_KF350_1x02', 'PROBE2'),
+    ('X4B', 52, 7, 0, 'KijaniSpace:TerminalBlock_KF350_1x02', 'PROBE2'),
     ('J7', 64, 7, 0, 'Connector_Coaxial:SMA_Amphenol_132291_Vertical', 'SMA pH'),
     ('J9', 86, 7, 0, 'Connector_Coaxial:SMA_Amphenol_132291_Vertical', 'SMA EC'),
     ('R9', 20, 20, 0, 'Resistor_SMD:R_0603_1608Metric', '4k7'),

@@ -35,8 +35,13 @@
  *  reading", never "reading of 0" - do not fill gaps with zeros downstream.
  *  Turbidity is only read every 4th cycle by design.
  *
- *  Channel 8 is the exception: it is sent on EVERY uplink, because "nothing
- *  restarted" is itself the information you want on a node you cannot reach.
+ *  Channel 8 was meant to be the exception, sent on EVERY uplink, because
+ *  "nothing restarted" is itself the information you want on a node you cannot
+ *  reach. It is not sent today - see the channel map above. The sketch keeps
+ *  the reset cause in `resetFlags` and prints it to Serial only, which a node
+ *  at the pond has no way to show anyone. Re-enabling it is one
+ *  `xlpp.addDigitalInput(8, resetFlags)` plus clearing `resetFlags`
+ *  afterwards, and it needs flash headroom the sketch does not have today.
  *
  *  NOTE ON WIRING THIS IN: the function name and signature below follow the
  *  common `Decoder(bytes, port)` convention. Check what entry point your

@@ -31,10 +31,28 @@
  *  buffer. Calibrating on a drifting value bakes the drift in.
  *
  *  EC CALIBRATION
- *    Cal,dry           IN AIR, probe completely dry. Always first.
- *    Cal,one,<value>   single point, in a standard close to your water
- *  Lake Victoria sits near 100 uS/cm, so of the three standards on order
- *  (12.88 / 111.3 / 1413 uS/cm) the 111.3 one is the single point to use.
+ *    K,?               what cell constant does the circuit think it has?
+ *    K,0.1 / K,1.0 / K,10   set it to the probe's own K. Until this is right
+ *                      nothing else is, and an uncalibrated circuit answers
+ *                      0.0 uS/cm in any liquid - which looks like a dead probe.
+ *    Cal,clear         wipe any previous calibration
+ *    Cal,dry           IN AIR, probe completely dry. ALWAYS FIRST.
+ *    Cal,one,<value>   single point
+ *    Cal,low,<value> / Cal,high,<value>    two point
+ *    Cal,?             how many points are stored - expect ?CAL,1 or ?CAL,2
+ *
+ *  VALUES GO IN AS uS/cm, WHATEVER THE BOTTLE SAYS. The standards here are
+ *  1413 uS/cm, 12.88 mS/cm and 111.3 mS/cm - a decade series of KCl, 0.01 M,
+ *  0.1 M and 1 M. Two of the three labels are MILLI. Typing Cal,one,12.88
+ *  because that is what is printed calibrates a 12880 uS/cm solution as
+ *  12.88 uS/cm, and nothing reports an error. Enter 1413, 12880, 111300.
+ *
+ *  AND NONE OF THEM MATCHES THIS WATER. Lake Victoria is near 100 uS/cm;
+ *  the lowest standard here is 14x above that. Order an 84 uS/cm standard
+ *  before deployment. Until it arrives: Cal,dry then Cal,one,1413, and read
+ *  12.88 mS/cm afterwards WITHOUT recalibrating to see the linearity.
+ *
+ *  All three are specified at 25 C / 77 F, so set T,<temperature> first.
  *
  *  Calibration is stored in the circuit's own EEPROM. It survives power loss
  *  and reflashing the ATmega - you do this once per probe, not once per

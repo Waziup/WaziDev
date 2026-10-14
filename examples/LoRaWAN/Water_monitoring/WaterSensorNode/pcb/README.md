@@ -6,11 +6,15 @@ Generated for **KiCad 10.0.6**. Open `KijaniCarrier.kicad_pcb`.
 
 | File | What it is |
 |---|---|
-| `KijaniCarrier.kicad_pcb` | The board: 100 × 100 mm outline, the isolation slot, 4 mounting holes, **51 footprints placed** |
+| `KijaniCarrier.kicad_pcb` | The board: 100 × 100 mm outline, the isolation slot, 4 mounting holes, **56 footprints placed** |
 | `KijaniCarrier.kicad_pro` | Project file |
-| `KijaniSpace.pretty/` | The four footprints nobody else has: EZO circuit, BE-IVI isolator, Pololu U3V9F12, MAX3485 module |
-| `out/drc.txt` | The DRC report as generated |
-| `out/view.svg` | Front copper + silkscreen + outline, for a quick look |
+| `KijaniSpace.pretty/` | The five footprints nobody else has: EZO circuit, BE-IVI isolator, Pololu U3V9F12, MAX3485 module, and the gangable KF350-3.5 2-pole terminal |
+| `out/FACTS.md` | **The generated ground truth.** Counts, the BOM, the order settings. Where any document disagrees with it, the document is wrong. `python gen/facts.py` |
+| `out/drc.txt` | The DRC report. `bash gen/views.sh` |
+| `out/view.svg` | Front copper + silkscreen + outline, for a quick look. `bash gen/views.sh` |
+| `out/KijaniCarrier-top-1zu1.pdf` | The 1:1 print for the paper check, at true scale on A4. `bash gen/views.sh` |
+| `out/footprints/` | One SVG per custom footprint, five of them. `bash gen/views.sh` |
+| `out/superseded-2026-10-07/` | The 7 October files, kept as a record. **Nothing in there is current** — see its own README |
 
 ## Before you open it: register the library
 
@@ -62,7 +66,7 @@ breaks its outline where the slot passes. One of them was less obvious than the
 rest: the DRC also checks a footprint's reference against *its own* graphics,
 and `C1`'s had been sitting inside its own body circle.
 
-251 track segments and 36 vias on 21 nets. `kicad-cli` on the unfilled file
+253 track segments and 37 vias on 36 nets. `kicad-cli` on the unfilled file
 still shows GND as unconnected and five vias as dangling, because it does not
 fill zones. Fill and it goes to zero: `gen/fill2.py` does exactly that from
 KiCad's own Python, writes `filled.kicad_pcb`, and running the DRC on that is
@@ -151,20 +155,20 @@ Checked, with the method, not by eye:
 | | Result |
 |---|---|
 | Netlist against the firmware's pin assignments | **matches, no firmware change needed** |
-| Every pad's net, every net's pad count | 35 nets, no net with a single pad |
+| Every pad's net, every net's pad count | 36 nets, no net with a single pad |
 | Pads with no net | 8: the four mounting holes and the isolators' `OFF` and `N/C`, all correct |
 | Trace width against current (IPC-2152, 1 oz, 10 K rise) | widest requirement 0.12 mm, narrowest power trace 0.50 mm |
 | Via annular ring | 0.20 mm (JLCPCB minimum 0.13) |
 | Drill sizes | 0.40 … 3.20 mm (minimum 0.30) |
 | Board outline | clean 100 × 100 mm, two closed 20 × 2.4 mm slots |
-| Placement | all 52 footprints on the front — single-sided assembly |
-| Gerber set | 2 layers, 1.6 mm, 9 files correctly typed, slots in the profile |
-| BOM against the board | all 52 designators covered, none spare, none twice |
+| Placement | all 56 footprints on the front — single-sided assembly |
+| Gerber set | 2 layers, 1.6 mm, 11 files correctly typed, one drill set, slots in the profile |
+| BOM against the board | all 56 footprints covered by 60 BOM designators (the four module positions are listed as their eight socket rows), none spare, none twice |
 | Isolation | no track, via or pour crosses either slot |
 | Filled ground | 0 unconnected, every GND pad reachable |
 
 The netlist check is the one that matters most, because no DRC can catch a
-wrong net. `RAIL12_EN = 5` meets `J5.3` (D5), `ISO_EN = A1` meets `J3.2`,
+wrong net. `RAIL12_EN = 5` meets `J5B.1` (D5), `ISO_EN = A1` meets `J3.2`,
 `ONE_WIRE_PIN = A2` meets `J3.1`, and RS485 TX/RX meet D4/D3 the right way
 round — `U3.2` is the module's TXD and goes to D4, which the firmware drives
 as its transmit pin.
@@ -206,31 +210,45 @@ the board's top-left corner:
 
 The Value fields sit on `F.Fab`, which is documentation and is never printed,
 so before this the finished board would have carried nothing but reference
-designators. `gen/silk.py` adds 53 texts: every terminal pin by name, the
-cell's polarity, a plus on each electrolytic, `ISOLIERT` on the land bridge
-between the two slots, `PGND NIE AN GND` beside the electrodes, and a legend
+designators. `gen/silk.py` adds 67 texts: every terminal pin by name, the
+cell's polarity, a plus on each electrolytic, `ISOLATED` on the land bridge
+between the two slots, `PGND NEVER TO GND` beside the electrodes, and a legend
 block in the free area right of the WaziSense connectors giving the connector
 functions, which control pin does what, and which parts are deliberately not
 fitted.
 
 ## Fabrication files
 
-`out/fab/` holds everything a board house needs, and `out/KijaniCarrier-gerber.zip`
-is the upload: nine layers, the Excellon drill file and the job file. The drill
+`out/fab/` holds everything a board house needs, and `out/fab/KijaniCarrier-JLCPCB.zip`
+is the upload: nine layers plus the two Excellon drill files, PTH and NPTH.
+
+> **There used to be an `out/KijaniCarrier-gerber.zip` here, and it was a trap.**
+> Built on 7 October, before `D1` became `Q5` and before the 4-pole terminals
+> were split, it had eleven files like the current archive and every copper
+> layer different. It now sits in `out/superseded-2026-10-07/` with a note
+> saying so. `gen/fab.sh` empties `out/fab/` on every run, so the file it
+> writes is always the current one, and `gen/zipcheck.py` reads it back. The drill
 *map* is deliberately left out of the zip — it is a human-readable drawing with
 a frame around it, not a fabrication layer, and it only confuses layer
 detection.
 
 | File | What it is |
 |---|---|
-| `KijaniCarrier-bom-jlcpcb.csv` + `-cpl-jlcpcb.csv` | **49 parts, 23 lines** — SMT and through-hole |
-| `KijaniCarrier-bom-smt.csv` + `-cpl-smt.csv` | 24 parts — reflow only, if you order Economic without THT |
+| `KijaniCarrier-bom-jlcpcb.csv` + `-cpl-jlcpcb.csv` | **53 parts, 21 lines** — SMT and through-hole |
+| `KijaniCarrier-bom-smt.csv` + `-cpl-smt.csv` | 25 parts — reflow only, if you order the SMT set alone |
 | `KijaniCarrier-cpl.csv` | the full placement, every part, for reference |
 
-The `LCSC Part #` column is empty on purpose. JLCPCB's upload matches parts
-interactively, and the `Comment` column carries what it needs to match on
-(`AO3401A`, `SMBJ5.0A`, `SS34`, `KF128-3.5-3P` and so on). A part number
-guessed here would put the wrong component on every board.
+The `LCSC Part #` and `Lib` columns are filled in, and both were read off
+JLCPCB's own stock listing on 12 October 2026 rather than guessed — a guessed
+part number puts the wrong component on every board. `Lib` says Basic or
+Extended, which is what decides the feeder fee. All 21 lines resolve: 11 Basic,
+10 Extended, and every one of the ten is marked *Economic and Standard*, so no
+single part forces the dearer assembly tier.
+
+The terminals are **KF350-3.5** (`C474892` 2-pole, `C474893` 3-pole), not
+KF128. KF128 does not exist at this pitch at all; searching only for that name
+once produced a false "3.50 mm is not stocked", which nearly bought a complete
+5.08 mm redesign of this board.
 
 ### The socket rows
 

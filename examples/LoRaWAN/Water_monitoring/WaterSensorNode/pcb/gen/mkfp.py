@@ -69,19 +69,25 @@ def label(x, y, txt, rot, seed, size=0.8):
             '\t\t(effects (font (size %s %s) (thickness 0.12)))\n\t)\n'
             ) % (txt, x, y, rot, uid(seed), size, size)
 
-def build(name, descr, pads, bw, bh, cw, ch, gap=0):
-    """pads: list of (number, x, y, label)"""
+def build(name, descr, pads, bw, bh, cw, ch, gap=0, cx=0.0, pin1=True):
+    """pads: list of (number, x, y, label). cx offsets the body and the
+       courtyard, for a part whose pin 1 is not in the middle."""
     s = header(name, descr)
-    s += rect(-bw / 2.0, -bh / 2.0, bw / 2.0, bh / 2.0, 'F.SilkS', 0.12, name + 'silk', gap)
-    s += rect(-cw / 2.0, -ch / 2.0, cw / 2.0, ch / 2.0, 'F.CrtYd', 0.05, name + 'crt')
+    s += rect(cx - bw / 2.0, -bh / 2.0, cx + bw / 2.0, bh / 2.0, 'F.SilkS', 0.12, name + 'silk', gap)
+    s += rect(cx - cw / 2.0, -ch / 2.0, cx + cw / 2.0, ch / 2.0, 'F.CrtYd', 0.05, name + 'crt')
     for n, x, y, lab in pads:
-        s += pad(n, x, y, '%s-p%d' % (name, n), 'rect' if n == 1 else 'circle')
+        if name.startswith('TerminalBlock'):
+            s += pad(n, x, y, '%s-p%d' % (name, n),
+                     'roundrect' if n == 1 else 'circle', dia=2.6, drill=1.3)
+        else:
+            s += pad(n, x, y, '%s-p%d' % (name, n), 'rect' if n == 1 else 'circle')
 
     # Pin 1 is the square pad; name it on the silkscreen so the module's own
     # marking can be checked against the board before anything is soldered.
-    n1, x1, y1, lab1 = pads[0]
-    tx = (bw / 2.0 + 3.4) * (1 if x1 > 0 else -1)
-    s += label(round(tx, 2), y1, '1:' + lab1, 0, name + '-pin1', 1.0)
+    if pin1:
+        n1, x1, y1, lab1 = pads[0]
+        tx = (bw / 2.0 + 3.4) * (1 if x1 > 0 else -1)
+        s += label(round(tx, 2), y1, '1:' + lab1, 0, name + '-pin1', 1.0)
     s += ')\n'
     return s
 
@@ -114,6 +120,16 @@ FPS['MAX3485_Module'] = build(
     'MAX3485_Module', 'MAX3485 auto-direction module, vertical. 1 VCC 2 TXD 3 RXD 4 GND. 53 mm tall',
     [(1, -3.81, 0, 'VCC'), (2, -1.27, 0, 'TXD'), (3, 1.27, 0, 'RXD'), (4, 3.81, 0, 'GND')],
     22.0, 4.0, 23.0, 5.0)
+
+# ---- KF350-3.5 2-pole screw terminal, gangable ----------------------------
+#  Pads match the 4Ucon 3.50 library part (2.6 mm pad, 1.3 mm drill) so the
+#  two can sit in the same row. Body 7.00 = 2 x 3.50, courtyard 6.90 so a
+#  ganged neighbour 7.00 mm away clears it by 0.10 mm.
+FPS['TerminalBlock_KF350_1x02'] = build(
+    'TerminalBlock_KF350_1x02',
+    'KF350-3.5-2P screw terminal, 3.50 mm. Gangable: place two 7.00 mm apart and the four pads land on the 3.50 mm grid of a 4-pole part.',
+    [(1, 0, 0, 'P1'), (2, 3.5, 0, 'P2')],
+    7.0, 9.4, 6.9, 9.5, cx=1.75, pin1=False)
 
 for n, body in FPS.items():
     path = os.path.join(LIB, n + '.kicad_mod')

@@ -21,7 +21,7 @@ Designators: `C1`, `C10`, `C3`, `C4`, `C5`, `C6`, `C7`, `C8`, `C9`, `D2`, `F1`, 
 
 ## Assembly BOM (out/fab/KijaniCarrier-bom-jlcpcb.csv)
 
-**29 lines**, 11 Basic and 18 Extended.
+**21 lines**, 11 Basic and 10 Extended.
 
 | Designators | Value | LCSC | Lib |
 |---|---|---|---|
@@ -32,11 +32,9 @@ Designators: `C1`, `C10`, `C3`, `C4`, `C5`, `C6`, `C7`, `C8`, `C9`, `D2`, `F1`, 
 | `C9` | 10uF X5R 25V | C15850 | Basic |
 | `D2` | SMBJ5.0A | C19077558 | Extended |
 | `F1` | PTC 2.6A hold | C70129 | Extended |
-| `J2,J5A` | screw terminal 2P, 3.50 mm (KF350-3.5-2P) | C474892 | Extended |
-| `J3,J4` | screw terminal 3P, 3.50 mm (KF350-3.5-3P) | C474893 | Extended |
-| `J5B,J6` | screw terminal 2P, 3.50 mm (KF350-3.5-2P) | C474892 | Extended |
+| `J2,J5A,J5B,J6,J8,X1,X3A,X3B,X4A,X4B` | screw terminal 2P, 3.50 mm (KF350-3.5-2P) | C474892 | Extended |
+| `J3,J4,X2` | screw terminal 3P, 3.50 mm (KF350-3.5-3P) | C474893 | Extended |
 | `J7,J9` | SMA jack, vertical | C496549 | Extended |
-| `J8,X1` | screw terminal 2P, 3.50 mm (KF350-3.5-2P) | C474892 | Extended |
 | `JP1` | 0R | C21189 | Basic |
 | `Q1,Q3,Q5` | AO3401A | C15127 | Basic |
 | `Q2,Q4` | 2N7002 | C8545 | Basic |
@@ -45,15 +43,9 @@ Designators: `C1`, `C10`, `C3`, `C4`, `C5`, `C6`, `C7`, `C8`, `C9`, `D2`, `F1`, 
 | `R7,R8` | 680R 1% | C23228 | Basic |
 | `R9` | 4k7 1% | C23162 | Basic |
 | `RT1` | 120R 1% | C22787 | Basic |
-| `U1,U6A` | female header 1x3, 2.54 mm | C146243 | Extended |
+| `U1,U6A,U6B,U7A,U7B` | female header 1x3, 2.54 mm | C146243 | Extended |
 | `U3` | female header 1x4, 2.54 mm | C2718488 | Extended |
-| `U4A,U4B` | female header 1x5, 2.54 mm | C50950 | Extended |
-| `U5A,U5B` | female header 1x5, 2.54 mm | C50950 | Extended |
-| `U6B,U7A` | female header 1x3, 2.54 mm | C146243 | Extended |
-| `U7B` | female header 1x3, 2.54 mm | C146243 | Extended |
-| `X2` | screw terminal 3P, 3.50 mm (KF350-3.5-3P) | C474893 | Extended |
-| `X3A,X3B` | screw terminal 2P, 3.50 mm (KF350-3.5-2P) | C474892 | Extended |
-| `X4A,X4B` | screw terminal 2P, 3.50 mm (KF350-3.5-2P) | C474892 | Extended |
+| `U4A,U4B,U5A,U5B` | female header 1x5, 2.54 mm | C50950 | Extended |
 
 ## What the assembly surcharge comes to
 
@@ -67,6 +59,33 @@ Through-hole parts are hand soldered and charged per joint instead.
 | Through-hole joints | 84 |
 | Through-hole labour | 3.50 + 84 x 0.0173 = **4.95 USD** |
 | **Total, once per order** | **10.95 USD** |
+
+## A reference quote (October 2026)
+
+5 bare boards, 2 assembled, Economic, top side, placement confirmation on.
+This supersedes the surcharge ESTIMATE above, which left out the manual
+assembly, stencil, nitrogen reflow and placement-confirmation items.
+
+| Item | EUR |
+|---|---|
+| PCB, 5 pcs | 3.56 |
+| Setup fee | 7.34 |
+| Stencil | 1.38 |
+| Components, 21 items | 7.90 |
+| Extended components fee | 2.75 |
+| SMT assembly | 0.19 |
+| Confirm parts placement | 0.40 |
+| Hand-soldering labour | 3.22 |
+| Manual assembly | 2.66 |
+| Nitrogen reflow | 0.77 |
+| **Total, before shipping** | **30.17** |
+
+**After every BOM upload, check the Select column.** JLCPCB unticks any
+row it flags as possibly matching several part types; an unticked row shows
+quantity 0 and is silently not assembled. On this board that was all 13
+screw terminals and 9 of the 10 socket rows - the plug-and-play half.
+Splitting a part number over several BOM lines does NOT help: JLCPCB does
+not add the lines up.
 
 ## How to configure the order
 
@@ -119,9 +138,19 @@ Files to upload:
 - `C1` is 100uF 16V **D5 x 11 mm, 2.00 mm pitch** (C47344171).
   `C4`/`C8` are 470uF 25V **D10 x 13 mm, 5.00 mm pitch** (C49256798) - the
   5.00 mm pitch is load-bearing, two rails pass between the pads.
-- The SMA jacks `J7`/`J9` stay **vertical** (Amphenol 132134, C3174425).
-  The enclosure feed-through is a separate panel-mount bulkhead jack with a
-  pigtail, decided 12 Oct 2026, so the board is unchanged.
+- The SMA jacks `J7`/`J9` stay **vertical**, and they are **BWSMA-KE-Z001
+  (C496549)**, not the Amphenol 132134 (C3174425) - same holes, a ninth of
+  the price. How the probe cable leaves the enclosure is off the board and
+  does not change it; for the pH line a cable gland with the connector
+  inside is recommended over a wall jack (16 Oct 2026).
+- The placement file holds **body centres**, and for a socket that means
+  the centre of its holes. An early Rev C placement file had U1's 3-pin
+  socket at Y -67.00 instead of -72.50: `centroid.py` took the courtyard of
+  the whole Pololu module, not the pin row. The assembler's placement
+  preview showed it. `gen/cplcheck.py` now fails the build if any THT point
+  is more than 0.05 mm off the centre of its own holes.
+- **Read JLCPCB's placement render for position, not only rotation**:
+  every socket and terminal must cover its holes, no hole left white.
 - Nothing further can be made Basic: JLCPCB's Basic & Promotional Extended
   library (1586 parts) has no Connectors category at all and no electrolytic,
   TVS or fuse.

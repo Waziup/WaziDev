@@ -11,10 +11,10 @@ from __future__ import print_function
 import io, os, re, sys, codecs, glob
 sys.stdout = codecs.getwriter('ascii')(sys.stdout.buffer, 'replace')
 
-PCB = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\KijaniCarrier.kicad_pcb'
-LIBS = [r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\KijaniSpace.pretty',
-        r'C:\Program Files\KiCad\10.0\share\kicad\footprints\Resistor_SMD.pretty',
-        r'C:\Program Files\KiCad\10.0\share\kicad\footprints\TerminalBlock_4Ucon.pretty']
+from paths import PCB, MYLIB, KICAD_FOOTPRINTS
+LIBS = [MYLIB,
+        os.path.join(KICAD_FOOTPRINTS, 'Resistor_SMD.pretty'),
+        os.path.join(KICAD_FOOTPRINTS, 'TerminalBlock_4Ucon.pretty')]
 
 
 def blocks(t, tok):

@@ -11,7 +11,7 @@ import io, re, sys, math, codecs
 sys.stdout = codecs.getwriter('ascii')(sys.stdout.buffer, 'replace')
 from pads import POS, META
 
-PCB = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\KijaniCarrier.kicad_pcb'
+from paths import PCB
 CLEAR = 0.2
 SLOTS = [('pH', 74.0, 94.0, 68.8, 71.2), ('EC', 96.0, 116.0, 68.8, 71.2)]
 

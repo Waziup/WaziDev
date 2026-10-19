@@ -47,11 +47,31 @@ def _blocks(txt, tag):
     return out
 
 
+FOOTPRINT = {}
+
+#  Footprints drawn as the whole module but fitted with a socket row only.
+SOCKET_ONLY = ('Pololu_U3V9F12', 'MAX3485_Module')
+
+#  U4..U7 are one footprint per module, but each takes TWO socket strips,
+#  and an assembly line places one part per designator. These name the two
+#  rows by their first and last pad. They exist only in the assembly files;
+#  the board is untouched, so nothing in the netlist can shift.
+ROWS = {
+    'U4A': ('U4', '1', '5'), 'U4B': ('U4', '6', '10'),
+    'U5A': ('U5', '1', '5'), 'U5B': ('U5', '6', '10'),
+    'U6A': ('U6', '1', '3'), 'U6B': ('U6', '4', '6'),
+    'U7A': ('U7', '1', '3'), 'U7B': ('U7', '4', '6'),
+}
+
+
 def centres(path=PCB):
     s = io.open(path, encoding='utf-8').read()
     out = {}
     for blk in _blocks(s, 'footprint'):
         ref = re.search(r'\(property "Reference" "([^"]+)"', blk)
+        fpname = re.search(r'\(footprint "([^"]+)"', blk).group(1).split(':')[-1]
+        if ref:
+            FOOTPRINT[ref.group(1)] = fpname
         at = re.search(r'\n\t\t\(at ([-\d.]+) ([-\d.]+)(?: ([-\d.]+))?\)', blk)
         if not ref or not at:
             continue
@@ -71,9 +91,31 @@ def centres(path=PCB):
                 ys += [p[1] for p in pts]
         if not xs:
             continue                      # no courtyard: leave it to the origin
+        if 'TerminalBlock' in fpname or fpname in SOCKET_ONLY:
+            # The board's 3.5 mm terminals are KF350s drawn on 4Ucon
+            # footprints, whose courtyard is 0.9 mm deeper on one side than
+            # the other. The KF350 body is centred on its pad row (vendor
+            # footprint data), so the pad centroid is the true body centre.
+            # The courtyard centre put JLCPCB's model 0.455 mm off the pads.
+            # A module footprint whose courtyard is the whole plug-in board
+            # gets only a pin socket from the assembler, and that socket sits
+            # on the pads too: U1's courtyard centre put it 5.5 mm off its
+            # holes, seen in JLCPCB's placement render of 16 Oct.
+            pp = [tuple(map(float, re.search(r'\(at ([-\d.]+) ([-\d.]+)', p).groups()))
+                  for p in _blocks(blk, 'pad') if '(drill ' in p]
+            xs = [p[0] for p in pp]
+            ys = [p[1] for p in pp]
         lx = (min(xs) + max(xs)) / 2.0
         ly = (min(ys) + max(ys)) / 2.0
-        a = math.radians(-rot)
+        #  KiCad's (at x y r) turns a footprint counter-clockwise by r with the
+        #  y axis pointing down, so local (x, y) lands at
+        #  (x cos r + y sin r, -x sin r + y cos r). This line once said -rot,
+        #  which is the same thing at 0 and 180 degrees and the mirror image
+        #  at +-90. Nothing off-centre sits at +-90 on this board, so the
+        #  CPL never moved - but the silkscreen check built on it put U4/U5's
+        #  labels 27 mm from where they are printed, and passed a collision
+        #  the JLCPCB render showed at a glance.
+        a = math.radians(rot)
         out[ref.group(1)] = (ox + lx * math.cos(a) + ly * math.sin(a),
                              oy - lx * math.sin(a) + ly * math.cos(a))
     return out

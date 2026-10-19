@@ -1,3 +1,11 @@
+/* SUPERSEDED 19 Oct 2026 - kept for reference only.
+ * The node now uses WaziGate's built-in XLPP codec (application/x-xlpp),
+ * set up by setup_wazigate_device.js. A script codec like this one can
+ * only decode uplinks: WaziGate cannot encode downlinks with it, so with
+ * this decoder assigned no actuator value ever reached the node, and the
+ * LoRa calibration needs them. The firmware no longer scales EC or
+ * turbidity, so there is nothing left for a decoder to undo.
+ */
 /* ============================================================================
  *  KijaniSpace water node - uplink payload decoder
  * ============================================================================

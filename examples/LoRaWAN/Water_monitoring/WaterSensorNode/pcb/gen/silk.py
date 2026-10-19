@@ -22,7 +22,7 @@ if __name__ != '__main__':
 import io, re, hashlib
 import svg2silk as SVG
 
-PCB = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\KijaniCarrier.kicad_pcb'
+from paths import PCB
 LOGO = 'waziup.svg'
 
 H_PIN, H_NOTE, H_NAME = 0.8, 0.9, 1.1
@@ -74,7 +74,8 @@ t('A', 68.0, 46.6, 0, H_PIN)
 t('B', 71.5, 46.6, 0, H_PIN)
 
 # ---- polarity on the electrolytics ----------------------------------------
-t('+', 42.0, 42.3, 0, H_NAME)      # C1
+#  C1 needs no '+' from here: the CP_Radial footprint prints its own, and a
+#  second one beside it read as two markings.
 t('+', 48.0, 62.3, 0, H_NAME)      # C4
 t('+', 64.0, 62.3, 0, H_NAME)      # C8
 
@@ -101,20 +102,20 @@ t('PGND NEVER TO GND', 95.0, 112.0, 90, H_NOTE)
 #  The three 4-pole terminals were split into ganged 2-pole pairs AFTER that,
 #  which changes what you can plug in - so it is Rev C. Bump this whenever the
 #  copper or the connectors change, not only when a part changes.
+#  The legend has to END above y 55.5, where U5's reference and its 1:VCC
+#  pin label begin. In Rev C it grew by three lines and ran into both - the
+#  JLCPCB render showed 'LEAVE OPEN' printed through 'U5'. Two lines that
+#  only repeated what already stands beside X1 and J6 came out, and so did
+#  the Rev C note: the title carries the letter, the BOM carries the why.
 LEGEND = [
     'KIJANISPACE CARRIER Rev C',
     '',
     'A1=ISOLATORS D5=12V D6=3V3',
-    'X1 = 18650 CELL IN',
-    'J6 = POWER OUT TO WAZISENSE',
     '',
     'D6- IS NOT GND - KEEP APART',
     '',
     'Q5 = IDEAL DIODE, NOT A',
     'SCHOTTKY. REV A HAD D1 HERE.',
-    '',
-    'J5/X3/X4 ARE TWO 2-POLE',
-    'BLOCKS EACH, GANGED (REV C)',
     '',
     'LEAVE OPEN, DO NOT BRIDGE:',
     'R11 R12 U2 (JP1 REPLACES U2)',

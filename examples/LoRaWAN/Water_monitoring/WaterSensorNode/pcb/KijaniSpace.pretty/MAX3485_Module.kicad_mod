@@ -101,7 +101,7 @@
 		(uuid "5251525d-1b20-373b-510b-cea7a8a44679")
 	)
 	(fp_text user "1:VCC"
-		(at -14.4 0 0)
+		(at -8.0 0 0)
 		(layer "F.SilkS")
 		(uuid "a18a3a77-f658-ca5c-6f18-5f00b99d792b")
 		(effects (font (size 1.0 1.0) (thickness 0.12)))

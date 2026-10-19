@@ -9,8 +9,8 @@ if __name__ != '__main__':
     raise ImportError('nets.py rewrites the board file; run it, do not import it')
 import io, re, hashlib
 
-PCB = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\KijaniCarrier.kicad_pcb'
-BOM = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\BOM.csv'
+from paths import PCB
+from paths import BOM
 
 # SOT-23 here is 1=Gate 2=Source 3=Drain; MCP1700 is 1=GND 2=VIN 3=VOUT;
 # diodes 1=cathode 2=anode; SMA 1=centre 2=shield.

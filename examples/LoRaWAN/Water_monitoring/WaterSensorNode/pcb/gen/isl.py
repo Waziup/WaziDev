@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 import pcbnew
-bd = pcbnew.LoadBoard(r'C:\Users\felix\AppData\Local\Temp\claude\C--Users-felix-Claude-temp\3070bea0-d933-40fe-bdde-4ac8c0de3861\scratchpad\filled.kicad_pcb')
+from paths import FILLED
+bd = pcbnew.LoadBoard(FILLED)
 for z in bd.Zones():
     if z.GetNetname() != 'GND':
         continue

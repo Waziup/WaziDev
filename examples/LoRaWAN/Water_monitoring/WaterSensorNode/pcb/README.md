@@ -1,5 +1,8 @@
 # KijaniSpace Carrier — PCB
 
+> **Start at [`../README.md`](../README.md)**: the project overview, all guides in the order to use
+> them, and how to proceed. This file covers the board itself: generator, checks, fabrication files.
+
 Generated for **KiCad 10.0.6**. Open `KijaniCarrier.kicad_pcb`.
 
 ## What is in here
@@ -14,7 +17,7 @@ Generated for **KiCad 10.0.6**. Open `KijaniCarrier.kicad_pcb`.
 | `out/view.svg` | Front copper + silkscreen + outline, for a quick look. `bash gen/views.sh` |
 | `out/KijaniCarrier-top-1zu1.pdf` | The 1:1 print for the paper check, at true scale on A4. `bash gen/views.sh` |
 | `out/footprints/` | One SVG per custom footprint, five of them. `bash gen/views.sh` |
-| `out/superseded-2026-10-07/` | The 7 October files, kept as a record. **Nothing in there is current** — see its own README |
+| `out/fab/` | The current fabrication files, rebuilt from scratch by `bash gen/fab.sh` |
 
 ## Before you open it: register the library
 
@@ -210,7 +213,7 @@ the board's top-left corner:
 
 The Value fields sit on `F.Fab`, which is documentation and is never printed,
 so before this the finished board would have carried nothing but reference
-designators. `gen/silk.py` adds 67 texts: every terminal pin by name, the
+designators. `gen/silk.py` adds 62 texts: every terminal pin by name, the
 cell's polarity, a plus on each electrolytic, `ISOLATED` on the land bridge
 between the two slots, `PGND NEVER TO GND` beside the electrodes, and a legend
 block in the free area right of the WaziSense connectors giving the connector
@@ -225,8 +228,7 @@ is the upload: nine layers plus the two Excellon drill files, PTH and NPTH.
 > **There used to be an `out/KijaniCarrier-gerber.zip` here, and it was a trap.**
 > Built on 7 October, before `D1` became `Q5` and before the 4-pole terminals
 > were split, it had eleven files like the current archive and every copper
-> layer different. It now sits in `out/superseded-2026-10-07/` with a note
-> saying so. `gen/fab.sh` empties `out/fab/` on every run, so the file it
+> layer different. It has been removed. `gen/fab.sh` empties `out/fab/` on every run, so the file it
 > writes is always the current one, and `gen/zipcheck.py` reads it back. The drill
 *map* is deliberately left out of the zip — it is a human-readable drawing with
 a frame around it, not a fabrication layer, and it only confuses layer
@@ -258,6 +260,24 @@ designator. The assembly files therefore name the rows `U4A` … `U7B`, with
 positions computed from the real pad coordinates, and those names are printed
 on the silkscreen beside each row so nobody has to read the CPL alone to find
 them.
+
+`U1` (boost) and `U3` (RS485) are the same idea with one row each: the
+footprint is drawn as the whole plug-in module, but the assembler fits only
+the pin socket. Its placement point is therefore the centre of the **pads**,
+not of the footprint outline.
+
+> **An early Rev C placement file had this wrong for `U1`.** Its socket sat at
+> Y −67.00 in the CPL instead of −72.50 — 5.5 mm above its holes — because
+> `centroid.py` used the courtyard of the whole Pololu module. The
+> assembler's placement preview showed it. `gen/cplcheck.py` now runs in
+> `fab.sh` and fails the build if any through-hole point is more than
+> 0.05 mm off the centre of its own holes, or any SMT point lies outside its
+> pads. To check another set of fabrication files, pass its folder:
+> `python gen/cplcheck.py <folder>`.
+
+When JLCPCB sends the placement render, check **position as well as
+rotation**: every socket and terminal must cover its holes, and no plated hole
+may be left showing white.
 
 Splitting the footprints in the board itself would have been the other way
 round. It was rejected on purpose: it would have moved about sixty net

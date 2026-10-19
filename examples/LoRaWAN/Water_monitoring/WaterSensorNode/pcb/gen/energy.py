@@ -6,7 +6,7 @@
    input voltage is paid for in extra input CURRENT, not in a lower output.
    That is what makes the drop expensive rather than merely inconvenient.
 
-   Figures are Felix's own measurements where they exist; assumptions are
+   Figures are measurements on the prototype where they exist; assumptions are
    named. This is an estimate, not a budget.
 """
 from __future__ import print_function

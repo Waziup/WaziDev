@@ -1,0 +1,55 @@
+<svg viewBox="0 0 860 380" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Two separate ground pours. The main GND pour carries the battery return, the 12 volt converter and the probe terminals. A second, physically separate pour called SWGND carries only the RS485 transceiver, the DS18B20 and the bias pull-down, and connects to the outside world only through the D6 minus terminal of the WaziSense. No copper joins the two pours anywhere on the board."><rect x="-10000" y="-10000" width="20000" height="20000" fill="#ffffff"/>
+        <rect x="0" y="0" width="860" height="380" fill="none"/>
+
+        <!-- main GND pour -->
+        <rect x="20" y="40" width="380" height="300" rx="4" fill="#eceae4" stroke="#4a463f" stroke-width="1.6"/>
+        <text x="36" y="66" font-family="IBM Plex Sans Condensed, sans-serif" font-size="15" font-weight="700" fill="#23211d">GND pour</text>
+        <text x="36" y="84" font-size="11" fill="#777166">bottom layer, permanent</text>
+
+        <g font-size="12" fill="#4a463f">
+          <rect x="44" y="104" width="150" height="30" rx="2" fill="#ffffff" stroke="#d6d2c8"/>
+          <text x="56" y="124">cell return</text>
+          <rect x="44" y="146" width="150" height="30" rx="2" fill="#ffffff" stroke="#d6d2c8"/>
+          <text x="56" y="166">U3V9F12 GND</text>
+          <rect x="44" y="188" width="150" height="30" rx="2" fill="#ffffff" stroke="#d6d2c8"/>
+          <text x="56" y="208">probe terminals</text>
+          <rect x="44" y="230" width="150" height="30" rx="2" fill="#ffffff" stroke="#d6d2c8"/>
+          <text x="56" y="250">WaziSense GND pins</text>
+          <rect x="44" y="272" width="150" height="30" rx="2" fill="#ffffff" stroke="#d6d2c8"/>
+          <text x="56" y="292">WaziSense X1-2</text>
+        </g>
+
+        <!-- the gap -->
+        <rect x="400" y="40" width="46" height="300" fill="none"/>
+        <line x1="423" y1="52" x2="423" y2="328" stroke="#b3231b" stroke-width="2" stroke-dasharray="6 5"/>
+        <text x="423" y="36" text-anchor="middle" font-size="11" fill="#b3231b" font-weight="600">no copper</text>
+
+        <!-- SWGND pour -->
+        <rect x="446" y="40" width="300" height="300" rx="4" fill="#eceae4" stroke="#6b4ea8" stroke-width="2.2"/>
+        <text x="462" y="66" font-family="IBM Plex Sans Condensed, sans-serif" font-size="15" font-weight="700" fill="#6b4ea8">SWGND island</text>
+        <text x="462" y="84" font-size="11" fill="#777166">switched by D6, floats when off</text>
+
+        <g font-size="12" fill="#4a463f">
+          <rect x="470" y="104" width="180" height="30" rx="2" fill="#ffffff" stroke="#d6d2c8"/>
+          <text x="482" y="124">MAX3485 GND</text>
+          <rect x="470" y="146" width="180" height="30" rx="2" fill="#ffffff" stroke="#d6d2c8"/>
+          <text x="482" y="166">DS18B20 GND</text>
+          <rect x="470" y="188" width="180" height="30" rx="2" fill="#ffffff" stroke="#d6d2c8"/>
+          <text x="482" y="208">680 &#937; bias pull-down</text>
+          <rect x="470" y="230" width="180" height="30" rx="2" fill="#ffffff" stroke="#d6d2c8"/>
+          <text x="482" y="250">both isolators, MCU side</text>
+        </g>
+
+        <!-- single exit -->
+        <line x1="596" y1="302" x2="596" y2="336" stroke="#6b4ea8" stroke-width="2.4"/>
+        <circle cx="596" cy="336" r="4.5" fill="#6b4ea8"/>
+        <text x="612" y="341" font-size="12" fill="#6b4ea8" font-weight="600">SW_1 pin 2</text>
+        <text x="612" y="357" font-size="10.5" fill="#777166">the only exit from this island</text>
+
+        <text x="770" y="120" font-size="11" fill="#777166">rail ON:</text>
+        <text x="770" y="136" font-size="11" fill="#777166">island at 0 V</text>
+        <text x="770" y="168" font-size="11" fill="#777166">rail OFF:</text>
+        <text x="770" y="184" font-size="11" fill="#777166">island floats</text>
+        <text x="770" y="200" font-size="11" fill="#777166">to D6(+)</text>
+      </svg>

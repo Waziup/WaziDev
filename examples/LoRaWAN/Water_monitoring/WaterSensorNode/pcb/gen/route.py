@@ -16,7 +16,7 @@ if __name__ != '__main__':
 import io, re, hashlib, importlib
 from pads import POS
 
-PCB = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\KijaniCarrier.kicad_pcb'
+from paths import PCB
 BLOCKS = ['routes_iso', 'routes_a', 'routes_b', 'routes_c', 'routes_d', 'routes_e', 'routes_g']
 VIA_SIZE, VIA_DRILL = 0.8, 0.4
 

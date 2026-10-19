@@ -37,7 +37,9 @@ VENDOR = [
     ('J2,J6,J8,X1,J5A,J5B,X3A,X3B,X4A,X4B',
                                   3.50, None, 1.20, 'C474892  KF350-3.5-2P'),
     ('J3,J4,X2',                  7.00, None, 1.20, 'C474893  KF350-3.5-3P'),
-    ('J7,J9',                     5.08, None, 1.50, 'C3174425 SMA 132134'),
+    #  The fitted jack is the BWSMA-KE-Z001; pitch and hole here are the
+    #  Amphenol 132134's, the part it replaced in the same holes.
+    ('J7,J9',                     5.08, None, 1.50, 'C496549  BWSMA-KE-Z001'),
     ('U1',                        5.08, None, 1.02, 'C146243  1x3 header'),
     ('U3',                        7.62, None, 1.10, 'C2718488 1x4 header'),
 ]

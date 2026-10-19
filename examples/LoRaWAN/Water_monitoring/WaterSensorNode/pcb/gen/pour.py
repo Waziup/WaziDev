@@ -12,7 +12,7 @@ import io, re, sys, math, codecs
 sys.stdout = codecs.getwriter('ascii')(sys.stdout.buffer, 'replace')
 from pads import POS, META
 
-PCB = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\KijaniCarrier.kicad_pcb'
+from paths import PCB
 NET = 'GND'
 STEP = 0.25
 CLEAR = 0.3                      # the zone's own clearance

@@ -4,7 +4,7 @@ from __future__ import print_function
 import io, re, sys, codecs
 sys.stdout = codecs.getwriter('ascii')(sys.stdout.buffer, 'replace')
 
-PCB = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\KijaniCarrier.kicad_pcb'
+from paths import PCB
 SLOTS = [('pH', 74.0, 94.0, 68.8, 71.2), ('EC', 96.0, 116.0, 68.8, 71.2)]
 
 s = io.open(PCB, encoding='utf-8').read()

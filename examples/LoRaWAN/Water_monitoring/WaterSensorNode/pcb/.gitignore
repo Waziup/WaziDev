@@ -1,0 +1,11 @@
+# KiCad: per-user and transient files
+.history/
+*.lck
+*.kicad_prl
+fp-info-cache
+*-backups/
+_autosave-*
+_saved_*
+
+# a DRC report written by pcbnew; gen/views.sh writes the current one to out/drc.txt
+KijaniCarrier-drc.rpt

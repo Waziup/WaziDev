@@ -22,7 +22,7 @@ if __name__ != '__main__':
     raise ImportError('zonecon.py rewrites the board file; run it, do not import it')
 import io
 
-PCB = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\KijaniCarrier.kicad_pcb'
+from paths import PCB
 OVERRIDE = {('C4', '2'): 2, ('U1', '2'): 2}
 
 def blocks(t, tok):

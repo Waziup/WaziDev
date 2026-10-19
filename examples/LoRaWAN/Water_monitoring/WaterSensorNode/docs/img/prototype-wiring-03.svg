@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 460" role="img"
+             aria-label="RS485 wiring detail: the auto-direction transceiver module has only four pins — RXD, TXD, GND and 3.3 volts — wired to board pins D3 and D4 and the switched 3.3 volt rail. It has no direction-control pin. Its ground returns to the switched D6 minus terminal, not to the main ground rail. The A and B lines run as a shielded twisted pair with a single 120 ohm termination resistor at the transceiver end, fail-safe bias resistors of 680 ohms, the pull-up to the permanently live D6 plus terminal and the pull-down to the switched D6 minus return rather than to ground, and two Modbus slaves tapped along the pair. The far end of the pair is left unterminated. The cable shield is grounded at the enclosure end only."><rect x="-10000" y="-10000" width="20000" height="20000" fill="#FFFFFF"/>
+          <defs>
+            <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <g font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">
+
+            <!-- MCU stub -->
+            <rect x="16" y="120" width="120" height="130" rx="2" fill="#EBF1F3" stroke="currentColor" stroke-width="1.4"/>
+            <text x="76" y="146" text-anchor="middle" font-family="IBM Plex Sans Condensed, sans-serif" font-size="13" font-weight="700" fill="#15242A">WaziSense</text>
+            <text x="126" y="176" text-anchor="end" fill="#0D6E88">D3</text>
+            <text x="126" y="200" text-anchor="end" fill="#0D6E88">D4</text>
+            <text x="126" y="230" text-anchor="end" fill="#7B9099" font-size="10">D5 → #2810</text>
+
+            <!-- transceiver -->
+            <rect x="230" y="112" width="150" height="150" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+            <text x="305" y="132" text-anchor="middle" font-family="IBM Plex Sans Condensed, sans-serif" font-size="13" font-weight="700" fill="#15242A">RS485 module</text>
+            <text x="305" y="150" text-anchor="middle" fill="#7B9099" font-size="10">auto-direction</text>
+            <text x="242" y="176">RXD</text>
+            <text x="242" y="200">TXD</text>
+            <text x="242" y="240" fill="#7B9099" font-size="10">direction: internal</text>
+            <text x="368" y="176" text-anchor="end">A</text>
+            <text x="368" y="224" text-anchor="end">B</text>
+
+            <!-- MCU <-> transceiver -->
+            <g stroke="#0D6E88" stroke-width="1.8">
+              <line x1="136" y1="172" x2="236" y2="172"/>
+              <line x1="136" y1="196" x2="236" y2="196"/>
+            </g>
+            <text x="150" y="164" fill="#7B9099" font-size="11">RX</text>
+            <text x="150" y="188" fill="#7B9099" font-size="11">TX</text>
+            <text x="16" y="300" fill="#7B9099" font-size="11">two signal wires only — no DE / RE to route</text>
+
+            <!-- VCC to transceiver -->
+            <line x1="305" y1="112" x2="305" y2="76" stroke="#0D6E88" stroke-width="1.8"/>
+            <line x1="240" y1="76" x2="305" y2="76" stroke="#0D6E88" stroke-width="1.8"/>
+            <text x="236" y="72" text-anchor="end" fill="#0D6E88">+3.3 V sw  (D6(+))</text>
+
+            <!-- A/B pair -->
+            <line x1="380" y1="172" x2="930" y2="172" stroke="#6D3BD1" stroke-width="2.2"/>
+            <line x1="380" y1="220" x2="930" y2="220" stroke="#6D3BD1" stroke-width="2.2"/>
+            <text x="600" y="140" fill="#6D3BD1" font-size="11">A  —  shielded twisted pair</text>
+            <text x="600" y="244" fill="#6D3BD1" font-size="11">B</text>
+
+            <!-- shield: dashed, grounded one end only -->
+            <path d="M 400 258 L 900 258" stroke="#7B9099" stroke-width="1.6" stroke-dasharray="6 5" fill="none"/>
+            <line x1="400" y1="258" x2="400" y2="392" stroke="#7B9099" stroke-width="1.6"/>
+            <circle cx="900" cy="258" r="4" fill="none" stroke="#7B9099" stroke-width="1.6"/>
+            <text x="906" y="262" fill="#7B9099" font-size="11">open — do NOT ground far end</text>
+            <text x="406" y="284" fill="#7B9099" font-size="11">shield grounded at enclosure only</text>
+
+            <!-- near-end 120R termination -->
+            <rect x="398" y="184" width="26" height="24" rx="2" stroke="#6D3BD1" stroke-width="1.6" fill="none"/>
+            <line x1="411" y1="172" x2="411" y2="184" stroke="#6D3BD1" stroke-width="1.6"/>
+            <line x1="411" y1="208" x2="411" y2="220" stroke="#6D3BD1" stroke-width="1.6"/>
+            <text x="430" y="200" fill="#6D3BD1" font-size="11">120 Ω</text>
+
+            <!-- far end: deliberately NOT terminated -->
+            <circle cx="930" cy="172" r="4" fill="none" stroke="#6D3BD1" stroke-width="1.6"/>
+            <circle cx="930" cy="220" r="4" fill="none" stroke="#6D3BD1" stroke-width="1.6"/>
+            <text x="930" y="152" text-anchor="middle" fill="#7B9099" font-size="11">no terminator here</text>
+            <text x="930" y="140" text-anchor="middle" fill="#7B9099" font-size="11">(see note)</text>
+
+            <!-- fail-safe bias -->
+            <rect x="487" y="88" width="26" height="24" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+            <line x1="500" y1="112" x2="500" y2="172" stroke="currentColor" stroke-width="1.4"/>
+            <line x1="500" y1="88"  x2="500" y2="76"  stroke="#0D6E88" stroke-width="1.6"/>
+            <line x1="500" y1="76"  x2="560" y2="76"  stroke="#0D6E88" stroke-width="1.6"/>
+            <text x="566" y="80" fill="#0D6E88" font-size="11">D6(+) — permanently live</text>
+            <text x="519" y="105" font-size="11">680 Ω</text>
+
+            <rect x="487" y="292" width="26" height="24" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/>
+            <line x1="500" y1="220" x2="500" y2="292" stroke="currentColor" stroke-width="1.4"/>
+            <line x1="500" y1="316" x2="500" y2="352" stroke="#0D6E88" stroke-width="1.6"/>
+            <line x1="484" y1="352" x2="516" y2="352" stroke="#0D6E88" stroke-width="2.6"/>
+            <text x="524" y="350" fill="#0D6E88" font-size="11" font-weight="600">D6(−)</text>
+            <text x="524" y="364" fill="#0D6E88" font-size="9.5">switched return</text>
+            <text x="478" y="364" text-anchor="end" fill="#A32C24" font-size="10" font-weight="600">never to GND —</text>
+            <text x="478" y="376" text-anchor="end" fill="#A32C24" font-size="10" font-weight="600">that is 2.2 mA, day and night</text>
+            <text x="519" y="309" font-size="11">680 Ω</text>
+            <text x="519" y="286" font-size="11" fill="#7B9099">fail-safe bias</text>
+
+            <!-- three slaves tapping the pair -->
+            <g stroke="currentColor" stroke-width="1.2" fill="none">
+              <rect x="600" y="316" width="112" height="44" rx="2"/>
+              <rect x="740" y="316" width="112" height="44" rx="2"/>
+              <rect x="600" y="316" width="112" height="44" rx="2"/>
+            </g>
+            <g stroke="#6D3BD1" stroke-width="1.6">
+              <line x1="630" y1="172" x2="630" y2="316"/>
+              <line x1="646" y1="220" x2="646" y2="316"/>
+              <line x1="770" y1="172" x2="770" y2="316"/>
+              <line x1="786" y1="220" x2="786" y2="316"/>
+            </g>
+            <text x="656" y="336" text-anchor="middle">probe n</text>
+            <text x="656" y="352" text-anchor="middle" fill="#7B9099" font-size="11">A B GND +12 V</text>
+            <text x="796" y="336" text-anchor="middle">probe n+1</text>
+            <text x="796" y="352" text-anchor="middle" fill="#7B9099" font-size="11">A B GND +12 V</text>
+
+            <!-- 12V feed to slaves -->
+            <line x1="600" y1="424" x2="860" y2="424" stroke="#B45F09" stroke-width="2.4"/>
+            <g stroke="#B45F09" stroke-width="1.6">
+              <line x1="700" y1="360" x2="700" y2="424"/>
+              <line x1="840" y1="360" x2="840" y2="424"/>
+            </g>
+            <text x="606" y="444" fill="#B45F09" font-size="11">+12 V switched rail (from D5)</text>
+
+            <!-- ground rail -->
+            <line x1="16" y1="392" x2="930" y2="392" stroke="#7B9099" stroke-width="2.6"/>
+            <g stroke="#7B9099" stroke-width="1.4">
+              <line x1="76"  y1="250" x2="76"  y2="392"/>
+              <line x1="672" y1="360" x2="672" y2="392"/>
+              <line x1="812" y1="360" x2="812" y2="392"/>
+            </g>
+            <!-- the transceiver's ground does NOT go to the GND rail -->
+            <line x1="305" y1="262" x2="305" y2="352" stroke="#0D6E88" stroke-width="1.8"/>
+            <line x1="305" y1="352" x2="484" y2="352" stroke="#0D6E88" stroke-width="1.8"/>
+            <circle cx="500" cy="352" r="3.5" fill="#0D6E88"/>
+            <text x="310" y="344" fill="#0D6E88" font-size="10">transceiver GND → D6(−), not the rail below</text>
+            <text x="24" y="384" fill="#7B9099" font-size="11">GND</text>
+          </g>
+        </svg>

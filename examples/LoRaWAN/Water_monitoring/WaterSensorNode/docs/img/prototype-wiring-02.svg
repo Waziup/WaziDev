@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" role="img"
+             aria-label="Block diagram: solar and battery feed a protection stage, which powers the WaziSense board and a boost converter. Two on-board low-side switches gate the return of a 3.3 volt sensor rail from pin D6 and, in this build, a Pololu MOSFET switch on the battery side gates the boost converter from pin D5. The board drives an I2C bus to two Atlas EZO circuits, an RS485 bus through an auto-direction transceiver to two Modbus probes, and a DS18B20 temperature probe on a 1-Wire line from pin A2. The PT1000 and its MAX31865 front-end are not fitted in this build."><rect x="-10000" y="-10000" width="20000" height="20000" fill="#FFFFFF"/>
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+            <marker id="ar12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#B45F09"/>
+            </marker>
+            <marker id="ard" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#6D3BD1"/>
+            </marker>
+          </defs>
+
+          <g font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">
+
+            <!-- ============ POWER ROW ============ -->
+            <g stroke="currentColor" stroke-width="1.2" fill="none">
+              <rect x="16"  y="30" width="126" height="52" rx="2"/>
+              <rect x="196" y="30" width="126" height="52" rx="2"/>
+              <rect x="376" y="30" width="126" height="52" rx="2"/>
+              <rect x="556" y="30" width="126" height="52" rx="2"/>
+            </g>
+            <text x="79"  y="52" text-anchor="middle">Solar panel</text>
+            <text x="79"  y="68" text-anchor="middle" fill="#7B9099">12 V · 5–10 W</text>
+            <text x="259" y="52" text-anchor="middle">Charge ctrl</text>
+            <text x="259" y="68" text-anchor="middle" fill="#7B9099">MPPT</text>
+            <text x="439" y="52" text-anchor="middle">Battery</text>
+            <text x="439" y="68" text-anchor="middle" fill="#7B9099">18650 1–2× ∥</text>
+            <text x="619" y="52" text-anchor="middle">Protection</text>
+            <text x="619" y="68" text-anchor="middle" fill="#7B9099">PTC · SS34 · TVS</text>
+
+            <!-- power row arrows -->
+            <g stroke="#B45F09" stroke-width="2" marker-end="url(#ar12)">
+              <line x1="142" y1="56" x2="190" y2="56"/>
+              <line x1="322" y1="56" x2="370" y2="56"/>
+              <line x1="502" y1="56" x2="550" y2="56"/>
+            </g>
+
+            <!-- split from protection -->
+            <path d="M 682 56 L 730 56" stroke="#B45F09" stroke-width="2" fill="none"/>
+            <path d="M 730 56 L 730 118" stroke="#B45F09" stroke-width="2" fill="none" marker-end="url(#ar12)"/>
+            <path d="M 619 82 L 619 250 L 300 250" stroke="#0D6E88" stroke-width="2" fill="none" marker-end="url(#ar)" color="#0D6E88"/>
+            <text x="470" y="242" fill="#0D6E88">3.7 V → board VIN</text>
+
+            <!-- boost + gate -->
+            <g stroke="currentColor" stroke-width="1.2" fill="none">
+              <rect x="666" y="122" width="128" height="50" rx="2"/>
+              <rect x="666" y="200" width="128" height="50" rx="2"/>
+            </g>
+            <text x="730" y="143" text-anchor="middle">Pololu #2810</text>
+            <text x="730" y="159" text-anchor="middle" fill="#7B9099">MOSFET switch</text>
+            <text x="730" y="221" text-anchor="middle">U3V9F12</text>
+            <text x="730" y="237" text-anchor="middle" fill="#7B9099">→ 12 V fixed</text>
+            <line x1="730" y1="172" x2="730" y2="196" stroke="#B45F09" stroke-width="2" marker-end="url(#ar12)"/>
+
+            <!-- gate control from board -->
+            <path d="M 300 300 L 620 300 L 620 147 L 662 147" stroke="#0D6E88" stroke-width="1.6"
+                  stroke-dasharray="5 4" fill="none" marker-end="url(#ar)" color="#0D6E88"/>
+            <text x="376" y="292" fill="#0D6E88">D5 · #2810 ON</text>
+
+            <!-- 12 V bus bar -->
+            <line x1="730" y1="250" x2="730" y2="330" stroke="#B45F09" stroke-width="2"/>
+            <line x1="470" y1="330" x2="960" y2="330" stroke="#B45F09" stroke-width="3"/>
+            <text x="836" y="322" fill="#B45F09">+12 V switched rail</text>
+            <!-- bulk cap on the rail -->
+            <g stroke="#B45F09" stroke-width="2">
+              <line x1="660" y1="330" x2="660" y2="352"/>
+              <line x1="648" y1="352" x2="672" y2="352"/>
+              <line x1="648" y1="359" x2="672" y2="359"/>
+            </g>
+            <text x="676" y="364" fill="#7B9099" font-size="11">1000 µF</text>
+
+            <!-- ============ BOARD ============ -->
+            <rect x="16" y="262" width="284" height="222" rx="2" fill="#EBF1F3" stroke="currentColor" stroke-width="1.4"/>
+            <text x="32" y="288" font-family="IBM Plex Sans Condensed, sans-serif" font-size="15" font-weight="700" fill="#15242A">WaziSenseV2</text>
+            <text x="32" y="305" fill="#7B9099" font-size="11">ATmega328P · 3.3 V logic</text>
+            <line x1="16" y1="316" x2="300" y2="316" stroke="#B9CAD1" stroke-width="1"/>
+
+            <text x="32" y="340" fill="#0D6E88">A4 SDA   A5 SCL</text>
+            <text x="32" y="360" fill="#6D3BD1">D3 RX   D4 TX   (no DE pin)</text>
+            <text x="32" y="380" fill="currentColor">A2 1-Wire   D11/12/13 SPI (radio)</text>
+            <text x="32" y="400" fill="currentColor">D5 12V-EN  D6 3V3-EN  A1 ISO-EN  D8 LED  A0 VBAT</text>
+
+            <line x1="16" y1="414" x2="300" y2="414" stroke="#B9CAD1" stroke-width="1"/>
+            <text x="32" y="438">SX1276 radio</text>
+            <text x="32" y="456" fill="#7B9099" font-size="11">EU868 · SF12 · ABP</text>
+            <!-- antenna -->
+            <line x1="230" y1="446" x2="272" y2="446" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M 272 434 L 272 458" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M 278 438 L 278 454" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M 284 442 L 284 450" stroke="currentColor" stroke-width="1.6"/>
+            <text x="216" y="472" fill="#7B9099" font-size="11">λ/2 dipole</text>
+
+            <!-- ============ I2C BRANCH ============ -->
+            <path d="M 300 340 L 356 340" stroke="#0D6E88" stroke-width="2" fill="none" marker-end="url(#ar)" color="#0D6E88"/>
+            <g stroke="currentColor" stroke-width="1.2" fill="none">
+              <rect x="360" y="392" width="126" height="46" rx="2"/>
+              <rect x="360" y="448" width="126" height="46" rx="2"/>
+            </g>
+            <path d="M 356 340 L 356 415 L 356 471" stroke="#0D6E88" stroke-width="2" fill="none"/>
+            <path d="M 356 415 L 356 415" stroke="#0D6E88" stroke-width="2"/>
+            <line x1="356" y1="415" x2="360" y2="415" stroke="#0D6E88" stroke-width="2"/>
+            <line x1="356" y1="471" x2="360" y2="471" stroke="#0D6E88" stroke-width="2"/>
+            <text x="423" y="411" text-anchor="middle">EZO-pH</text>
+            <text x="423" y="428" text-anchor="middle" fill="#7B9099" font-size="11">I²C 0x63</text>
+            <text x="423" y="467" text-anchor="middle">EZO-EC</text>
+            <text x="423" y="484" text-anchor="middle" fill="#7B9099" font-size="11">I²C 0x64</text>
+            <text x="304" y="356" fill="#0D6E88" font-size="11">I²C</text>
+
+            <!-- BNC probes -->
+            <g stroke="currentColor" stroke-width="1.2" fill="none">
+              <rect x="536" y="392" width="112" height="46" rx="2" stroke-dasharray="4 3"/>
+              <rect x="536" y="448" width="112" height="46" rx="2" stroke-dasharray="4 3"/>
+            </g>
+            <line x1="486" y1="415" x2="532" y2="415" stroke="currentColor" stroke-width="1.6" marker-end="url(#ar)"/>
+            <line x1="486" y1="471" x2="532" y2="471" stroke="currentColor" stroke-width="1.6" marker-end="url(#ar)"/>
+            <text x="592" y="411" text-anchor="middle">pH probe</text>
+            <text x="592" y="428" text-anchor="middle" fill="#7B9099" font-size="11">BNC</text>
+            <text x="592" y="467" text-anchor="middle">EC probe K1.0</text>
+            <text x="592" y="484" text-anchor="middle" fill="#7B9099" font-size="11">BNC</text>
+
+            <!-- ============ RS485 BRANCH ============ -->
+            <path d="M 300 360 L 356 360" stroke="#6D3BD1" stroke-width="2" fill="none" marker-end="url(#ard)"/>
+            <rect x="360" y="336" width="110" height="48" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/>
+            <text x="415" y="356" text-anchor="middle">RS485 module</text>
+            <text x="415" y="372" text-anchor="middle" fill="#7B9099" font-size="11">auto-dir · 3.3 V</text>
+
+            <!-- A/B pair going right -->
+            <line x1="470" y1="352" x2="960" y2="352" stroke="#6D3BD1" stroke-width="2"/>
+            <line x1="470" y1="360" x2="960" y2="360" stroke="#6D3BD1" stroke-width="2"/>
+            <text x="700" y="378" fill="#6D3BD1" font-size="11">RS485 A / B — Modbus-RTU 9600 8N1</text>
+
+            <!-- three slaves -->
+            <g stroke="currentColor" stroke-width="1.2" fill="none">
+              <rect x="700" y="392" width="126" height="46" rx="2"/>
+              <rect x="700" y="448" width="126" height="46" rx="2"/>
+              <rect x="700" y="504" width="126" height="46" rx="2"/>
+            </g>
+            <g stroke="#6D3BD1" stroke-width="1.6">
+              <line x1="740" y1="360" x2="740" y2="392"/>
+              <line x1="740" y1="438" x2="740" y2="448"/>
+            </g>
+            <g stroke="#B45F09" stroke-width="1.6">
+              <line x1="800" y1="330" x2="800" y2="392"/>
+              <line x1="800" y1="438" x2="800" y2="448"/>
+            </g>
+            <text x="763" y="411" text-anchor="middle">DO SEN0680</text>
+            <text x="763" y="428" text-anchor="middle" fill="#7B9099" font-size="11">0x01 @ 4800 · 10–30 V</text>
+            <text x="763" y="467" text-anchor="middle">Y511-A turbidity</text>
+            <text x="763" y="484" text-anchor="middle" fill="#7B9099" font-size="11">0x01 @ 9600 · 12 V · wiper</text>
+
+            <!-- Temperature: DS18B20 straight on 1-Wire, no front-end board -->
+            <path d="M 300 400 L 340 400 L 340 527 L 696 527" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            <text x="348" y="466" fill="#7B9099" font-size="11">1-Wire</text>
+            <text x="348" y="484" fill="#7B9099" font-size="11">A2 · needs a</text>
+            <text x="348" y="500" fill="#7B9099" font-size="11">4.7 kΩ pull-up</text>
+            <text x="763" y="523" text-anchor="middle">DS18B20</text>
+            <text x="763" y="540" text-anchor="middle" fill="#7B9099" font-size="11">sealed probe · 3 wires</text>
+
+            <!-- ============ COMMON GROUND ============ -->
+            <line x1="16" y1="576" x2="960" y2="576" stroke="#7B9099" stroke-width="3"/>
+            <g stroke="#7B9099" stroke-width="1.4">
+              <line x1="158" y1="484" x2="158" y2="576"/>
+              <line x1="423" y1="494" x2="423" y2="576"/>
+              <line x1="763" y1="550" x2="763" y2="576"/>
+              <line x1="619" y1="82"  x2="619" y2="96"/>
+            </g>
+            <text x="24" y="568" fill="#7B9099" font-size="11">GND — one continuous rail, never switched</text>
+          </g>
+        </svg>

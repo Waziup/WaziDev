@@ -37,19 +37,20 @@
  *                      0.0 uS/cm in any liquid - which looks like a dead probe.
  *    Cal,clear         wipe any previous calibration
  *    Cal,dry           IN AIR, probe completely dry. ALWAYS FIRST.
- *    Cal,one,<value>   single point
+ *    Cal,<value>       single point, e.g. Cal,84 (this file said Cal,one,<value>
+ *                      until 19 Oct 2026 - not an Atlas command; check Cal,?)
  *    Cal,low,<value> / Cal,high,<value>    two point
  *    Cal,?             how many points are stored - expect ?CAL,1 or ?CAL,2
  *
  *  VALUES GO IN AS uS/cm, WHATEVER THE BOTTLE SAYS. The standards here are
  *  1413 uS/cm, 12.88 mS/cm and 111.3 mS/cm - a decade series of KCl, 0.01 M,
- *  0.1 M and 1 M. Two of the three labels are MILLI. Typing Cal,one,12.88
+ *  0.1 M and 1 M. Two of the three labels are MILLI. Typing Cal,12.88
  *  because that is what is printed calibrates a 12880 uS/cm solution as
  *  12.88 uS/cm, and nothing reports an error. Enter 1413, 12880, 111300.
  *
  *  AND NONE OF THEM MATCHES THIS WATER. Lake Victoria is near 100 uS/cm;
  *  the lowest standard here is 14x above that. Order an 84 uS/cm standard
- *  before deployment. Until it arrives: Cal,dry then Cal,one,1413, and read
+ *  before deployment. Until it arrives: Cal,dry then Cal,1413, and read
  *  12.88 mS/cm afterwards WITHOUT recalibrating to see the linearity.
  *
  *  All three are specified at 25 C / 77 F, so set T,<temperature> first.
@@ -209,7 +210,7 @@ void setup() {
   Serial.println();
   Serial.println(F(" pH:  Cal,mid,7.00  then  Cal,low,4.00  then"));
   Serial.println(F("      Cal,high,10.00   (mid FIRST - it clears the rest)"));
-  Serial.println(F(" EC:  Cal,dry  then  Cal,one,<value>"));
+  Serial.println(F(" EC:  Cal,dry  then  Cal,<value>"));
   Serial.println(F("--------------------------------------------------"));
 
   if (!busIdle()) {

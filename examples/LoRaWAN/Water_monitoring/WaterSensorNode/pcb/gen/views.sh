@@ -9,7 +9,7 @@
 # board can produce should be produced by the board.
 set -e
 cd "$(dirname "$0")/.."
-K="/c/Program Files/KiCad/10.0/bin/kicad-cli.exe"
+K="${KICAD_CLI:-/c/Program Files/KiCad/10.0/bin/kicad-cli.exe}"
 PCB=KijaniCarrier.kicad_pcb
 VIEW="F.Cu,F.Silkscreen,Edge.Cuts"
 

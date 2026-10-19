@@ -1,0 +1,23 @@
+# ---------------------------------------------------------------------------
+#  Local-only material: kept on disk, never published
+# ---------------------------------------------------------------------------
+# project notes for AI-assisted work, including personal and order details
+CLAUDE.md
+# the files exactly as ordered, and an old superseded fabrication set
+pcb/out/ordered-*/
+pcb/out/superseded-*/
+
+# ---------------------------------------------------------------------------
+#  Backups, editors, build output
+# ---------------------------------------------------------------------------
+*.bak*
+*.sw?
+*~
+.env
+build/
+__pycache__/
+*.pyc
+
+# A parent repository may ignore `build*` (the WaziDev repository does).
+# That would also drop the PCB generator script, so bring it back:
+!build.sh

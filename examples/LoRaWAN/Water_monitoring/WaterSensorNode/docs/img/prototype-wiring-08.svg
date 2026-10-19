@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 400" role="img"
+             aria-label="Terminal block X2 has four terminals: plus 12 volt switched, ground, RS485 A and RS485 B. Eight wires fan out from these four terminals, four to each of the two probes: dissolved oxygen and Y511-A turbidity. Temperature is not on this bus. No termination resistor is fitted at the probes; the single 120 ohm terminator sits at the transceiver."><rect x="-10000" y="-10000" width="20000" height="20000" fill="#FFFFFF"/>
+          <g font-family="IBM Plex Mono, monospace" font-size="11.5" fill="currentColor">
+
+            <!-- terminal block X2 -->
+            <rect x="60" y="60" width="150" height="240" rx="2" fill="#EBF1F3" stroke="currentColor" stroke-width="1.4"/>
+            <text x="135" y="48" text-anchor="middle" font-family="IBM Plex Sans Condensed, sans-serif" font-size="13" font-weight="700" fill="#15242A">Terminal block X2</text>
+
+            <g stroke="currentColor" stroke-width="1.1" fill="none">
+              <rect x="76" y="80"  width="118" height="44" rx="2"/>
+              <rect x="76" y="134" width="118" height="44" rx="2"/>
+              <rect x="76" y="188" width="118" height="44" rx="2"/>
+              <rect x="76" y="242" width="118" height="44" rx="2"/>
+            </g>
+            <text x="88" y="107" fill="#B45F09">X2-1  +12 V</text>
+            <text x="88" y="161" fill="#7B9099">X2-2  GND</text>
+            <text x="88" y="215" fill="#6D3BD1">X2-3  A</text>
+            <text x="88" y="269" fill="#6D3BD1">X2-4  B</text>
+
+            <!-- probe boxes -->
+            <g stroke="currentColor" stroke-width="1.3" fill="none">
+              <rect x="700" y="56" width="230" height="66" rx="2"/>
+              <rect x="700" y="152" width="230" height="66" rx="2"/>
+            </g>
+            <text x="716" y="80">DO — DFRobot SEN0680</text>
+            <text x="716" y="98" fill="#7B9099" font-size="10">addr 0x01 @ 4800 · 10–30 V</text>
+            <text x="716" y="110" fill="#7B9099" font-size="10">V+ · V− · A · B</text>
+            <text x="716" y="176">Y511-A turbidity</text>
+            <text x="716" y="194" fill="#7B9099" font-size="10">addr 0x01 @ 9600 · 12 V · wiper</text>
+            <text x="716" y="206" fill="#7B9099" font-size="10">V+ · V− · A · B</text>
+            <text x="700" y="272" fill="#7B9099" font-size="10">temperature is not on this bus —</text>
+            <text x="700" y="286" fill="#7B9099" font-size="10">bare 3-wire RTD via MAX31865 on SPI (Table 07b)</text>
+
+            <!-- 4 wires x 2 probes -->
+            <!-- +12 V -->
+            <g stroke="#B45F09" stroke-width="1.8" fill="none">
+              <path d="M 194 96 L 300 96 L 300 68 L 700 68"/>
+              <path d="M 194 100 L 320 100 L 320 164 L 700 164"/>
+            </g>
+            <!-- GND -->
+            <g stroke="#7B9099" stroke-width="1.8" fill="none">
+              <path d="M 194 150 L 380 150 L 380 82 L 700 82"/>
+              <path d="M 194 154 L 400 154 L 400 178 L 700 178"/>
+            </g>
+            <!-- A -->
+            <g stroke="#6D3BD1" stroke-width="1.8" fill="none">
+              <path d="M 194 204 L 460 204 L 460 96 L 700 96"/>
+              <path d="M 194 208 L 480 208 L 480 192 L 700 192"/>
+            </g>
+            <!-- B -->
+            <g stroke="#6D3BD1" stroke-width="1.8" stroke-dasharray="7 3" fill="none">
+              <path d="M 194 258 L 540 258 L 540 110 L 700 110"/>
+              <path d="M 194 262 L 560 262 L 560 206 L 700 206"/>
+            </g>
+
+            <text x="300" y="46" fill="#B45F09" font-size="10">2 × V+</text>
+            <text x="380" y="130" fill="#7B9099" font-size="10">2 × V−</text>
+            <text x="462" y="240" fill="#6D3BD1" font-size="10">2 × A</text>
+            <text x="546" y="336" fill="#6D3BD1" font-size="10">2 × B (dashed)</text>
+
+            <!-- probes are deliberately unterminated -->
+            <text x="930" y="252" text-anchor="end" fill="#7B9099" font-size="10">no terminator at the probes —</text>
+            <text x="930" y="264" text-anchor="end" fill="#7B9099" font-size="10">the single 120 Ω sits at the transceiver</text>
+
+            <text x="60" y="370" fill="#7B9099" font-size="11">Probe lead colours are vendor-specific — always confirm against the probe's own datasheet before crimping.</text>
+          </g>
+        </svg>

@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 400" role="img"
+             aria-label="Protection schematic. From the battery positive terminal, a PTC fuse and then an SS34 Schottky diode are wired in series, the diode cathode facing away from the battery toward the load. At the output node an SMBJ5.0A transient voltage suppressor is wired in parallel to ground, with its cathode facing the positive rail. The battery negative connects directly to the ground rail."><rect x="-10000" y="-10000" width="20000" height="20000" fill="#FFFFFF"/>
+          <defs>
+            <marker id="cur" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#B45F09"/>
+            </marker>
+          </defs>
+          <g font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">
+
+            <!-- ===== battery symbol ===== -->
+            <g stroke="#B45F09" stroke-width="2">
+              <line x1="110" y1="110" x2="110" y2="165"/>
+            </g>
+            <g stroke="currentColor" stroke-width="2">
+              <line x1="90"  y1="165" x2="130" y2="165"/>
+              <line x1="99"  y1="175" x2="121" y2="175"/>
+              <line x1="90"  y1="185" x2="130" y2="185"/>
+              <line x1="99"  y1="195" x2="121" y2="195"/>
+            </g>
+            <line x1="110" y1="195" x2="110" y2="300" stroke="#7B9099" stroke-width="2"/>
+            <text x="138" y="162" fill="#B45F09" font-size="14">+</text>
+            <text x="138" y="200" fill="#7B9099" font-size="14">−</text>
+            <text x="110" y="240" text-anchor="middle" fill="#7B9099" font-size="11">Battery</text>
+            <text x="110" y="256" text-anchor="middle" fill="#7B9099" font-size="11">3.0–4.2 V</text>
+
+            <!-- ===== positive line ===== -->
+            <g stroke="#B45F09" stroke-width="2">
+              <line x1="110" y1="110" x2="200" y2="110"/>
+              <line x1="246" y1="110" x2="320" y2="110"/>
+              <line x1="342" y1="110" x2="700" y2="110"/>
+            </g>
+
+            <!-- PTC symbol: resistor box with diagonal -->
+            <rect x="200" y="99" width="46" height="22" rx="1" fill="#FFFFFF" stroke="currentColor" stroke-width="1.6"/>
+            <line x1="205" y1="117" x2="241" y2="103" stroke="currentColor" stroke-width="1.6"/>
+            <text x="223" y="86" text-anchor="middle" font-size="12">PTC</text>
+            <text x="223" y="142" text-anchor="middle" fill="#7B9099" font-size="10">2.6 A / 6 V</text>
+            <text x="223" y="156" text-anchor="middle" fill="#7B9099" font-size="10">not polarised</text>
+
+            <!-- SS34 diode symbol -->
+            <polygon points="320,98 320,122 342,110" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <line x1="342" y1="96" x2="342" y2="124" stroke="currentColor" stroke-width="2.4"/>
+            <text x="331" y="84" text-anchor="middle" font-size="12">SS34</text>
+            <text x="316" y="142" text-anchor="end" fill="#7B9099" font-size="10">anode</text>
+            <text x="348" y="142" fill="#7B9099" font-size="10">cathode = printed ring</text>
+            <text x="348" y="156" fill="#7B9099" font-size="10">ring points AWAY from battery</text>
+
+            <!-- current direction -->
+            <line x1="420" y1="80" x2="500" y2="80" stroke="#B45F09" stroke-width="1.6" marker-end="url(#cur)"/>
+            <text x="460" y="70" text-anchor="middle" fill="#B45F09" font-size="10">normal current flow</text>
+
+            <!-- junction + output -->
+            <circle cx="480" cy="110" r="4" fill="#B45F09"/>
+            <circle cx="700" cy="110" r="5" fill="#FFFFFF" stroke="#B45F09" stroke-width="2"/>
+            <text x="716" y="106" fill="#B45F09">+VBATT</text>
+            <text x="716" y="124" fill="#7B9099" font-size="10">→ X1-1 · boost IN+ · board VIN</text>
+
+            <!-- ===== TVS shunt ===== -->
+            <line x1="480" y1="110" x2="480" y2="192" stroke="#B45F09" stroke-width="2"/>
+            <path d="M 464 182 L 464 192 L 496 192 L 496 202" fill="none" stroke="currentColor" stroke-width="2.4"/>
+            <polygon points="468,214 492,214 480,192" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            <line x1="480" y1="214" x2="480" y2="300" stroke="#7B9099" stroke-width="2"/>
+            <text x="512" y="188" font-size="12">SMBJ5.0A</text>
+            <text x="512" y="204" fill="#7B9099" font-size="10">cathode (ring) UP, to +</text>
+            <text x="512" y="218" fill="#7B9099" font-size="10">anode DOWN, to GND</text>
+            <text x="512" y="232" fill="#7B9099" font-size="10">reverse-biased = blocks normally</text>
+
+            <!-- ===== ground rail ===== -->
+            <line x1="110" y1="300" x2="700" y2="300" stroke="#7B9099" stroke-width="2.6"/>
+            <line x1="300" y1="300" x2="300" y2="322" stroke="#7B9099" stroke-width="2"/>
+            <g stroke="#7B9099" stroke-width="2.2">
+              <line x1="282" y1="322" x2="318" y2="322"/>
+              <line x1="288" y1="329" x2="312" y2="329"/>
+              <line x1="294" y1="336" x2="306" y2="336"/>
+            </g>
+            <text x="300" y="360" text-anchor="middle" fill="#7B9099" font-size="11">GND / X1-2</text>
+            <text x="560" y="286" fill="#7B9099" font-size="10">the negative line is never interrupted</text>
+          </g>
+        </svg>

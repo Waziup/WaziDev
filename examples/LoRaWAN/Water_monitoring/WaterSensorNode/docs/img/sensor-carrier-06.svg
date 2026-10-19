@@ -1,0 +1,64 @@
+<svg viewBox="0 0 940 440" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Schematic sheet C. SDA and SCL arrive from connector J5 and run to the data A and B pins of both isolators U4 and U5. Each isolator takes its supply from ISO_VIN and its ground from SWGND, and leaves its enable pin unconnected. Beyond each isolator's barrier, an isolated 3.9 volt supply and a separate isolated ground feed an EZO circuit: U6 for pH with an SMA connector J7 for the probe, and U7 for conductivity with a two-way terminal X5. Optional 47 kilohm pull-ups R11 and R12 are marked do-not-populate."><rect x="-10000" y="-10000" width="20000" height="20000" fill="#ffffff"/>
+        <rect width="940" height="440" fill="none"/>
+        <g font-family="IBM Plex Mono, monospace" font-size="11" fill="#4a463f">
+
+          <line x1="16" y1="48" x2="900" y2="48" stroke="#6D3BD1" stroke-width="2"/>
+          <line x1="16" y1="72" x2="900" y2="72" stroke="#6D3BD1" stroke-width="2"/>
+          <text x="20" y="40" fill="#6D3BD1" font-size="10">SDA (A4)</text>
+          <text x="20" y="90" fill="#6D3BD1" font-size="10">SCL (A5)</text>
+          <line x1="16" y1="110" x2="900" y2="110" stroke="#a83277" stroke-width="2"/>
+          <text x="20" y="104" fill="#a83277" font-size="10">ISO_VIN</text>
+          <line x1="16" y1="134" x2="900" y2="134" stroke="#6b4ea8" stroke-width="2"/>
+          <text x="20" y="150" fill="#6b4ea8" font-size="10">SWGND</text>
+
+          <text x="150" y="176" fill="#777166" font-size="9">R11 / R12  47 k&#937; to 3V3REG &#8212; DNP, see note</text>
+
+          <g>
+            <rect x="330" y="200" width="200" height="110" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+            <text x="430" y="222" text-anchor="middle" font-size="10" fill="#23211d">U4  isolator &#183; pH</text>
+            <text x="430" y="236" text-anchor="middle" font-size="8.5">EN open = enabled</text>
+            <line x1="330" y1="256" x2="530" y2="256" stroke="#b3231b" stroke-width="1.5" stroke-dasharray="6 4"/>
+            <text x="430" y="276" text-anchor="middle" font-size="8.5">iso 3.9 V &#183; iso GND &#183; data A/B</text>
+            <rect x="330" y="340" width="200" height="56" rx="2" fill="#eceae4" stroke="currentColor" stroke-width="1.4"/>
+            <text x="430" y="362" text-anchor="middle" font-size="10" fill="#23211d">U6  EZO-pH  0x63</text>
+            <text x="430" y="376" text-anchor="middle" font-size="8.5">VCC PRB PGND / GND TX RX</text>
+            <text x="560" y="366" font-size="9.5">J7 SMA &#8594; probe</text>
+            <line x1="530" y1="362" x2="552" y2="362" stroke="currentColor" stroke-width="1.4"/>
+          </g>
+          <g>
+            <rect x="640" y="200" width="200" height="110" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+            <text x="740" y="222" text-anchor="middle" font-size="10" fill="#23211d">U5  isolator &#183; EC</text>
+            <line x1="640" y1="256" x2="840" y2="256" stroke="#b3231b" stroke-width="1.5" stroke-dasharray="6 4"/>
+            <text x="740" y="276" text-anchor="middle" font-size="8.5">iso 3.9 V &#183; iso GND &#183; data A/B</text>
+            <rect x="640" y="340" width="200" height="56" rx="2" fill="#eceae4" stroke="currentColor" stroke-width="1.4"/>
+            <text x="740" y="362" text-anchor="middle" font-size="10" fill="#23211d">U7  EZO-EC  0x64</text>
+            <text x="740" y="376" text-anchor="middle" font-size="8.5">needs K,1.0 then Cal,dry</text>
+            <text x="862" y="366" font-size="9.5">X5 &#8594; probe</text>
+            <line x1="840" y1="362" x2="858" y2="362" stroke="currentColor" stroke-width="1.4"/>
+          </g>
+
+          <g stroke="#6D3BD1" stroke-width="1.5">
+            <line x1="366" y1="48" x2="366" y2="200"/><line x1="396" y1="72" x2="396" y2="200"/>
+            <line x1="676" y1="48" x2="676" y2="200"/><line x1="706" y1="72" x2="706" y2="200"/>
+          </g>
+          <g fill="#6D3BD1">
+            <circle cx="366" cy="48" r="3"/><circle cx="396" cy="72" r="3"/>
+            <circle cx="676" cy="48" r="3"/><circle cx="706" cy="72" r="3"/>
+          </g>
+          <g stroke="#a83277" stroke-width="1.5">
+            <line x1="470" y1="110" x2="470" y2="200"/><line x1="780" y1="110" x2="780" y2="200"/>
+          </g>
+          <g fill="#a83277"><circle cx="470" cy="110" r="3"/><circle cx="780" cy="110" r="3"/></g>
+          <g stroke="#6b4ea8" stroke-width="1.5">
+            <line x1="500" y1="134" x2="500" y2="200"/><line x1="810" y1="134" x2="810" y2="200"/>
+          </g>
+          <g fill="#6b4ea8"><circle cx="500" cy="134" r="3"/><circle cx="810" cy="134" r="3"/></g>
+          <g stroke="#4a463f" stroke-width="1.4">
+            <line x1="366" y1="310" x2="366" y2="340"/><line x1="396" y1="310" x2="396" y2="340"/>
+            <line x1="470" y1="310" x2="470" y2="340"/><line x1="500" y1="310" x2="500" y2="340"/>
+            <line x1="676" y1="310" x2="676" y2="340"/><line x1="706" y1="310" x2="706" y2="340"/>
+            <line x1="780" y1="310" x2="780" y2="340"/><line x1="810" y1="310" x2="810" y2="340"/>
+          </g>
+        </g>
+      </svg>

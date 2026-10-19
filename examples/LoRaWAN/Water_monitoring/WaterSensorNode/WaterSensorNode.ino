@@ -177,6 +177,15 @@ int       sleep_sec = 1800;   // 30 min base cycle; downlink-settable
 //  ####################################################################
 #define VERBOSE_LOG  0
 
+//  ENABLE_LORA_CAL - pH/EC calibration by downlink (see LORAWAN DOWNLINK).
+//  It and the bench log do not fit in flash together: with both on the
+//  sketch is ~440 bytes too big. On the bench, calibrate with EZOCal/ and
+//  set this to 0; deployed, VERBOSE_LOG is 0 and this is 1.
+#define ENABLE_LORA_CAL  1
+#if VERBOSE_LOG && ENABLE_LORA_CAL
+  #error "VERBOSE_LOG 1 and ENABLE_LORA_CAL 1 do not fit in flash together - set one of them to 0"
+#endif
+
 //  NEVER put anything with a side effect inside LOG() or LOGLN(). At
 //  VERBOSE_LOG 0 they expand to do {} while (0), which discards the argument
 //  whole - a function call in there is simply never made. Hoist the call into
@@ -689,6 +698,21 @@ float v_temp2 = NAN;   // second temperature, only used if BOTH are fitted
 float v_batt  = NAN;   // battery, V
 
 XLPP xlpp(64);
+
+//  Calibration over LoRa - see LORAWAN DOWNLINK for the whole protocol.
+const uint8_t CAL_IMPLAUSIBLE = 90;
+const uint8_t CAL_NO_ANSWER   = 91;
+const uint8_t CAL_UNSTABLE    = 92;
+const uint8_t CAL_LOW_BATTERY = 93;
+const uint8_t CAL_NONE        = 255;     // nothing to report this cycle
+uint8_t calResultPh = CAL_NONE;          // ch 9
+uint8_t calResultEc = CAL_NONE;          // ch 10
+
+//  240 s asleep plus a ~50 s cycle is one uplink per ~5 min: 2.5 s of SF12
+//  airtime in 290 s stays under the EU868 1 % duty cycle.
+const int     CAL_SESSION_SLEEP_S = 240;
+const uint8_t CAL_SESSION_CYCLES  = 6;
+uint8_t       calSession          = 0;
 
 // ---------------------------------------------------------------------------
 //  LED / sleep helpers
@@ -1595,25 +1619,24 @@ void readAllSensors(bool doTurbidity) {
 //    ch 2  Battery          addVoltage
 //    ch 3  pH               addAnalogInput   direct (0..14)
 //    ch 4  Dissolved oxygen addAnalogInput   direct mg/L (0..20)
-//    ch 5  Conductivity     addAnalogInput   *** sent as uS/cm / 100 ***
-//    ch 6  Turbidity        addAnalogInput   *** sent as NTU/10 ***
+//    ch 5  Conductivity     addConcentration whole uS/cm, 0..65535
+//    ch 6  Turbidity        addAnalogInput   direct NTU, capped at 327
 //    ch 7  2nd temperature  addTemperature   the SEN0680's own temperature,
 //                                             measured at the DO probe tip.
 //                                             A cross-check on ch 1, which is
 //                                             the DS18B20 in a different spot.
 //
-//  !! LPP_ANALOG_INPUT is a signed 2-byte value with 0.01 resolution, so its
-//  !! range is only +/-327.67. EC in uS/cm and turbidity up to 1000 NTU would
-//  !! OVERFLOW - hence the scaling. The WaziCloud decoder must undo it:
-//  !!    EC_uS = ch5 * 100 ;  NTU = ch6 * 10
-//  !!
-//  !! The two divisors are chosen from the SENSORS' accuracy, not for tidiness.
-//  !!   EC  /100  -> 1 uS/cm steps, up to 32767 uS/cm. Dividing by 1000 instead
-//  !!               would give 10 uS/cm steps, and Lake Victoria sits near
-//  !!               100 uS/cm where the EZO-EC is accurate to about 2 uS/cm -
-//  !!               the format would have been 5x coarser than the sensor.
-//  !!   NTU /10   -> 0.1 NTU steps, up to 3276 NTU. Already finer than the
-//  !!               Y511-A's +/-5 % or 0.3 NTU, so no reason to go further.
+//    ch 9  pH calibration   addDigitalInput  result code, see LORAWAN DOWNLINK
+//    ch 10 EC calibration   addDigitalInput  result code, only after a Cal
+//
+//  The device runs WaziGate's built-in XLPP codec, not a script decoder -
+//  a script codec cannot send downlinks, and calibration needs them. So
+//  nothing on the gateway can undo a scaling any more, and none is sent:
+//  EC goes out as whole uS/cm in the 2-byte unsigned concentration type
+//  (the old /100 trick existed only because ANALOG_INPUT stops at 327.67),
+//  and turbidity goes out in NTU directly. Above 327 NTU it is capped -
+//  Lake Victoria sits far below that; a 327 means "off the scale".
+//  Names and units on the gateway come from setup_wazigate_device.js.
 //  Channels whose read failed (or that were skipped) are simply omitted.
 //  Channel 1 always carries the water temperature, whichever sensor produced
 //  it - so swapping PT1000 for DS18B20 does not change the decoder.
@@ -1632,9 +1655,15 @@ uint8_t uplink() {
 
   if (!isnan(v_ph))    xlpp.addAnalogInput(3, v_ph);
   if (!isnan(v_do))    xlpp.addAnalogInput(4, v_do);
-  if (!isnan(v_ec))    xlpp.addAnalogInput(5, v_ec / 100.0);    // uS/cm / 100
-  if (!isnan(v_turb))  xlpp.addAnalogInput(6, v_turb / 10.0);   // NTU  -> NTU/10
+  if (!isnan(v_ec))    xlpp.addConcentration(5, v_ec < 0 ? 0 : (uint16_t)(v_ec + 0.5));
+  if (!isnan(v_turb))  xlpp.addAnalogInput(6, v_turb > 327.0 ? 327.0 : v_turb);
   if (!isnan(v_temp2)) xlpp.addTemperature(7, v_temp2);
+
+#if ENABLE_LORA_CAL
+  // The answer to a calibration command, once, on the uplink after it ran.
+  if (calResultPh != CAL_NONE) { xlpp.addDigitalInput(9,  calResultPh); calResultPh = CAL_NONE; }
+  if (calResultEc != CAL_NONE) { xlpp.addDigitalInput(10, calResultEc); calResultEc = CAL_NONE; }
+#endif
 
 
   // The 3 s delay that used to sit here came from the WaziDev example and
@@ -1653,19 +1682,145 @@ uint8_t uplink() {
 }
 
 // ===========================================================================
-//  LORAWAN DOWNLINK
-//    ch 0 : new sampling interval in SECONDS (60..3600)
+//  LORAWAN DOWNLINK - calibration and interval, for WaziGate v3
+//
+//  WHAT ARRIVES. WaziGate v3 does not send XLPP downlinks. When a value is
+//  pushed to one of this device's actuators, wazigate-lora forwards the body
+//  of that POST unchanged, on FPort 100 - so the payload is the number as
+//  JSON text: "7", "1413", "-1". There is no channel and no actuator ID in
+//  it. (v2 sent XLPP with every actuator and its channel; this sketch used to
+//  parse that and never received a byte, because the device ran a custom
+//  JavaScript codec, and WaziGate cannot ENCODE downlinks with one - its
+//  JavaScript encoder is a stub. The device must use the XLPP codec.)
+//
+//  So the node tells commands apart by VALUE. The actuators on the gateway
+//  ("pH calibration", "EC calibration", "Interval") are named for the
+//  person pushing the value; to the node they are one input:
+//
+//     0            nothing - lets you clear a field
+//     1 .. 14      pH calibration in that buffer: 6..8 -> Cal,mid
+//                  (always first, it wipes the others), < 6 -> Cal,low,
+//                  > 8 -> Cal,high
+//     -1           pH  Cal,clear
+//     -2           EC  Cal,clear
+//     -3           EC  Cal,dry        probe in AIR, completely dry
+//     60 .. 3600   sampling interval in seconds, WHOLE MINUTES ONLY
+//     any other    EC single-point calibration in uS/cm (Cal,<value>):
+//     >= 20        84 for Lake Victoria's range, 1413, 12880 ...
+//
+//  The one collision is an EC standard that is a whole number of minutes
+//  between 60 and 3600 s - 1500 uS/cm would set a 25 min interval. Atlas'
+//  own standards (84, 1413, 12880, 80000) are clear of it.
+//
+//  WHAT HAPPENS. The probe must already sit in the buffer when the command
+//  arrives, which is right after the next uplink. The node powers the
+//  isolators, reads until the value has been steady for 10 s (up to about
+//  2.5 min - fresh buffer takes 1-2 min), checks that the steady value is
+//  plausible for what was asked, and only then sends Cal. The circuit keeps
+//  its calibration in its own EEPROM, so nothing is stored here.
+//
+//  THE ANSWER comes back on the NEXT uplink, on its own channel:
+//     ch 9  pH  /  ch 10  EC
+//     0..3  calibration points the circuit now holds (Cal,?)
+//     90    refused - steady reading implausible for that buffer
+//     91    the circuit did not answer, or rejected the command
+//     92    the reading never settled - leave the probe in longer, resend
+//     93    refused - the cell is too low (hibernating)
+//  After any calibration the node runs CAL_SESSION_CYCLES short cycles, so
+//  the next step does not wait half an hour.
 // ===========================================================================
+#if ENABLE_LORA_CAL
+//  (The CAL_* codes and the result variables sit with the other globals,
+//  above uplink(), which sends them.)
+
+//  Read until 10 consecutive readings move by no more than tol each.
+//  Returns the steady value, or NAN if it never settled.
+float ezoSettle(uint8_t addr, float tol) {
+  float last = NAN;
+  uint8_t steady = 0;
+  for (uint8_t i = 0; i < 150; i++) {          // ~0.9 s each, ~2.5 min max
+    float r = ezoRead(addr);
+    if (isnan(r)) return NAN;
+    if (!isnan(last) && fabs(r - last) <= tol) {
+      if (++steady >= 10) return r;
+    } else {
+      steady = 0;
+    }
+    last = r;
+  }
+  return NAN;
+}
+
+//  One calibration step. target: the buffer value, or <= 0 for a command
+//  without a value (clear, dry). Returns the code for ch 9 / ch 10.
+uint8_t ezoCalibrate(uint8_t addr, const char *what, float target, bool plausible) {
+  char cmd[20], num[10], resp[12];
+  if (!plausible) return CAL_IMPLAUSIBLE;
+  if (target > 0) {
+    dtostrf(target, 1, 2, num);
+    snprintf(cmd, sizeof(cmd), "Cal,%s%s", what, num);
+  } else {
+    snprintf(cmd, sizeof(cmd), "Cal,%s", what);
+  }
+  Serial.println(cmd);
+  if (!ezoCommand(addr, cmd, resp, sizeof(resp), EZO_READ_DELAY_MS)) return CAL_NO_ANSWER;
+  if (!ezoCommand(addr, "Cal,?", resp, sizeof(resp), EZO_CMD_DELAY_MS)) return CAL_NO_ANSWER;
+  char *c = strchr(resp, ',');                  // "?CAL,2"
+  return c ? (uint8_t)atoi(c + 1) : CAL_NO_ANSWER;
+}
+
+void runCalibration(float v) {
+  bool ph = (v >= 1 && v <= 14) || v == -1;
+  uint8_t addr = ph ? EZO_PH_ADDR : EZO_EC_ADDR;
+  uint8_t r;
+
+  if (hibernate) {
+    r = CAL_LOW_BATTERY;
+  } else {
+    rails33On();
+    isolatorsOn();
+    ezoSetTemperature(addr, v_temp);
+
+    if (v == -1 || v == -2) {
+      r = ezoCalibrate(addr, "clear", 0, true);
+    } else {
+      // pH steady to 0.01; EC to 0.5 % of the standard + 0.5 uS/cm
+      float s = ezoSettle(addr, ph ? 0.01 : 0.005 * fabs(v) + 0.5);
+      Serial.print(F("Cal: steady at "));
+      Serial.println(s, 2);
+      if (isnan(s)) {
+        r = CAL_UNSTABLE;
+      } else if (v == -3) {
+        r = ezoCalibrate(addr, "dry", 0, s < 10);
+      } else if (ph) {
+        // A drifted probe is still within 1 pH of the buffer it sits in.
+        // Lake water is not - that is what this check is for.
+        r = ezoCalibrate(addr, v < 6 ? "low," : (v > 8 ? "high," : "mid,"),
+                         v, fabs(s - v) <= 1.0);
+      } else {
+        // An uncalibrated circuit reads ~0 until Cal,dry has been done, so
+        // that passes; otherwise the steady value must be within 2x.
+        r = ezoCalibrate(addr, "", v, s < 1 || (s > v * 0.5 && s < v * 2));
+      }
+    }
+    railsOff();
+  }
+
+  if (ph) calResultPh = r; else calResultEc = r;
+  calSession = CAL_SESSION_CYCLES;
+  Serial.print(F("Cal result: "));
+  Serial.println(r);
+}
+
+#endif
+
 uint8_t downlink_with_logs(uint16_t timeout) {
   uint8_t e;
 
   LOG(F("RX1 wait ms: "));
   LOGLN(timeout);
 
-  long startSend = millis();
   e = wazidev.receiveLoRaWAN(xlpp.buf, &xlpp.offset, &xlpp.len, timeout);
-  long endSend = millis();
-
   if (e == ERR_LORA_TIMEOUT) {
     LOGLN(F("RX1 Timeout. Waiting for RX2..."));
     delay(2000);
@@ -1674,59 +1829,34 @@ uint8_t downlink_with_logs(uint16_t timeout) {
       LOGLN(F("RX2 Timeout. No downlink received."));
       return ERR_LORA_TIMEOUT;
     }
-    LOGLN(F("Downlink received in RX2."));
+  }
+  if (xlpp.len == 0) return 1;
+
+  // The value as JSON text, e.g. 7 or -1 or "1413". Copy it out and
+  // terminate it; a quoted number is accepted, true/false and objects are not.
+  char txt[12];
+  uint8_t n = xlpp.len < sizeof(txt) - 1 ? xlpp.len : sizeof(txt) - 1;
+  memcpy(txt, xlpp.buf + xlpp.offset, n);
+  txt[n] = 0;
+  char *p = (txt[0] == '"') ? txt + 1 : txt;
+  Serial.print(F("Downlink: "));
+  Serial.println(txt);
+  if (!((*p >= '0' && *p <= '9') || *p == '-' || *p == '.')) return 1;
+
+  float v = atof(p);
+  if (v == 0) return 0;
+
+  if (v >= 60 && v <= 3600 && v == (long)v && (long)v % 60 == 0) {
+    sleep_sec = (int)v;
+    Serial.print(F("Interval now "));
+    Serial.println(sleep_sec);
+#if ENABLE_LORA_CAL
+  } else if ((v >= 1 && v <= 14) || v == -1 || v == -2 || v == -3 || v >= 20) {
+    runCalibration(v);
+#endif
   } else {
-    LOGLN(F("Downlink received in RX1."));
-  }
-
-  serialPrintf("Time On Air: %d ms\n", endSend - startSend);
-  serialPrintf("LoRa SNR: %d\n", wazidev.loRaSNR);
-  serialPrintf("LoRa RSSI: %d\n", wazidev.loRaRSSI);
-  serialPrintf("LoRaWAN frame size: %d\n", xlpp.offset + xlpp.len);
-  serialPrintf("LoRaWAN payload len: %d\n", xlpp.len);
-  serialPrintf("Payload: ");
-
-  if (xlpp.len == 0) {
-    Serial.println(F("(no payload received)"));
+    Serial.println(F("Downlink value not understood, ignored."));
     return 1;
-  }
-
-  printBase64(xlpp.getBuffer(), xlpp.len);
-  Serial.println();
-
-  int end = xlpp.len + xlpp.offset;
-  while (xlpp.offset < end) {
-    uint8_t chan = xlpp.getChannel();
-    serialPrintf("Chan %2d: ", chan);
-    uint8_t type = xlpp.getType();
-    serialPrintf("Type %2d: ", type);
-
-    switch (chan) {
-      case 0:
-        switch (type) {
-          case LPP_ANALOG_OUTPUT:
-          case LPP_ANALOG_INPUT: {
-            float newInterval = xlpp.getAnalogOutput();
-            if (newInterval >= 60 && newInterval <= 3600) {
-              sleep_sec = (int)newInterval;
-              Serial.print(F("Sampling interval changed to "));
-              Serial.print(sleep_sec);
-              Serial.println(F(" s"));
-            } else {
-              Serial.println(F("Interval out of range (60..3600 s), ignored."));
-            }
-            break;
-          }
-          default:
-            Serial.println(F("Other unknown type."));
-            return 1;
-        }
-        break;
-
-      default:
-        Serial.println(F("Unknown channel."));
-        return 1;
-    }
   }
   return 0;
 }
@@ -1758,7 +1888,7 @@ void captureResetFlags(void) {
 // A WATCHDOG WAS FITTED HERE AND REMOVED AGAIN. It is still the right idea -
 // this AVR core's Wire has no timeout, so a device holding SDA low blocks
 // forever - but the 8 s window was fed per PHASE and that is not often
-// enough. Measured from Felix's own logs: 5.57 s from the top of loop() to
+// enough. Measured from the bench logs: 5.57 s from the top of loop() to
 // the DO warm-up on a good cycle, and 7.54 s from the end of that warm-up to
 // the EC reading on a cycle where Modbus timed out. Against an 8 s window
 // that resets the node in exactly the situation the dog was meant to survive.
@@ -1864,7 +1994,9 @@ void loop(void) {
     // 3. LoRaWAN downlink
     downlink_with_logs(interval);
     cycleCount++;
-    sleep(hibernate ? HIBERNATE_SLEEP_S : sleep_sec);
+    if (calSession) calSession--;
+    sleep(hibernate ? HIBERNATE_SLEEP_S
+                    : (calSession ? CAL_SESSION_SLEEP_S : sleep_sec));
   } else {
     Serial.print(F("Error: "));
     Serial.println(e);

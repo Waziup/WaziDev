@@ -1,0 +1,126 @@
+<svg viewBox="0 0 620 560" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Placement plan, top view, drawn to scale on a 100 by 100 millimetre board. Along the bottom edge sit the five pluggable headers to the WaziSense, in the same left to right order as the WaziSense's own terminal blocks. The left third holds the power section: cell terminal, PTC, diodes, the two high-side switch stages, the U3V9F12 regulator and the bulk capacitors. The middle holds the switched-ground island with the MAX3485 module, the bias resistors, the terminator and the bulk capacitors. The right third holds two isolator and EZO chains stacked vertically, each separated from its isolator by a routed slot, with the pH chain's SMA connector on the right edge. The probe terminals and the DS18B20 terminal sit along the top edge."><rect x="-10000" y="-10000" width="20000" height="20000" fill="#ffffff"/>
+        <rect width="620" height="560" fill="none"/>
+
+        <!-- board outline: 100 mm -> 500 px, 5 px per mm -->
+        <rect x="60" y="30" width="500" height="500" rx="4" fill="#ffffff" stroke="#23211d" stroke-width="2"/>
+        <text x="310" y="20" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#777166">100 mm</text>
+        <text x="44" y="285" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#777166" transform="rotate(-90 44 285)">100 mm</text>
+
+        <!-- mounting holes -->
+        <g fill="none" stroke="#777166" stroke-width="1.4">
+          <circle cx="78" cy="48" r="7"/><circle cx="542" cy="48" r="7"/>
+          <circle cx="78" cy="512" r="7"/><circle cx="542" cy="512" r="7"/>
+        </g>
+
+        <g font-family="IBM Plex Mono, monospace" font-size="10">
+
+          <!-- ===== bottom edge: to the WaziSense ===== -->
+          <rect x="60" y="486" width="500" height="44" fill="#eceae4" stroke="none"/>
+          <g fill="#17786e" stroke="#17786e" stroke-width="1.3">
+            <rect x="84"  y="496" width="36" height="26" fill="none"/>
+            <rect x="132" y="496" width="52" height="26" fill="none"/>
+            <rect x="196" y="496" width="52" height="26" fill="none"/>
+            <rect x="260" y="496" width="68" height="26" fill="none"/>
+            <rect x="340" y="496" width="36" height="26" fill="none"/>
+          </g>
+          <g fill="#17786e" font-size="9">
+            <text x="102" y="513" text-anchor="middle">J2</text>
+            <text x="158" y="513" text-anchor="middle">J3</text>
+            <text x="222" y="513" text-anchor="middle">J4</text>
+            <text x="294" y="513" text-anchor="middle">J5</text>
+            <text x="358" y="513" text-anchor="middle">J6</text>
+          </g>
+          <text x="400" y="513" fill="#777166" font-size="9">&#8592; same order as the WaziSense blocks, so the loom never crosses</text>
+
+          <!-- ===== left: power ===== -->
+          <rect x="72" y="60" width="150" height="410" fill="none" stroke="#c0442e" stroke-width="1.4" stroke-dasharray="5 4"/>
+          <text x="80" y="76" fill="#c0442e" font-size="10" font-weight="600">POWER</text>
+
+          <rect x="84" y="86" width="60" height="30" fill="#eceae4" stroke="currentColor" stroke-width="1.2"/>
+          <text x="114" y="105" text-anchor="middle" fill="#23211d">X1 cell</text>
+          <rect x="156" y="88" width="24" height="12" fill="#eceae4" stroke="currentColor" stroke-width="1"/>
+          <text x="190" y="98" fill="#4a463f" font-size="9">F1</text>
+          <rect x="156" y="106" width="24" height="12" fill="#eceae4" stroke="currentColor" stroke-width="1"/>
+          <text x="190" y="116" fill="#4a463f" font-size="9">D1 D2</text>
+
+          <rect x="84" y="140" width="130" height="54" fill="#eceae4" stroke="currentColor" stroke-width="1.2"/>
+          <text x="149" y="160" text-anchor="middle" fill="#23211d">Q1 Q2 + R1-R3 C3</text>
+          <text x="149" y="178" text-anchor="middle" fill="#777166" font-size="9">switch A &#183; from D5</text>
+
+          <rect x="84" y="206" width="130" height="46" fill="#eceae4" stroke="currentColor" stroke-width="1.4"/>
+          <text x="149" y="224" text-anchor="middle" fill="#23211d">U1 U3V9F12</text>
+          <text x="149" y="240" text-anchor="middle" fill="#777166" font-size="9">13.6 &#215; 8.6 mm</text>
+          <circle cx="196" cy="272" r="13" fill="#eceae4" stroke="#b07a10" stroke-width="1.4"/>
+          <text x="196" y="276" text-anchor="middle" font-size="8" fill="#b07a10">C4</text>
+          <text x="118" y="276" fill="#b3231b" font-size="9">C4 within 10 mm of U1</text>
+
+          <rect x="84" y="300" width="130" height="54" fill="#eceae4" stroke="currentColor" stroke-width="1.2"/>
+          <text x="149" y="320" text-anchor="middle" fill="#23211d">Q3 Q4 + R4-R6 C5</text>
+          <text x="149" y="338" text-anchor="middle" fill="#777166" font-size="9">switch B &#183; from A1</text>
+
+          <rect x="84" y="372" width="130" height="40" fill="#eceae4" stroke="currentColor" stroke-width="1.2"/>
+          <text x="149" y="390" text-anchor="middle" fill="#23211d">U2 / JP1 + C6 C7</text>
+          <text x="149" y="405" text-anchor="middle" fill="#777166" font-size="9">one or the other</text>
+
+          <!-- ===== middle: SWGND island ===== -->
+          <rect x="236" y="60" width="140" height="410" fill="none" stroke="#6b4ea8" stroke-width="2" stroke-dasharray="6 4"/>
+          <text x="244" y="76" fill="#6b4ea8" font-size="10" font-weight="600">SWGND ISLAND</text>
+          <text x="244" y="90" fill="#6b4ea8" font-size="8.5">no copper to GND</text>
+
+          <rect x="248" y="104" width="116" height="54" fill="#eceae4" stroke="currentColor" stroke-width="1.4"/>
+          <text x="306" y="124" text-anchor="middle" fill="#23211d">U3 MAX3485</text>
+          <text x="306" y="140" text-anchor="middle" fill="#777166" font-size="9">VCC TXD RXD GND</text>
+
+          <rect x="248" y="176" width="116" height="40" fill="#eceae4" stroke="currentColor" stroke-width="1.2"/>
+          <text x="306" y="194" text-anchor="middle" fill="#23211d">RT1 R7 R8</text>
+          <text x="306" y="209" text-anchor="middle" fill="#777166" font-size="9">R8 returns here, not to GND</text>
+
+          <g fill="#eceae4" stroke="#17786e" stroke-width="1.3">
+            <circle cx="272" cy="252" r="15"/><circle cx="312" cy="250" r="10"/><circle cx="344" cy="250" r="7"/>
+          </g>
+          <text x="272" y="256" text-anchor="middle" font-size="8" fill="#17786e">C8</text>
+          <text x="312" y="254" text-anchor="middle" font-size="7.5" fill="#17786e">C9</text>
+          <text x="344" y="253" text-anchor="middle" font-size="7" fill="#17786e">C10</text>
+          <text x="248" y="284" fill="#b3231b" font-size="9">within 10 mm of J2</text>
+
+          <rect x="248" y="310" width="116" height="36" fill="#eceae4" stroke="currentColor" stroke-width="1.2"/>
+          <text x="306" y="332" text-anchor="middle" fill="#23211d">R11 R12  DNP</text>
+
+          <!-- ===== right: the two isolated chains ===== -->
+          <rect x="392" y="60" width="156" height="200" fill="none" stroke="#a83277" stroke-width="1.6"/>
+          <text x="400" y="76" fill="#a83277" font-size="10" font-weight="600">pH CHAIN</text>
+          <rect x="404" y="86" width="101" height="70" fill="#eceae4" stroke="currentColor" stroke-width="1.3"/>
+          <text x="454" y="112" text-anchor="middle" fill="#23211d">U4 isolator</text>
+          <text x="454" y="128" text-anchor="middle" fill="#777166" font-size="8.5">outline TBC</text>
+          <rect x="398" y="162" width="144" height="8" fill="#b3231b" opacity="0.25"/>
+          <text x="470" y="169" text-anchor="middle" fill="#b3231b" font-size="8">routed slot, 2 mm</text>
+          <rect x="404" y="178" width="101" height="70" fill="#eceae4" stroke="currentColor" stroke-width="1.3"/>
+          <text x="454" y="204" text-anchor="middle" fill="#23211d">U6 EZO-pH</text>
+          <text x="454" y="220" text-anchor="middle" fill="#777166" font-size="8.5">20.16 &#215; 13.97 mm</text>
+          <rect x="516" y="196" width="26" height="26" fill="#eceae4" stroke="#b3231b" stroke-width="1.4"/>
+          <text x="529" y="213" text-anchor="middle" font-size="8" fill="#b3231b">J7</text>
+          <text x="398" y="262" fill="#b3231b" font-size="9">PRB: &lt;15 mm, guard ring to PGND, mask + paste keepout</text>
+
+          <rect x="392" y="282" width="156" height="188" fill="none" stroke="#a83277" stroke-width="1.6"/>
+          <text x="400" y="298" fill="#a83277" font-size="10" font-weight="600">EC CHAIN</text>
+          <rect x="404" y="306" width="101" height="64" fill="#eceae4" stroke="currentColor" stroke-width="1.3"/>
+          <text x="454" y="334" text-anchor="middle" fill="#23211d">U5 isolator</text>
+          <rect x="398" y="376" width="144" height="8" fill="#b3231b" opacity="0.25"/>
+          <rect x="404" y="390" width="101" height="64" fill="#eceae4" stroke="currentColor" stroke-width="1.3"/>
+          <text x="454" y="418" text-anchor="middle" fill="#23211d">U7 EZO-EC</text>
+          <rect x="516" y="408" width="26" height="26" fill="#eceae4" stroke="currentColor" stroke-width="1.2"/>
+          <text x="529" y="425" text-anchor="middle" font-size="8">X5</text>
+
+          <!-- ===== top edge: wet side ===== -->
+          <rect x="60" y="30" width="500" height="26" fill="#eceae4" opacity="0.6"/>
+          <g stroke="#b07a10" stroke-width="1.3" fill="none">
+            <rect x="240" y="34" width="56" height="18"/><rect x="306" y="34" width="56" height="18"/>
+          </g>
+          <text x="268" y="47" text-anchor="middle" fill="#b07a10" font-size="8.5">X3</text>
+          <text x="334" y="47" text-anchor="middle" fill="#b07a10" font-size="8.5">X4</text>
+          <rect x="376" y="34" width="44" height="18" stroke="currentColor" stroke-width="1.2" fill="none"/>
+          <text x="398" y="47" text-anchor="middle" font-size="8.5">X2</text>
+          <text x="440" y="47" fill="#777166" font-size="9">&#8592; wet side: all glands on this edge</text>
+        </g>
+      </svg>

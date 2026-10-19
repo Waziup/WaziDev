@@ -1,24 +1,39 @@
 # -*- coding: utf-8 -*-
-"""Turn the KiCad position file and BOM.csv into the two files JLCPCB's
-   assembly service asks for, covering the SMT parts only.
+"""Turn the KiCad position file and BOM.csv into the files JLCPCB's assembly
+   service asks for: the full set (SMT and THT, '-jlcpcb') that was ordered,
+   and an SMT-only set ('-smt') for a reflow-only order.
 
-   Everything marked 'hand' in BOM.csv is a through-hole module, screw terminal
-   or electrolytic that is fitted here, not by the assembler, and everything
-   marked 'DNP' is deliberately not fitted. Both are left out of the placement
-   file so the assembler does not quote for them.
+   Everything marked 'DNP' or 'mech' in BOM.csv is deliberately not fitted
+   and is left out of both. Every placement point is a BODY centre (see
+   centroid.py), and cplcheck.py proves each one sits on its own pads.
 """
 from __future__ import print_function
 import csv, io, os
 from pads import POS
-from centroid import CENTRE
+from centroid import CENTRE, FOOTPRINT, ROWS
 
-FAB = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\out\fab'
-BOM = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\BOM.csv'
+from paths import FAB
+from paths import BOM
 POSFILE = os.path.join(FAB, 'KijaniCarrier-cpl.csv')
 
 # Two orders are possible: SMT only (Economic, reflow) or SMT plus through
 # hole (wave or selective soldering). Build the files for both.
 SETS = {'smt': ('SMT',), 'jlcpcb': ('SMT', 'THT')}
+
+#  JLCPCB's own library sets a different zero orientation for some packages.
+#  SOT-23 is the classic one: its pin 1 sits where KiCad's pin 3 is. Seen in
+#  the 15 Oct placement view, on two parts at two rotations - Q1 at 0 deg
+#  showed JLCPCB's pin-1 dot bottom right against KiCad's pin-1 triangle on
+#  the left, Q5 at 180 deg the dot top left against the triangle on the
+#  right. Uncorrected, all five MOSFETs - both load switches, both level
+#  shifters and the reverse-polarity FET - go on turned round. D_SMB and
+#  CP_Radial matched in the same view and need nothing.
+JLC_ROT_FP = {'SOT-23': 180.0}
+
+#  Per part, on top of that. J8 is a symmetrical 2-pole block, so turning it
+#  round keeps each screw on its own pad; it turns the wire opening from
+#  facing away from the RS485 module to facing it.
+JLC_ROT = {'J8': 180.0}
 
 #  Which footprints go through the pick-and-place rather than the solder bath.
 SMT_FOOTPRINTS = ('C_0603', 'C_0805', 'R_0603', 'R_1812', 'SOT-23', 'D_SMB')
@@ -34,16 +49,7 @@ with io.open(BOM, encoding='utf-8') as f:
 
 rows = list(csv.DictReader(io.open(POSFILE, encoding='utf-8')))
 
-# The board carries one footprint per module, U4..U7, but each takes TWO socket
-# strips, and an assembly line places one part per designator. These name the
-# two rows. They exist only in the assembly files; the board is untouched, so
-# nothing in the netlist can shift.
-ROWS = {
-    'U4A': ('U4', '1', '5'), 'U4B': ('U4', '6', '10'),
-    'U5A': ('U5', '1', '5'), 'U5B': ('U5', '6', '10'),
-    'U6A': ('U6', '1', '3'), 'U6B': ('U6', '4', '6'),
-    'U7A': ('U7', '1', '3'), 'U7B': ('U7', '4', '6'),
-}
+# U4..U7 each take two socket strips; ROWS (centroid.py) names them.
 for tag, (ref, a, b) in sorted(ROWS.items()):
     pa, pb = POS[(ref, a)], POS[(ref, b)]
     rows.append({'Ref': tag, 'Val': 'female header',
@@ -69,8 +75,10 @@ for tag, kinds in sorted(SETS.items()):
             c = CENTRE.get(r['Ref'])
             px = '%.4f' % c[0] if c else r['PosX']
             py = '%.4f' % -c[1] if c else r['PosY']
+            rot = (float(r['Rot']) + JLC_ROT.get(r['Ref'], 0.0)
+                   + JLC_ROT_FP.get(FOOTPRINT.get(r['Ref'], ''), 0.0)) % 360
             w.writerow([r['Ref'], px, py,
-                        'Top' if r['Side'] == 'top' else 'Bottom', r['Rot']])
+                        'Top' if r['Side'] == 'top' else 'Bottom', '%.4f' % rot])
 
     groups = {}
     for ref in sorted(place):
@@ -99,7 +107,15 @@ for tag, kinds in sorted(SETS.items()):
     #      and are the only two rows carrying a warning icon. Those two are
     #      a part problem, not a quantity problem.
     #
-    #  So: one line per part number, the format JLCPCB expects. Set this to
+    #  THE REAL CAUSE, found 15 October: none of the above. JLCPCB marks a
+    #  row 'there may be multiple types of parts, but one type has been
+    #  matched' and quietly UNTICKS it in the Select column. An unticked row
+    #  shows quantity 0 and is not assembled. The four rows were exactly the
+    #  four with that warning. Ticking them gave C474892 21 pcs, C474893 6,
+    #  C146243 13, C50950 8 - every one covering the need.
+    #
+    #  So: one line per part number, the format JLCPCB expects, and after
+    #  every upload check the Select column, not just the match. Set this to
     #  2 only to reproduce the experiment.
     MAX_THT_PER_LINE = 99
     lines = []

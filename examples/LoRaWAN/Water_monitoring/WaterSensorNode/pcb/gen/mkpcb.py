@@ -9,8 +9,8 @@ if __name__ != '__main__':
     raise ImportError('mkpcb.py rewrites the board file; run it, do not import it')
 import io, os, re, math, hashlib
 
-KI = r'C:\Program Files\KiCad\10.0\share\kicad\footprints'
-OUT = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb'
+from paths import KICAD_FOOTPRINTS as KI
+from paths import PCBDIR as OUT
 MYLIB = os.path.join(OUT, 'KijaniSpace.pretty')
 PCBVER = '20241229'
 
@@ -111,15 +111,29 @@ REFPOS = {
     # the WaziSense connectors: the pin names go under them, so the
     # designator moves to the left-hand end, read sideways
     'J2': (33.0, 27.0, 90), 'J3': (43.5, 27.0, 90), 'J4': (59.5, 27.0, 90),
-    'J5': (73.8, 27.0, 90), 'J6': (99.5, 27.0, 90),
+    'J6': (99.5, 27.0, 90),
     'J7': (79.8, 113.0, 90), 'J9': (112.5, 113.0, 90),
     'Q3': (27.0, 74.0),
-    'Q4': (41.2, 68.5),
+    # Q4's name sat 7.5 mm above its body, beside U1's socket, and read as
+    # U1's label: in the Rev C placement review U1 was called 'Q4'. It now
+    # sits in the gap between its own pad 3 and C5.
+    'Q4': (41.1, 76.0),
     'U1': (40.0, 62.0),
-    'C1': (43.75, 51.0),
+    'C1': (47.4, 45.0),   # beside the D5 can; at 51.0 it read as a label for C3
     'U3': (62.0, 36.0),
     'U4': (84.0, 56.0),
     'U5': (106.0, 56.0),
+    # Q5 and R13 arrived on 9 October on top of U3's 1:VCC label, and the
+    # three texts printed through each other as 'VBC'. Q5 goes above its
+    # own body, R13 to the left of its pads.
+    'Q5': (52.0, 35.2),
+    'R13': (49.4, 41.5),
+    # J8's name sat between the A and B pin labels and read as 'A J8 B';
+    # beside the block, A and B belong to their pins alone
+    'J8': (76.6, 51.0),
+    # the probe pairs: between PROBE n and the blocks, not on the +12V label
+    'X3A': (47.75, 107.2), 'X3B': (54.75, 107.2),
+    'X4A': (66.75, 107.2), 'X4B': (73.75, 107.2),
 }
 
 

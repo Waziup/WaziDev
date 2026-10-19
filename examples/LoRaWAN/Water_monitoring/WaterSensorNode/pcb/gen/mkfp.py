@@ -9,7 +9,7 @@ if __name__ != '__main__':
     raise ImportError('mkfp.py rewrites the board file; run it, do not import it')
 import io, os, hashlib
 
-OUT = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb'
+from paths import PCBDIR as OUT
 LIB = os.path.join(OUT, 'KijaniSpace.pretty')
 for d in (OUT, LIB):
     if not os.path.isdir(d):
@@ -69,7 +69,7 @@ def label(x, y, txt, rot, seed, size=0.8):
             '\t\t(effects (font (size %s %s) (thickness 0.12)))\n\t)\n'
             ) % (txt, x, y, rot, uid(seed), size, size)
 
-def build(name, descr, pads, bw, bh, cw, ch, gap=0, cx=0.0, pin1=True):
+def build(name, descr, pads, bw, bh, cw, ch, gap=0, cx=0.0, pin1=True, pin1_x=None):
     """pads: list of (number, x, y, label). cx offsets the body and the
        courtyard, for a part whose pin 1 is not in the middle."""
     s = header(name, descr)
@@ -87,6 +87,8 @@ def build(name, descr, pads, bw, bh, cw, ch, gap=0, cx=0.0, pin1=True):
     if pin1:
         n1, x1, y1, lab1 = pads[0]
         tx = (bw / 2.0 + 3.4) * (1 if x1 > 0 else -1)
+        if pin1_x is not None:
+            tx = pin1_x
         s += label(round(tx, 2), y1, '1:' + lab1, 0, name + '-pin1', 1.0)
     s += ')\n'
     return s
@@ -119,7 +121,11 @@ FPS['Pololu_U3V9F12'] = build(
 FPS['MAX3485_Module'] = build(
     'MAX3485_Module', 'MAX3485 auto-direction module, vertical. 1 VCC 2 TXD 3 RXD 4 GND. 53 mm tall',
     [(1, -3.81, 0, 'VCC'), (2, -1.27, 0, 'TXD'), (3, 1.27, 0, 'RXD'), (4, 3.81, 0, 'GND')],
-    22.0, 4.0, 23.0, 5.0)
+    22.0, 4.0, 23.0, 5.0, pin1_x=-8.0)
+#  1:VCC sits inside the body, left of pin 1. Its old place, 3.4 mm outside
+#  the body, is where Q5 and R13 went in Rev B - the label printed over
+#  R13's pad and came out as 'VBC'. Inside it is covered once the module is
+#  plugged, which is fine: it is read before plugging, not after.
 
 # ---- KF350-3.5 2-pole screw terminal, gangable ----------------------------
 #  Pads match the 4Ucon 3.50 library part (2.6 mm pad, 1.3 mm drill) so the
@@ -129,7 +135,10 @@ FPS['TerminalBlock_KF350_1x02'] = build(
     'TerminalBlock_KF350_1x02',
     'KF350-3.5-2P screw terminal, 3.50 mm. Gangable: place two 7.00 mm apart and the four pads land on the 3.50 mm grid of a 4-pole part.',
     [(1, 0, 0, 'P1'), (2, 3.5, 0, 'P2')],
-    7.0, 9.4, 6.9, 9.5, cx=1.75, pin1=False)
+    7.0, 6.9, 6.9, 9.5, cx=1.75, pin1=False)
+#  Silk 6.9 mm deep: the body depth in the vendor's own footprint data
+#  (EasyEDA, C474892). It was 9.4 and ran into the GND/SDA/SCL pin names
+#  under J5A/J5B. The courtyard stays 9.5 deep - that is the reserve.
 
 for n, body in FPS.items():
     path = os.path.join(LIB, n + '.kicad_mod')

@@ -7,7 +7,7 @@ import io, re, sys, codecs
 sys.stdout = codecs.getwriter('ascii')(sys.stdout.buffer, 'replace')
 from pads import POS
 
-PCB = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\KijaniCarrier.kicad_pcb'
+from paths import PCB
 s = io.open(PCB, encoding='utf-8').read()
 netname = dict((int(m.group(1)), m.group(2)) for m in re.finditer(r'\(net (\d+) "([^"]*)"\)', s))
 

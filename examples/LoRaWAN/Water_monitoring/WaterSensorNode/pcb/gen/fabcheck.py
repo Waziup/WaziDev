@@ -9,7 +9,7 @@ from __future__ import print_function
 import io, re, sys, math, codecs
 sys.stdout = codecs.getwriter('ascii')(sys.stdout.buffer, 'replace')
 
-PCB = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\KijaniCarrier.kicad_pcb'
+from paths import PCB
 s = io.open(PCB, encoding='utf-8').read()
 
 # --- what each net has to carry, worst case --------------------------------

@@ -1,0 +1,77 @@
+<svg viewBox="0 0 880 470" xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Block diagram. The 18650 cell enters the carrier through a protection chain of PTC, an ideal-diode MOSFET and SMBJ. The protected battery rail feeds three things: the WaziSense BAT_IN input, high-side switch A which feeds the U3V9F12 twelve volt regulator and the two Modbus probes, and high-side switch B which feeds the two Atlas isolators and through them the two EZO circuits. The WaziSense supplies the permanently live D6 plus terminal and the switched D6 minus return, which power the MAX13487 RS485 transceiver module and the DS18B20 on the switched ground island. Logic signals D3, D4, D5, A1, A2, A4 and A5 cross on the WaziSense screw terminal blocks."><rect x="-10000" y="-10000" width="20000" height="20000" fill="#ffffff"/>
+        <rect x="0" y="0" width="880" height="470" fill="none"/>
+
+        <!-- cell -->
+        <rect x="16" y="48" width="96" height="52" rx="3" fill="#eceae4" stroke="#c0442e" stroke-width="1.8"/>
+        <text x="64" y="70" text-anchor="middle" font-size="12" font-weight="600" fill="#23211d">18650</text>
+        <text x="64" y="88" text-anchor="middle" font-size="10" fill="#777166">3.0&#8211;4.2 V</text>
+
+        <!-- protection -->
+        <line x1="112" y1="74" x2="148" y2="74" stroke="#c0442e" stroke-width="2.2"/>
+        <rect x="148" y="42" width="112" height="64" rx="3" fill="#ffffff" stroke="#d6d2c8" stroke-width="1.4"/>
+        <text x="204" y="62" text-anchor="middle" font-size="11" font-weight="600" fill="#23211d">protection</text>
+        <text x="204" y="78" text-anchor="middle" font-size="9.5" fill="#777166">PTC &#183; Q5</text>
+        <text x="204" y="93" text-anchor="middle" font-size="9.5" fill="#777166">SMBJ5.0A</text>
+
+        <line x1="260" y1="74" x2="308" y2="74" stroke="#c0442e" stroke-width="2.4"/>
+        <circle cx="308" cy="74" r="4" fill="#c0442e"/>
+        <text x="300" y="36" text-anchor="middle" font-size="11" fill="#c0442e" font-weight="600">+VBATT</text>
+
+        <!-- three branches -->
+        <line x1="308" y1="74" x2="308" y2="404" stroke="#c0442e" stroke-width="2.4"/>
+
+        <!-- to WaziSense -->
+        <line x1="308" y1="74" x2="600" y2="74" stroke="#c0442e" stroke-width="2.2"/>
+        <rect x="600" y="42" width="180" height="150" rx="3" fill="#eceae4" stroke="#23211d" stroke-width="1.8"/>
+        <text x="690" y="66" text-anchor="middle" font-family="IBM Plex Sans Condensed, sans-serif" font-size="14" font-weight="700" fill="#23211d">WaziSense v2</text>
+        <text x="690" y="84" text-anchor="middle" font-size="10" fill="#777166">BAT_IN &#183; SW_1 &#183; I2C_PORT &#8230;</text>
+        <text x="690" y="106" text-anchor="middle" font-size="10" fill="#17786e">D6(+) permanent 3.3 V</text>
+        <text x="690" y="122" text-anchor="middle" font-size="10" fill="#6b4ea8">D6(&#8722;) switched return</text>
+        <text x="690" y="146" text-anchor="middle" font-size="10" fill="#777166">D3 D4 D5 A1 A2 A4 A5</text>
+        <text x="690" y="166" text-anchor="middle" font-size="10" fill="#777166">RFM95W &#183; LoRaWAN</text>
+        <text x="690" y="184" text-anchor="middle" font-size="9.5" fill="#777166">H1 = 3.3 V</text>
+
+        <!-- switch A -->
+        <circle cx="308" cy="214" r="4" fill="#c0442e"/>
+        <line x1="308" y1="214" x2="356" y2="214" stroke="#c0442e" stroke-width="2.2"/>
+        <rect x="356" y="188" width="92" height="52" rx="3" fill="#ffffff" stroke="#b07a10" stroke-width="1.8"/>
+        <text x="402" y="208" text-anchor="middle" font-size="11" font-weight="600" fill="#23211d">HS-SW A</text>
+        <text x="402" y="226" text-anchor="middle" font-size="9.5" fill="#17786e">gate: D5</text>
+
+        <line x1="448" y1="214" x2="486" y2="214" stroke="#c0442e" stroke-width="2.2"/>
+        <rect x="486" y="188" width="96" height="52" rx="3" fill="#ffffff" stroke="#b07a10" stroke-width="1.6"/>
+        <text x="534" y="208" text-anchor="middle" font-size="11" font-weight="600" fill="#23211d">U3V9F12</text>
+        <text x="534" y="226" text-anchor="middle" font-size="9.5" fill="#777166">12 V &#177;4 %</text>
+
+        <line x1="582" y1="214" x2="640" y2="214" stroke="#b07a10" stroke-width="2.6"/>
+        <rect x="640" y="180" width="200" height="68" rx="3" fill="#eceae4" stroke="#b07a10" stroke-width="1.6"/>
+        <text x="740" y="202" text-anchor="middle" font-size="11" font-weight="600" fill="#23211d">X3A/B, X4A/B &#8212; Modbus probes</text>
+        <text x="740" y="219" text-anchor="middle" font-size="9.5" fill="#777166">SEN0680 @ 4800 &#183; Y511-A @ 9600</text>
+        <text x="740" y="236" text-anchor="middle" font-size="9.5" fill="#777166">12 V &#183; GND &#183; A &#183; B, two ganged blocks each</text>
+
+        <!-- switch B -->
+        <circle cx="308" cy="320" r="4" fill="#c0442e"/>
+        <line x1="308" y1="320" x2="356" y2="320" stroke="#c0442e" stroke-width="2.2"/>
+        <rect x="356" y="294" width="92" height="52" rx="3" fill="#ffffff" stroke="#a83277" stroke-width="1.8"/>
+        <text x="402" y="314" text-anchor="middle" font-size="11" font-weight="600" fill="#23211d">HS-SW B</text>
+        <text x="402" y="332" text-anchor="middle" font-size="9.5" fill="#17786e">gate: A1</text>
+
+        <line x1="448" y1="320" x2="486" y2="320" stroke="#c0442e" stroke-width="2.2"/>
+        <rect x="486" y="280" width="354" height="94" rx="3" fill="#ffffff" stroke="#a83277" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="663" y="300" text-anchor="middle" font-size="11" font-weight="600" fill="#a83277">isolated island &#8212; routed slot</text>
+        <rect x="500" y="310" width="150" height="50" rx="2" fill="#eceae4" stroke="#d6d2c8"/>
+        <text x="575" y="330" text-anchor="middle" font-size="10.5" fill="#23211d">isolator + EZO-pH</text>
+        <text x="575" y="347" text-anchor="middle" font-size="9.5" fill="#777166">0x63 &#183; SMA to probe</text>
+        <rect x="668" y="310" width="150" height="50" rx="2" fill="#eceae4" stroke="#d6d2c8"/>
+        <text x="743" y="330" text-anchor="middle" font-size="10.5" fill="#23211d">isolator + EZO-EC</text>
+        <text x="743" y="347" text-anchor="middle" font-size="9.5" fill="#777166">0x64 &#183; 2-way block</text>
+
+        <!-- switched 3v3 domain -->
+        <rect x="16" y="396" width="560" height="60" rx="3" fill="#ffffff" stroke="#6b4ea8" stroke-width="1.8"/>
+        <text x="30" y="418" font-size="11" font-weight="600" fill="#6b4ea8">SWGND island &#8212; returns to D6(&#8722;) only</text>
+        <text x="30" y="438" font-size="10" fill="#777166">MAX3485 &#183; DS18B20 &#183; 680 &#937; bias pull-down &#183; both isolators, MCU side</text>
+
+        <line x1="576" y1="426" x2="616" y2="426" stroke="#6b4ea8" stroke-width="2.2"/>
+        <line x1="616" y1="426" x2="616" y2="192" stroke="#6b4ea8" stroke-width="2.2"/>
+      </svg>

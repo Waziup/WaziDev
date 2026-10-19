@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" role="img"
+             aria-label="Detailed power schematic. Solar panel positive goes through a TVS node to the charge controller, then to the battery, then in series through a PTC fuse and an SS34 diode to the protected VBATT node. VBATT feeds the WaziSense board VIN and, through a Pololu number 2810 MOSFET switch, the U3V9F12 boost converter, whose output passes through a 1000 microfarad capacitor to the plus 12 volt sensor rail. Every negative connection drops to one common ground rail at the bottom."><rect x="-10000" y="-10000" width="20000" height="20000" fill="#FFFFFF"/>
+          <g font-family="IBM Plex Mono, monospace" font-size="11.5" fill="currentColor">
+
+            <!-- ===== row 1: generation + protection ===== -->
+            <g stroke="currentColor" stroke-width="1.3" fill="none">
+              <rect x="30"  y="72" width="100" height="58" rx="2"/>
+              <rect x="200" y="72" width="120" height="58" rx="2"/>
+              <rect x="390" y="72" width="100" height="58" rx="2"/>
+            </g>
+            <text x="80"  y="96"  text-anchor="middle">Solar</text>
+            <text x="80"  y="112" text-anchor="middle" fill="#7B9099" font-size="10">6 V 5–10 W</text>
+            <text x="260" y="96"  text-anchor="middle">Charge ctrl</text>
+            <text x="260" y="112" text-anchor="middle" fill="#7B9099" font-size="10">MPPT</text>
+            <text x="440" y="96"  text-anchor="middle">Battery</text>
+            <text x="440" y="112" text-anchor="middle" fill="#7B9099" font-size="10">18650 1–2× ∥</text>
+
+            <!-- + path row 1 -->
+            <g stroke="#B45F09" stroke-width="2">
+              <line x1="130" y1="101" x2="200" y2="101"/>
+              <line x1="320" y1="101" x2="390" y2="101"/>
+              <line x1="490" y1="101" x2="530" y2="101"/>
+              <line x1="584" y1="101" x2="600" y2="101"/>
+              <line x1="654" y1="101" x2="712" y2="101"/>
+            </g>
+            <text x="152" y="94" fill="#B45F09">+ SOL</text>
+            <text x="336" y="94" fill="#B45F09">+ BAT</text>
+
+            <!-- PTC + SS34 in series -->
+            <g stroke="currentColor" stroke-width="1.3" fill="#FFFFFF">
+              <rect x="530" y="88" width="54" height="26" rx="2"/>
+              <rect x="600" y="88" width="54" height="26" rx="2"/>
+            </g>
+            <text x="557" y="105" text-anchor="middle" font-size="10">PTC</text>
+            <text x="627" y="105" text-anchor="middle" font-size="10">SS34</text>
+            <text x="557" y="78" text-anchor="middle" fill="#7B9099" font-size="10">2.6 A</text>
+            <text x="627" y="78" text-anchor="middle" fill="#7B9099" font-size="10">rev.-pol.</text>
+
+            <!-- VBATT node -->
+            <circle cx="712" cy="101" r="3.5" fill="#B45F09"/>
+            <text x="722" y="94" fill="#B45F09">+VBATT  (X1-1)</text>
+
+            <!-- TVS drops -->
+            <g stroke="currentColor" stroke-width="1.3" fill="#FFFFFF">
+              <rect x="152" y="140" width="26" height="24" rx="2"/>
+              <rect x="676" y="140" width="26" height="24" rx="2"/>
+            </g>
+            <line x1="165" y1="101" x2="165" y2="140" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="165" y1="164" x2="165" y2="440" stroke="currentColor" stroke-width="1.2"/>
+            <circle cx="165" cy="101" r="3" fill="#B45F09"/>
+            <text x="184" y="156" font-size="10">TVS solar</text>
+            <line x1="689" y1="101" x2="689" y2="140" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="689" y1="164" x2="689" y2="440" stroke="currentColor" stroke-width="1.2"/>
+            <circle cx="689" cy="101" r="3" fill="#B45F09"/>
+            <text x="708" y="156" font-size="10">SMBJ5.0A</text>
+
+            <!-- − drops from row 1 -->
+            <g stroke="#7B9099" stroke-width="1.6">
+              <line x1="80"  y1="130" x2="80"  y2="440"/>
+              <line x1="260" y1="130" x2="260" y2="440"/>
+              <line x1="440" y1="130" x2="440" y2="440"/>
+            </g>
+            <text x="86"  y="150" fill="#7B9099">− SOL</text>
+            <text x="266" y="150" fill="#7B9099">−</text>
+            <text x="446" y="150" fill="#7B9099">− BAT</text>
+
+            <!-- ===== branch to board ===== -->
+            <line x1="712" y1="101" x2="712" y2="196" stroke="#B45F09" stroke-width="2"/>
+            <line x1="712" y1="196" x2="770" y2="196" stroke="#B45F09" stroke-width="2"/>
+            <circle cx="712" cy="196" r="3.5" fill="#B45F09"/>
+            <rect x="770" y="168" width="180" height="86" rx="2" fill="#EBF1F3" stroke="currentColor" stroke-width="1.4"/>
+            <text x="786" y="190" font-family="IBM Plex Sans Condensed, sans-serif" font-size="13" font-weight="700" fill="#15242A">WaziSenseV2</text>
+            <text x="786" y="210" fill="#7B9099" font-size="10">VIN · SP1 (D6) · A0 · SP2 unused</text>
+            <text x="758" y="192" text-anchor="end" fill="#B45F09" font-size="10">VIN</text>
+            <line x1="860" y1="254" x2="860" y2="440" stroke="#7B9099" stroke-width="1.6"/>
+            <text x="866" y="274" fill="#7B9099">− GND</text>
+            <!-- switched 3.3 V out of "Sensor Power 1", gated by D6 -->
+            <line x1="950" y1="228" x2="972" y2="228" stroke="#0D6E88" stroke-width="2"/>
+            <text x="948" y="248" fill="#0D6E88" font-size="10" text-anchor="end">SP1 +3V3 sw (D6)</text>
+            <text x="948" y="261" fill="#7B9099" font-size="10" text-anchor="end">→ D6(+)</text>
+
+            <!-- ===== row 3: boost + switch + 12 V rail ===== -->
+            <path d="M 712 196 L 712 268 L 100 268 L 100 330" stroke="#B45F09" stroke-width="2" fill="none"/>
+            <text x="360" y="262" fill="#B45F09">+VBATT to boost</text>
+
+            <g stroke="currentColor" stroke-width="1.3" fill="none">
+              <rect x="100" y="302" width="120" height="56" rx="2"/>
+              <rect x="288" y="302" width="130" height="56" rx="2"/>
+            </g>
+            <text x="160" y="326" text-anchor="middle">#2810 (A)</text>
+            <text x="160" y="342" text-anchor="middle" fill="#7B9099" font-size="10">high-side switch</text>
+            <text x="353" y="326" text-anchor="middle">U3V9F12</text>
+            <text x="353" y="342" text-anchor="middle" fill="#7B9099" font-size="10">→ 12 V fixed</text>
+
+            <g stroke="#B45F09" stroke-width="2">
+              <line x1="220" y1="330" x2="288" y2="330"/>
+              <line x1="418" y1="330" x2="500" y2="330"/>
+              <line x1="500" y1="330" x2="950" y2="330"/>
+            </g>
+            <text x="228" y="322" fill="#B45F09" font-size="10">+12 V raw</text>
+            <circle cx="500" cy="330" r="3.5" fill="#B45F09"/>
+            <text x="640" y="322" fill="#B45F09">+12 V switched  (X2-1)  →  probes</text>
+
+            <!-- bulk cap -->
+            <line x1="560" y1="330" x2="560" y2="362" stroke="#B45F09" stroke-width="1.6"/>
+            <circle cx="560" cy="330" r="3" fill="#B45F09"/>
+            <g stroke="#B45F09" stroke-width="2">
+              <line x1="542" y1="362" x2="578" y2="362"/>
+              <line x1="542" y1="370" x2="578" y2="370"/>
+            </g>
+            <line x1="560" y1="370" x2="560" y2="440" stroke="#7B9099" stroke-width="1.6"/>
+            <text x="586" y="360" font-size="10">1000 µF</text>
+            <text x="586" y="374" fill="#7B9099" font-size="10">watch polarity</text>
+
+            <!-- − drops row 3 -->
+            <g stroke="#7B9099" stroke-width="1.6">
+              <line x1="140" y1="358" x2="140" y2="440"/>
+              <line x1="330" y1="358" x2="330" y2="440"/>
+            </g>
+            <text x="146" y="378" fill="#7B9099">−</text>
+            <text x="336" y="378" fill="#7B9099">−</text>
+
+            <!-- 12 V rail control: D5 straight into the #2810 ON pin -->
+            <path d="M 800 254 L 800 286 L 384 286 L 384 302" stroke="#0D6E88" stroke-width="1.6"
+                  stroke-dasharray="5 4" fill="none"/>
+            <text x="440" y="280" fill="#0D6E88" font-size="10">D5 → #2810 ON  (one wire)</text>
+
+            <!-- ===== GND rail ===== -->
+            <line x1="30" y1="440" x2="960" y2="440" stroke="#7B9099" stroke-width="3"/>
+            <text x="30" y="466" fill="#7B9099" font-size="11">GND / X1-2 — one common node. Star-point it at the battery minus, not daisy-chained.</text>
+          </g>
+        </svg>

@@ -8,7 +8,7 @@
 from __future__ import print_function
 import pcbnew
 
-PCB = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\KijaniCarrier.kicad_pcb'
+from paths import PCB
 bd = pcbnew.LoadBoard(PCB)
 pcbnew.ZONE_FILLER(bd).Fill(bd.Zones())
 conn = bd.GetConnectivity()

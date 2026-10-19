@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 430" role="img"
+           aria-label="The Sensor Power topology. A permanent 3.3 volt node, selected by jumper H1, feeds the plus terminals of both Sensor Power blocks; the two plus terminals are the same node and measure 1.2 ohms apart. Each block's minus terminal is the drain of its own low-side MOSFET whose gate is driven by D6 or D7 and whose source goes to ground. A load therefore hangs between the permanent plus and the switched minus. A red path shows the failure mode: a second wire from the load's ground to any GND pin bypasses the MOSFET entirely, so the load can never be switched off."><rect x="-10000" y="-10000" width="20000" height="20000" fill="#FFFFFF"/>
+        <defs>
+          <marker id="ar00" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#7B9099"/>
+          </marker>
+        </defs>
+
+        <!-- permanent 3V3 bus -->
+        <text x="20" y="46" fill="#0D6E88" font-size="12" font-weight="600">3.3 V regulator (H1 = 3.3 V)</text>
+        <line x1="20" y1="60" x2="820" y2="60" stroke="#0D6E88" stroke-width="3"/>
+        <text x="828" y="64" fill="#0D6E88" font-size="11">PERMANENT</text>
+
+        <!-- taps down to the two plus terminals -->
+        <line x1="240" y1="60" x2="240" y2="110" stroke="#0D6E88" stroke-width="3"/>
+        <line x1="560" y1="60" x2="560" y2="110" stroke="#0D6E88" stroke-width="3"/>
+
+        <!-- 1.2 ohm annotation between the two plus terminals -->
+        <line x1="240" y1="86" x2="560" y2="86" stroke="#0D6E88" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="400" y="80" text-anchor="middle" fill="#0D6E88" font-size="11" font-weight="600">measured 1.2 &#937; &#8212; one node</text>
+
+        <!-- D6 block -->
+        <rect x="170" y="110" width="140" height="34" fill="#EBF1F3" stroke="#B9CAD1"/>
+        <text x="240" y="132" text-anchor="middle" fill="#15242A" font-size="12" font-weight="600">D6(+)</text>
+        <rect x="170" y="250" width="140" height="34" fill="#EBF1F3" stroke="#B9CAD1"/>
+        <text x="240" y="272" text-anchor="middle" fill="#15242A" font-size="12" font-weight="600">D6(&#8722;)</text>
+        <rect x="185" y="164" width="110" height="62" fill="#FFFFFF" stroke="#B9CAD1"/>
+        <text x="240" y="190" text-anchor="middle" fill="#485D67" font-size="11">3.3 V load</text>
+        <text x="240" y="206" text-anchor="middle" fill="#7B9099" font-size="10">EZO-EC, RS485 module,</text>
+        <text x="240" y="219" text-anchor="middle" fill="#7B9099" font-size="10">bias, DS18B20</text>
+        <line x1="240" y1="144" x2="240" y2="164" stroke="#0D6E88" stroke-width="3"/>
+        <line x1="240" y1="226" x2="240" y2="250" stroke="#485D67" stroke-width="3"/>
+
+        <!-- D7 block -->
+        <rect x="490" y="110" width="140" height="34" fill="#EBF1F3" stroke="#B9CAD1"/>
+        <text x="560" y="132" text-anchor="middle" fill="#15242A" font-size="12" font-weight="600">D7(+)</text>
+        <rect x="490" y="250" width="140" height="34" fill="#EBF1F3" stroke="#B9CAD1"/>
+        <text x="560" y="272" text-anchor="middle" fill="#15242A" font-size="12" font-weight="600">D7(&#8722;)</text>
+        <rect x="505" y="164" width="110" height="62" fill="#FFFFFF" stroke="#B9CAD1"/>
+        <text x="560" y="196" text-anchor="middle" fill="#7B9099" font-size="11">unused in this</text>
+        <text x="560" y="210" text-anchor="middle" fill="#7B9099" font-size="11">build</text>
+        <line x1="560" y1="144" x2="560" y2="164" stroke="#0D6E88" stroke-width="3"/>
+        <line x1="560" y1="226" x2="560" y2="250" stroke="#485D67" stroke-width="3"/>
+
+        <!-- MOSFETs -->
+        <rect x="200" y="300" width="80" height="44" fill="#FFFFFF" stroke="#485D67" stroke-width="1.5"/>
+        <text x="240" y="327" text-anchor="middle" fill="#15242A" font-size="11" font-weight="600">MOSFET</text>
+        <rect x="520" y="300" width="80" height="44" fill="#FFFFFF" stroke="#485D67" stroke-width="1.5"/>
+        <text x="560" y="327" text-anchor="middle" fill="#15242A" font-size="11" font-weight="600">MOSFET</text>
+        <line x1="240" y1="284" x2="240" y2="300" stroke="#485D67" stroke-width="3"/>
+        <line x1="560" y1="284" x2="560" y2="300" stroke="#485D67" stroke-width="3"/>
+
+        <!-- gates -->
+        <text x="130" y="326" text-anchor="end" fill="#6D3BD1" font-size="12" font-weight="600">D6 pin</text>
+        <line x1="138" y1="322" x2="200" y2="322" stroke="#6D3BD1" stroke-width="2" marker-end="url(#ar00)"/>
+        <text x="450" y="326" text-anchor="end" fill="#6D3BD1" font-size="12" font-weight="600">D7 (internal)</text>
+        <line x1="458" y1="322" x2="520" y2="322" stroke="#6D3BD1" stroke-width="2" marker-end="url(#ar00)"/>
+
+        <!-- ground bus -->
+        <line x1="20" y1="380" x2="820" y2="380" stroke="#485D67" stroke-width="3"/>
+        <line x1="240" y1="344" x2="240" y2="380" stroke="#485D67" stroke-width="3"/>
+        <line x1="560" y1="344" x2="560" y2="380" stroke="#485D67" stroke-width="3"/>
+        <text x="20" y="400" fill="#485D67" font-size="12" font-weight="600">GND pins</text>
+
+        <!-- the failure mode -->
+        <path d="M 240 240 L 700 240 L 700 380" fill="none" stroke="#A32C24" stroke-width="2.5" stroke-dasharray="6 4"/>
+        <circle cx="240" cy="240" r="4" fill="#A32C24"/>
+        <text x="712" y="250" fill="#A32C24" font-size="11" font-weight="600">A stray wire from the load's</text>
+        <text x="712" y="264" fill="#A32C24" font-size="11" font-weight="600">ground to ANY GND pin</text>
+        <text x="712" y="278" fill="#A32C24" font-size="11">shorts out the MOSFET.</text>
+        <text x="712" y="292" fill="#A32C24" font-size="11">D6 then does nothing at all.</text>
+        </svg>

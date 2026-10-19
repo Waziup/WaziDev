@@ -8,7 +8,7 @@ import io, re, sys, math, codecs
 if __name__ == '__main__':
     sys.stdout = codecs.getwriter('ascii')(sys.stdout.buffer, 'replace')
 
-PCB = r'C:\Users\felix\Claude_temp\WaterSensorNode\pcb\KijaniCarrier.kicad_pcb'
+from paths import PCB
 WANT = sys.argv[1:] or ['U4', 'U6', 'U5', 'U7', 'J7', 'J9']
 
 

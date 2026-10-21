@@ -57,9 +57,11 @@ from the board file on every build. Where a guide and `FACTS.md` disagree, `FACT
 2. **Firmware:** enter your device's LoRaWAN credentials in `WaterSensorNode.ino` and flash it
    (see below).
 3. **Assembly and installation:** follow the Node Deployment guide.
-4. **Gateway:** register the device on the WaziGate. Then run
-   [`setup_wazigate_device.js`](setup_wazigate_device.js) once in the dashboard's browser console. It
-   assigns the XLPP codec and creates named sensors and the calibration actuators.
+4. **Gateway:** in the WaziGate dashboard's browser console, run
+   [`create_wazigate_device.js`](create_wazigate_device.js) with the node's address and key filled in.
+   It creates the LoRaWAN device with the XLPP codec, the named sensors and the calibration
+   actuators. For a device that already exists, run
+   [`update_wazigate_device.js`](update_wazigate_device.js) instead.
 5. **Calibration:** calibrate pH and EC on site with the Probe Calibration guide.
 6. **Troubleshooting:** the Node Bring-Up guide, from the stage that fails.
 
@@ -67,7 +69,8 @@ from the board file on every build. Where a guide and `FACTS.md` disagree, `FACT
 
 ```
 WaterSensorNode.ino         node firmware
-setup_wazigate_device.js    one-time WaziGate v3 device setup
+create_wazigate_device.js   WaziGate v3: create the device from scratch
+update_wazigate_device.js   WaziGate v3: bring an existing device up to date
 EZOCal/                     I2C console for bench calibration of the EZO circuits
 I2CScan/  EZOSwitch/  EZOBridge/  VccCal/  RailTest/  SettleTime/  TurbBrush/  DOCompensation/
 RS485Drive/  RS485Pins/  RS485Turnaround/  RS485Scan/  RS485Config/
@@ -90,14 +93,14 @@ decoder.js, add_decoder_to_wg.js   superseded custom gateway decoder, kept for r
 **LoRaWAN credentials:** the device address and keys are set at the top of `WaterSensorNode.ino`.
 Use placeholders in any public copy, and never commit real credentials.
 
-**Build variants.** Program memory is almost fully used (30,600 of 30,720 bytes). Two compile-time
-switches select what fits:
+**Build variants.** Two compile-time switches; every combination fits in the 30,720 bytes of
+program memory:
 
-| `VERBOSE_LOG` | `ENABLE_LORA_CAL` | Use |
-|---|---|---|
-| 0 | 1 | deployment: concise log, remote calibration enabled |
-| 1 | 0 | bench: full diagnostic log; calibrate with `EZOCal` |
-| 1 | 1 | not supported; compilation stops with an explanatory error |
+| `VERBOSE_LOG` | `ENABLE_LORA_CAL` | Program memory | Use |
+|---|---|---|---|
+| 0 | 1 | 27,670 bytes (90 %) | **deployment**: concise log, remote calibration |
+| 1 | 1 | 27,974 bytes (91 %) | bench: full diagnostic log, remote calibration |
+| 1 | 0 | 26,508 bytes (86 %) | bench: full log; calibrate with `EZOCal` |
 
 **Uplink payload** (XLPP / Cayenne LPP). A failed reading is omitted, never sent as zero.
 

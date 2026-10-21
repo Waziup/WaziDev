@@ -158,7 +158,7 @@ unsigned char LoRaWANKeys[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF,
 unsigned char devAddr[4]      = {0x26, 0x01, 0x1B, 0xEE};
 
 const int interval  = 3000;   // downlink RX window (ms)
-int       sleep_sec = 1800;   // 30 min base cycle; downlink-settable
+int       sleep_sec = 60;//1800;   // 30 min base cycle; downlink-settable
 
 //  ####################################################################
 //  ##  VERBOSE_LOG - narration on or off                             ##
@@ -178,13 +178,10 @@ int       sleep_sec = 1800;   // 30 min base cycle; downlink-settable
 #define VERBOSE_LOG  0
 
 //  ENABLE_LORA_CAL - pH/EC calibration by downlink (see LORAWAN DOWNLINK).
-//  It and the bench log do not fit in flash together: with both on the
-//  sketch is ~440 bytes too big. On the bench, calibrate with EZOCal/ and
-//  set this to 0; deployed, VERBOSE_LOG is 0 and this is 1.
+//  It fits together with VERBOSE_LOG 1 since 21 Oct 2026, when dropping
+//  printf, dtostrf and atof freed ~3.4 KB (see appendFixed2). Until then the
+//  two were mutually exclusive and a #error enforced it.
 #define ENABLE_LORA_CAL  1
-#if VERBOSE_LOG && ENABLE_LORA_CAL
-  #error "VERBOSE_LOG 1 and ENABLE_LORA_CAL 1 do not fit in flash together - set one of them to 0"
-#endif
 
 //  NEVER put anything with a side effect inside LOG() or LOGLN(). At
 //  VERBOSE_LOG 0 they expand to do {} while (0), which discards the argument
@@ -630,7 +627,7 @@ const uint16_t RAIL12_SETTLE_MS  = 3000;
 
 // ---------------------------------------------------------------------------
 //  Atlas Scientific EZO (I2C)
-//  NOTE: EZO-EC outputs "EC,TDS,SAL,SG" as CSV by default; atof() takes the
+//  NOTE: EZO-EC outputs "EC,TDS,SAL,SG" as CSV by default; parseDecimal() takes the
 //  first field (EC in uS/cm). Cleaner: disable the extras once with
 //  "O,TDS,0" / "O,S,0" / "O,SG,0".
 // ---------------------------------------------------------------------------
@@ -847,9 +844,11 @@ void unparkPinsAfterSleep() {
 }
 
 void sleep(int sec_to_sleep) {
-  LOG(F("Will sleep now for approximately "));
-  LOG(sec_to_sleep);
-  LOGLN(F(" seconds."));
+  //  Printed at every log level. Without it a sleeping node and a hung one
+  //  look the same on the serial monitor: the log just stops after the send.
+  Serial.print(F("sleep "));
+  Serial.print(sec_to_sleep);
+  Serial.println(F(" s"));
 
   // Serial.flush() instead of delay(1000): it waits for exactly as long as
   // the last characters need to leave the UART, rather than a fixed second.
@@ -1312,11 +1311,55 @@ bool ezoCommand(uint8_t addr, const char *cmd, char *resp, uint8_t respSize, uin
   return (code == 1);
 }
 
+//  NUMBERS TO AND FROM TEXT, WITHOUT THE C LIBRARY'S GENERAL ROUTINES.
+//
+//  dtostrf(), snprintf() and atof() pulled in the float formatter, printf
+//  and strtod: about 2.9 KB of a 30 KB flash, for writing "T,24.50" and
+//  reading "7.012". These two do exactly that much. The EZO circuits and
+//  the gateway never send exponents, so nothing here needs to read one.
+
+//  Appends v with two decimals ("24.50", "-1.00") and returns the new end.
+char *appendFixed2(char *p, float v) {
+  if (v < 0) { *p++ = '-'; v = -v; }
+  uint32_t n = (uint32_t)(v * 100.0f + 0.5f);
+  char tmp[11];
+  uint8_t i = 0;
+  do { tmp[i++] = '0' + n % 10; n /= 10; } while (n || i < 3);
+  while (i) {
+    *p++ = tmp[--i];
+    if (i == 2) *p++ = '.';
+  }
+  *p = 0;
+  return p;
+}
+
+//  Reads a decimal number at the start of s - "7.012", "-1", "1413.2,708"
+//  - and stops at the first character that is not part of it, as atof()
+//  does: so an EZO-EC reply yields its first (EC) field, and text that is
+//  no number at all yields 0.
+float parseDecimal(const char *s) {
+  while (*s == ' ') s++;
+  bool neg = (*s == '-');
+  if (neg || *s == '+') s++;
+  float v = 0, scale = 0;
+  for (; *s; s++) {
+    if (*s >= '0' && *s <= '9') {
+      v = v * 10 + (*s - '0');
+      if (scale) scale *= 10;
+    } else if (*s == '.' && !scale) {
+      scale = 1;
+    } else {
+      break;
+    }
+  }
+  if (scale) v /= scale;
+  return neg ? -v : v;
+}
+
 void ezoSetTemperature(uint8_t addr, float tempC) {
   if (isnan(tempC)) return;
-  char cmd[16], tbuf[8];
-  dtostrf(tempC, 4, 2, tbuf);
-  snprintf(cmd, sizeof(cmd), "T,%s", tbuf);
+  char cmd[16] = "T,";
+  appendFixed2(cmd + 2, tempC);
   ezoCommand(addr, cmd, NULL, 0, EZO_CMD_DELAY_MS);
 }
 
@@ -1324,7 +1367,7 @@ float ezoRead(uint8_t addr) {
   char resp[24];
   if (!ezoCommand(addr, "R", resp, sizeof(resp), EZO_READ_DELAY_MS)) return NAN;
   if (resp[0] == 0) return NAN;
-  return atof(resp);     // stops at the first comma -> EC field for EZO-EC
+  return parseDecimal(resp);   // stops at the first comma -> EC field for EZO-EC
 }
 
 // ===========================================================================
@@ -1535,7 +1578,7 @@ void readAllSensors(bool doTurbidity) {
   v_ph = ezoRead(EZO_PH_ADDR);
 
   // ezoRead() only returns NAN when the I2C exchange itself failed. If the
-  // circuit answers with something atof() cannot parse, atof() returns 0.0 -
+  // circuit answers with something parseDecimal() cannot read, it returns 0.0 -
   // and 0.0 is a number, so it would go out as a valid pH reading. It is not
   // one: the EZO measures from 0.001 upwards and lake water never comes near
   // it. Same idea as the DS18B20 bands, which reject -127 and +85.
@@ -1636,7 +1679,7 @@ void readAllSensors(bool doTurbidity) {
 //  (the old /100 trick existed only because ANALOG_INPUT stops at 327.67),
 //  and turbidity goes out in NTU directly. Above 327 NTU it is capped -
 //  Lake Victoria sits far below that; a 327 means "off the scale".
-//  Names and units on the gateway come from setup_wazigate_device.js.
+//  Names and units on the gateway come from create_/update_wazigate_device.js.
 //  Channels whose read failed (or that were skipped) are simply omitted.
 //  Channel 1 always carries the water temperature, whichever sensor produced
 //  it - so swapping PT1000 for DS18B20 does not change the decoder.
@@ -1670,10 +1713,13 @@ uint8_t uplink() {
   // served nothing: the radio is already initialised and the rails are
   // already down by this point, so it was three seconds of the MCU simply
   // waiting. Removed.
-  serialPrintf(("LoRaWAN send ... "));
+  // Serial.print, not serialPrintf: these were the only printf calls left,
+  // and printf alone is ~1.1 KB of flash.
+  Serial.print(F("LoRaWAN send ... "));
   uint8_t e = wazidev.sendLoRaWAN(xlpp.buf, xlpp.len);
   if (e != 0) {
-    serialPrintf(("Err %d\n"), e);
+    Serial.print(F("Err "));
+    Serial.println(e);
     delay(interval);
     return e;
   }
@@ -1754,14 +1800,10 @@ float ezoSettle(uint8_t addr, float tol) {
 //  One calibration step. target: the buffer value, or <= 0 for a command
 //  without a value (clear, dry). Returns the code for ch 9 / ch 10.
 uint8_t ezoCalibrate(uint8_t addr, const char *what, float target, bool plausible) {
-  char cmd[20], num[10], resp[12];
+  char cmd[24] = "Cal,", resp[12];
   if (!plausible) return CAL_IMPLAUSIBLE;
-  if (target > 0) {
-    dtostrf(target, 1, 2, num);
-    snprintf(cmd, sizeof(cmd), "Cal,%s%s", what, num);
-  } else {
-    snprintf(cmd, sizeof(cmd), "Cal,%s", what);
-  }
+  strcat(cmd, what);                            // "Cal,mid," / "Cal,dry" / "Cal,"
+  if (target > 0) appendFixed2(cmd + strlen(cmd), target);
   Serial.println(cmd);
   if (!ezoCommand(addr, cmd, resp, sizeof(resp), EZO_READ_DELAY_MS)) return CAL_NO_ANSWER;
   if (!ezoCommand(addr, "Cal,?", resp, sizeof(resp), EZO_CMD_DELAY_MS)) return CAL_NO_ANSWER;
@@ -1826,11 +1868,35 @@ uint8_t downlink_with_logs(uint16_t timeout) {
     delay(2000);
     e = wazidev.receiveLoRaWAN(xlpp.buf, &xlpp.offset, &xlpp.len, timeout);
     if (e == ERR_LORA_TIMEOUT) {
-      LOGLN(F("RX2 Timeout. No downlink received."));
+      Serial.println(F("RX: no downlink"));
       return ERR_LORA_TIMEOUT;
     }
   }
-  if (xlpp.len == 0) return 1;
+  //  Act only on a cleanly received frame. A CRC failure is a corrupt frame;
+  //  a MIC failure can be a downlink meant for another device. Either way
+  //  the buffer holds nothing that may set an interval or calibrate a probe.
+  if (e != 0) {
+    Serial.print(F("RX error "));
+    Serial.println((int8_t)e);
+    return e;
+  }
+  //  A frame with no user data is the network server's own business: MAC
+  //  commands (data rate, channels, status requests) carried in the header.
+  //  WaziDev does not answer them, so ChirpStack repeats them after most
+  //  uplinks. Nothing to do here, but say so: silence looks like a hang.
+  if (xlpp.len == 0) {
+    Serial.println(F("RX: network control frame, no data"));
+    return 1;
+  }
+  //  WaziGate sends actuator values on FPort 100; the port byte sits just
+  //  before the payload. Anything else - port 0 carries MAC commands as
+  //  data - must never be read as a command.
+  if (xlpp.buf[xlpp.offset - 1] != 100) {
+    Serial.print(F("RX: port "));
+    Serial.print(xlpp.buf[xlpp.offset - 1]);
+    Serial.println(F(" ignored"));
+    return 1;
+  }
 
   // The value as JSON text, e.g. 7 or -1 or "1413". Copy it out and
   // terminate it; a quoted number is accepted, true/false and objects are not.
@@ -1843,7 +1909,7 @@ uint8_t downlink_with_logs(uint16_t timeout) {
   Serial.println(txt);
   if (!((*p >= '0' && *p <= '9') || *p == '-' || *p == '.')) return 1;
 
-  float v = atof(p);
+  float v = parseDecimal(p);
   if (v == 0) return 0;
 
   if (v >= 60 && v <= 3600 && v == (long)v && (long)v % 60 == 0) {

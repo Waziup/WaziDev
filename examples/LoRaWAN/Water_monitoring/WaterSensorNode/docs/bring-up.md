@@ -44,7 +44,8 @@ All in the repository root. Every diagnostic is read-only on the serial monitor 
 | `RS485Scan/` | Finds a Modbus device across baud rates, addresses and registers, and dumps raw bytes in all four byte orders. | 5 |
 | `RS485Config/` | Writes a device's address or baud rate. Refuses unless exactly one device is present. | 6 |
 | `WaterSensorNode.ino` | The firmware. Staged by `ENABLE_*` flags. | 2, 6, 7 |
-| `setup_wazigate_device.js` | One-time gateway setup: XLPP codec, named sensors, calibration actuators. Paste into the dashboard's browser console. | 7 |
+| `create_wazigate_device.js` | Gateway: creates the device from scratch (XLPP codec, named sensors, calibration actuators). Paste into the dashboard's browser console. | 7 |
+| `update_wazigate_device.js` | Gateway: brings an existing device up to date, same result. | 7 |
 
 ---
 
@@ -268,20 +269,29 @@ The rate difference also separates them despite the shared address: a frame sent
 
 ### 7 · Gateway setup
 
-Runs: **setup\_wazigate\_device.js** · WaziGate dashboard, browser console
+Runs: **create\_wazigate\_device.js** or **update\_wazigate\_device.js** · WaziGate dashboard, browser console
 
 The device uses WaziGate's built-in **XLPP codec**. A custom JavaScript codec is not an option: WaziGate
 can only decode uplinks with one, never encode a downlink, and calibration over LoRa needs downlinks.
 
-`setup_wazigate_device.js` does the whole setup in one run. Open the WaziGate dashboard, open the
-browser console (`F12`), paste the whole file and press Enter. It:
+Two scripts, one result. Open the WaziGate dashboard, open the browser console (`F12`), paste the
+whole file and press Enter.
 
-1. switches the device to the XLPP codec;
+- **`create_wazigate_device.js`** makes the device from scratch. Fill in the node's `DEV_ADDR` and
+  `SESSION_KEY` (the `devAddr` and `LoRaWANKeys` arrays in `WaterSensorNode.ino`, as hex) first.
+- **`update_wazigate_device.js`** brings an existing device up to date. Fill in `DEV_ADDR`.
+
+Either one:
+
+1. puts the device on the XLPP codec and registers it with WaziGate's LoRa service, which routes
+   an address to the device whose settings were written last;
 2. creates one named sensor per channel, with its unit. The XLPP codec fills sensors by their
    `xlppChan`, so the values land in these instead of in generic entries;
 3. creates the actuators *pH calibration*, *EC calibration* and *Interval*.
 
-Running it twice is safe: it renames and completes, and never creates duplicates.
+Running the update script twice is safe: it renames and completes, and never creates duplicates.
+Older devices with the same address receive no data once a newer one is registered; both scripts
+list them so they can be deleted in the dashboard.
 
 | Ch | Quantity | Sent as | Resolution |
 | --- | --- | --- | --- |
@@ -324,7 +334,7 @@ reference). That decoder is also why no downlink ever reached the node.*
 >
 > **Answer** on the next uplink, sensor *pH / EC calibration result*: **0–3** points now stored, **90** implausible (wrong buffer, or still in lake water), **91** no answer, **92** never settled (leave it in longer, push again), **93** battery too low. After a calibration the node cycles every ~5 min for half an hour, so the next step does not wait 30 min.
 >
-> **Firmware:** `ENABLE_LORA_CAL 1`. It does not fit together with `VERBOSE_LOG 1`; the compiler stops with a message rather than a vague “sketch too big”. On the bench, set it to 0 and use `EZOCal`. **Correction:** the single-point EC command is `Cal,<value>`, e.g. `Cal,84`. `EZOCal` documented `Cal,one,<value>`, which is not an Atlas command; check `Cal,?` if an earlier single point is in doubt.
+> **Firmware:** `ENABLE_LORA_CAL 1`. Since 21 October 2026 it fits together with `VERBOSE_LOG 1`, so the bench log and remote calibration can run at the same time. *(Until then the two did not fit in flash together.)* **Correction:** the single-point EC command is `Cal,<value>`, e.g. `Cal,84`. `EZOCal` documented `Cal,one,<value>`, which is not an Atlas command; check `Cal,?` if an earlier single point is in doubt.
 
 Runs: **EZOCal/** · **VccCal/** · buffer solutions · a multimeter
 
@@ -350,7 +360,7 @@ Everything above proves the node reads and transmits. None of it makes the numbe
 >
 > **And the obvious fix is wrong.** Rejecting zero outright throws away the one reading the whole station exists to send: a genuinely anoxic pond really does read near zero. The discriminator has to be something else. The cheapest reliable one is the probe's own temperature register — a booting probe returns 0.00 there too, and 0.00 °C in Lake Victoria is impossible. **Both registers exactly zero = not ready. A real zero comes with a real temperature.**
 >
-> Open, because it costs flash on a sketch at 99 %, and because which way to fail is a decision about the station, not about the code.
+> Open, because which way to fail is a decision about the station, not about the code.
 
 ## The real floor is 3.5 V, not 3.0 V
 

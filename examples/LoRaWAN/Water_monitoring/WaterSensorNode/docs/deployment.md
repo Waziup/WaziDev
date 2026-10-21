@@ -104,7 +104,7 @@ Five short cables join the boards. **Wire by name, not by position**: the blocks
 Runs: cell connected · probes in a bucket of water · FTDI for the log only
 
 1. Connect the cell. Watch one cycle in the serial monitor (38400 baud).
-2. **Gateway, once per device:** paste `setup_wazigate_device.js` into the WaziGate dashboard’s browser console. It switches the device to the XLPP codec and creates the named sensors and the actuators *pH calibration*, *EC calibration*, *Interval*.
+2. **Gateway, once per device:** fill in the node's address and key in `create_wazigate_device.js` and paste it into the WaziGate dashboard’s browser console. It creates the device with the XLPP codec, the named sensors and the actuators *pH calibration*, *EC calibration*, *Interval*. For a device that already exists, use `update_wazigate_device.js`.
 3. Wait for the next uplink. All seven values should appear on the named sensors.
 4. Test one LoRa calibration: pH probe in pH 7, push `7`; the result should read **1** on the uplink after (see [Probe Calibration](calibration.md)).
 5. Unplug the FTDI and measure sleep current across a 1 Ω shunt in the cell lead, not with the meter in series. Record it; this is the carrier’s first real figure.

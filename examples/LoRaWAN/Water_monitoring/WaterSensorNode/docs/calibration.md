@@ -41,8 +41,8 @@ No cable, no laptop: you push a number to an actuator in the WaziGate dashboard,
 > [!NOTE]
 > **Needs, once**
 >
-> - Firmware with `ENABLE_LORA_CAL 1` (and `VERBOSE_LOG 0`; the two do not fit in flash together).
-> - The device on WaziGate’s built-in **XLPP codec**, with the actuators *pH calibration*, *EC calibration* and *Interval*: paste `setup_wazigate_device.js` once into the dashboard’s browser console.
+> - Firmware with `ENABLE_LORA_CAL 1`. `VERBOSE_LOG` may be 0 or 1; both fit.
+> - The device on WaziGate’s built-in **XLPP codec**, with the actuators *pH calibration*, *EC calibration* and *Interval*: run `create_wazigate_device.js` (new device) or `update_wazigate_device.js` (existing device) once in the dashboard’s browser console.
 > - `K` already set on the EC circuit (Route B, step 3). LoRa cannot set it.
 
 ### What the node understands
@@ -121,7 +121,7 @@ Push `1800` to *Interval*. **The interval does not return to 30 min by itself**
 > - **The plausibility check can refuse a genuinely wrong probe:** more than 1 pH off, or EC outside half to double. That is the price of refusing lake water by mistake.
 > - **The result is sent once.** If that one uplink is lost, the calibration may still have happened. Judge by the next readings, or check with `Cal,?` in EZOCal.
 > - **A 1500 µS/cm standard** would be read as a 25 min interval. 84, 1413 and 12880 are not affected.
-> - **Not below 3.6 V** (result 93), and not with the bench log switched on (`VERBOSE_LOG 1` leaves no room for this code).
+> - **Not below 3.6 V** (result 93).
 
 ---
 
@@ -186,7 +186,7 @@ Date, the `Cal,?` answers, the pH slope, the buffer lot. A drifting slope over m
 
 ### 5 · Put the firmware back
 
-Upload `WaterSensorNode.ino` with `VERBOSE_LOG 0` and `ENABLE_LORA_CAL 1`. For a bench log instead, `VERBOSE_LOG 1` and `ENABLE_LORA_CAL 0`; the compiler stops with a message if both are 1.
+Upload `WaterSensorNode.ino` with `VERBOSE_LOG 0` and `ENABLE_LORA_CAL 1`. For a bench log, set `VERBOSE_LOG 1`; remote calibration stays available.
 
 > [!TIP]
 > **Gate**

@@ -144,7 +144,7 @@ Runs: cell connected · probes in a bucket of water · FTDI for the log only
 ### 9 · Commission
 
 1. Calibrate in place over LoRa: pH 7, 4, 10, then EC dry and 84 µS/cm.
-2. Check the *Interval* is back at `1800`.
+2. Check the *Interval* is back at `0` (firmware default, 30 min) or `30`.
 3. Watch the first day of data.
 
 > [!TIP]
@@ -163,7 +163,7 @@ Runs: cell connected · probes in a bucket of water · FTDI for the log only
 
 | When | What |
 | --- | --- |
-| weekly | glance at the data: gaps, flat lines, the two temperatures apart, the battery trend |
+| weekly | glance at the data: gaps, flat lines, the two temperatures apart, the battery trend, and any new *Restart cause* (meaning in [Bring-Up](bring-up.md#restart-cause-and-the-watchdog-channel-8)) |
 | every 4–8 weeks | pH recalibration over LoRa; clean the probes of biofilm |
 | every ~3 months | EC check: dry + 84 µS/cm; compare against a handheld meter |
 | every visit | replace the silica gel; check glands, the heat-shrunk joint, the panel glass |

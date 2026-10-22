@@ -15,20 +15,23 @@
  *       whose settings were written last;
  *    3. creates or renames the sensors the XLPP codec fills, one per channel,
  *       with names and units - the codec matches them by meta.xlppChan;
- *    4. creates the actuators pH calibration, EC calibration, Interval.
+ *    4. creates the actuators pH calibration, EC calibration, Interval, or
+ *       gives existing ones their XLPP channel (20-22) and type. An existing
+ *       actuator that had no channel yet is reset to 0 first, because its old
+ *       value meant something else.
  *
  *  WHY XLPP. WaziGate can only build downlinks through the device's codec,
  *  and a JavaScript codec cannot encode (in v3 its encoder is a stub), so
  *  with a custom decoder no actuator value ever reaches the node.
  *
- *  THE ACTUATORS ARE PLAIN NUMBERS. In v3 the downlink is the number you
- *  push, as text, with no channel; the node tells commands apart by value:
+ *  THE ACTUATORS. A push sends every actuator with its channel and current
+ *  value; the node acts only on a value that changed since the last downlink:
  *    pH calibration   7 (always first), then 4, then 10; -1 = clear
- *    EC calibration   -3 = dry (probe in air), then 84 or 1413 uS/cm; -2 = clear
- *    Interval         seconds, whole minutes only: 300, 600, 1800, 3600
- *  Results arrive on "pH / EC calibration result": 0..3 = points stored,
- *  90 = implausible, 91 = no answer, 92 = never settled, 93 = battery low.
- *  Full procedure: docs/calibration.md.
+ *    EC calibration   1 = dry (probe in air), then 84 or 1413 uS/cm; 2 = clear
+ *    Interval         minutes 1..60; 0 = the firmware default
+ *  To repeat a step, push 0 first. Results arrive on "pH / EC calibration
+ *  result": 0..3 = points stored, 90 = implausible, 91 = no answer,
+ *  92 = never settled, 93 = battery low. Full procedure: docs/calibration.md.
  *
  *  The SENSORS and ACTUATORS lists are identical in create_wazigate_device.js.
  *  Change one, change the other.
@@ -45,14 +48,22 @@ var SENSORS = [
   { chan: 5,  name: "Conductivity",          kind: "WaterConductivitySensor", quantity: "Conductivity", unit: "MicroSiemens",      unitSymbol: "µS/cm" },
   { chan: 6,  name: "Turbidity",             kind: "",                        quantity: "",             unit: "",                  unitSymbol: "NTU" },
   { chan: 7,  name: "DO probe temperature",  kind: "Thermometer",             quantity: "Temperature",  unit: "DegreeCelsius",     unitSymbol: "°C" },
+  { chan: 8,  name: "Restart cause",         kind: "",                        quantity: "",             unit: "",                  unitSymbol: "" },
   { chan: 9,  name: "pH calibration result", kind: "",                        quantity: "",             unit: "",                  unitSymbol: "" },
   { chan: 10, name: "EC calibration result", kind: "",                        quantity: "",             unit: "",                  unitSymbol: "" },
 ];
 
+// chan: the XLPP channel the gateway packs the value under (meta.xlppChan);
+// without it the actuator is left out of every downlink. quantity + unit pick
+// the XLPP type: "AnalogeValue" (WaziGate's spelling) is analog, 0.01 steps
+// up to 327.67; concentration in ppm is a whole number up to 65535.
 var ACTUATORS = [
-  { name: "pH calibration", hint: "7 first, then 4, then 10 (probe in that buffer). -1 = clear" },
-  { name: "EC calibration", hint: "-3 = dry (in air), then 84 or 1413 uS/cm in that standard. -2 = clear" },
-  { name: "Interval",       hint: "seconds, whole minutes: 300 / 600 / 1800 / 3600", unitSymbol: "s" },
+  { chan: 20, name: "pH calibration", quantity: "AnalogeValue",               unit: "",                unitSymbol: "pH",
+    hint: "7 first, then 4, then 10 (probe in that buffer); -1 = clear; 0 = nothing" },
+  { chan: 21, name: "EC calibration", quantity: "ChemicalAgentConcentration", unit: "PartsPerMillion", unitSymbol: "µS/cm",
+    hint: "1 = dry (probe in air), then 84 or 1413 (probe in that standard); 2 = clear; 0 = nothing" },
+  { chan: 22, name: "Interval",       quantity: "AnalogeValue",               unit: "",                unitSymbol: "min",
+    hint: "minutes, 5..60 (1..4 only on the bench, duty cycle); 0 = firmware default" },
 ];
 
 async function api(method, path, body) {
@@ -89,14 +100,27 @@ async function configure(device) {
     }
   }
   for (var a of ACTUATORS) {
-    var exists = (device.actuators || []).find(function (x) { return x.name === a.name; });
-    if (exists) { console.log("  actuator exists: " + a.name); continue; }
-    await api("POST", base + "/actuators", {
-      name: a.name,
-      meta: { kind: "", quantity: "", unit: "", unitSymbol: a.unitSymbol || "",
-              hint: a.hint, createdBy: "kijanispace-device-script" },
-    });
-    console.log("  actuator created: " + a.name + "  - " + a.hint);
+    var meta = { xlppChan: a.chan, kind: "", quantity: a.quantity, unit: a.unit,
+                 unitSymbol: a.unitSymbol, hint: a.hint, createdBy: "kijanispace-device-script" };
+    var have = (device.actuators || []).find(function (x) { return x.name === a.name; });
+    if (!have) {
+      await api("POST", base + "/actuators", { name: a.name, value: 0, meta: meta });
+      console.log("  actuator ch " + a.chan + " created: " + a.name + "  - " + a.hint);
+      continue;
+    }
+    // An actuator from before the channels holds a value in the old meaning
+    // (seconds, -3 ...). Zero it while it has no channel yet - that push is
+    // packed into no downlink - and only then give it its channel.
+    if (!(have.meta && have.meta.xlppChan !== undefined && have.meta.xlppChan !== null)) {
+      try {
+        await api("POST", base + "/actuators/" + have.id + "/value", 0);
+        console.log("  actuator " + a.name + ": old value " + JSON.stringify(have.value) + " reset to 0");
+      } catch (e) {
+        console.warn("  actuator " + a.name + ": could not reset the value (" + e.message + "); push 0 by hand");
+      }
+    }
+    await api("POST", base + "/actuators/" + have.id + "/meta", meta);
+    console.log("  actuator ch " + a.chan + " set up: " + a.name + "  - " + a.hint);
   }
 }
 

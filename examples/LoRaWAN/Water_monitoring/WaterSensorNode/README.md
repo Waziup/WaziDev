@@ -72,13 +72,13 @@ WaterSensorNode.ino         node firmware
 create_wazigate_device.js   WaziGate v3: create the device from scratch
 update_wazigate_device.js   WaziGate v3: bring an existing device up to date
 EZOCal/                     I2C console for bench calibration of the EZO circuits
-I2CScan/  EZOSwitch/  EZOBridge/  VccCal/  RailTest/  SettleTime/  TurbBrush/  DOCompensation/
+I2CScan/  EZOSwitch/  VccCal/  RailTest/  SettleTime/  DOCompensation/
 RS485Drive/  RS485Pins/  RS485Turnaround/  RS485Scan/  RS485Config/
                             diagnostic sketches, one question each
 pcb/                        KiCad 10 carrier board: generator scripts, checks, fabrication output
 docs/                       the guides, with their drawings in docs/img/
 LICENSES/                   full licence texts (see LICENSE.md)
-decoder.js, add_decoder_to_wg.js   superseded custom gateway decoder, kept for reference
+legacy/                     superseded tools, kept for reference (see legacy/README.md)
 ```
 
 ## Firmware
@@ -98,9 +98,20 @@ program memory:
 
 | `VERBOSE_LOG` | `ENABLE_LORA_CAL` | Program memory | Use |
 |---|---|---|---|
-| 0 | 1 | 27,670 bytes (90 %) | **deployment**: concise log, remote calibration |
-| 1 | 1 | 27,974 bytes (91 %) | bench: full diagnostic log, remote calibration |
-| 1 | 0 | 26,508 bytes (86 %) | bench: full log; calibrate with `EZOCal` |
+| 0 | 1 | 28,886 bytes (94 %) | **deployment**: concise log, remote calibration |
+| 1 | 1 | 29,350 bytes (95 %) | bench: full diagnostic log, remote calibration |
+| 1 | 0 | 27,728 bytes (90 %) | bench: full log; calibrate with `EZOCal` |
+
+**Watchdog.** If the firmware stops reporting in for 8 s while the node is awake (a hung radio
+call, a crash), it restarts itself. It is built on Timer2 rather than the AVR's hardware
+watchdog, because this board's bootloader cannot survive a watchdog reset and the LowPower
+library takes the watchdog interrupt.
+- **Before sleeping, every cycle logs** `watchdog max gap … ms`: the longest time the watchdog
+  went unfed. It has to stay well below 8000.
+- **After a watchdog restart**, the boot log names the last checkpoint passed.
+- **Uplink channel 8** reports the restart cause once.
+- **To test it,** set `WDT_TEST_HANG 1`: the second cycle then stops deliberately, and the node
+  must restart within about 8 s. Never deploy with `WDT_TEST_HANG 1`.
 
 **Uplink payload** (XLPP / Cayenne LPP). A failed reading is omitted, never sent as zero.
 
@@ -113,17 +124,20 @@ program memory:
 | 5 | conductivity, µS/cm |
 | 6 | turbidity, NTU (capped at 327) |
 | 7 | temperature at the oxygen probe, °C (cross-check of channel 1) |
+| 8 | restart cause, sent once per start: 1 power-on, 2 external reset, 4 brown-out (may combine); 100 + checkpoint after a watchdog restart; 0 after a crash. How to read it: [Bring-Up guide](docs/bring-up.md#restart-cause-and-the-watchdog-channel-8) |
 | 9, 10 | pH / EC calibration result, sent once after a calibration |
 
-**Downlinks.** WaziGate v3 forwards the value pushed to an actuator as plain text, so the node
-interprets the value itself:
+**Downlinks.** A value pushed to an actuator reaches the node as XLPP: the gateway packs every
+actuator of the device with its channel and current value, so the node acts only on a value that
+changed since the last downlink, and keeps the last values in EEPROM. The device scripts give the
+actuators their channels; one created by hand has none and is never sent.
 
-| Value | Action |
-|---|---|
-| `7`, `4`, `10` | pH calibration: mid, low, high |
-| `-3`, then e.g. `84` | EC calibration: dry, then single point in µS/cm |
-| `-1` / `-2` | clear pH / EC calibration |
-| `300` … `3600` | measurement interval in seconds (whole minutes) |
+| Actuator (channel) | Value | Action |
+|---|---|---|
+| pH calibration (20) | `7`, `4`, `10` / `-1` | calibrate mid, low, high / clear |
+| EC calibration (21) | `1`, then e.g. `84` / `2` | dry, then single point in µS/cm / clear |
+| Interval (22) | `1` … `60` / `0` | measurement interval in minutes / firmware default |
+| any | `0` | nothing; push it before repeating the same value |
 
 The Probe Calibration guide gives the full procedure, the result codes and the limits of remote
 calibration.

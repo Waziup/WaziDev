@@ -42,23 +42,33 @@ No cable, no laptop: you push a number to an actuator in the WaziGate dashboard,
 > **Needs, once**
 >
 > - Firmware with `ENABLE_LORA_CAL 1`. `VERBOSE_LOG` may be 0 or 1; both fit.
-> - The device on WaziGate’s built-in **XLPP codec**, with the actuators *pH calibration*, *EC calibration* and *Interval*: run `create_wazigate_device.js` (new device) or `update_wazigate_device.js` (existing device) once in the dashboard’s browser console.
+> - The device on WaziGate’s built-in **XLPP codec**, with the actuators *pH calibration*, *EC calibration* and *Interval* on XLPP channels 20, 21 and 22: run `create_wazigate_device.js` (new device) or `update_wazigate_device.js` (existing device) once in the dashboard’s browser console. An actuator created by hand has no channel, and the gateway leaves it out of every downlink.
 > - `K` already set on the EC circuit (Route B, step 3). LoRa cannot set it.
 
 ### What the node understands
 
-WaziGate v3 sends only the number you push, with no channel and no actuator name. **The value alone decides what happens**, whichever actuator you push it to:
+A push makes the gateway send **every actuator of the device, each with its channel and its current value**, in one downlink. The node therefore acts only on a value that **changed** since the last downlink it received, and remembers the last value of each actuator across restarts.
 
-| Push | The node does |
-| --- | --- |
-| 7 | pH `Cal,mid,7.00`. Always first. |
-| 4 | pH `Cal,low,4.00` |
-| 10 | pH `Cal,high,10.00` |
-| -3 | EC `Cal,dry`, probe in air |
-| 84 | EC single point `Cal,84.00` (any value from 20 upwards works the same way: 1413, 12880 …) |
-| -1 / -2 | clear the pH / EC calibration |
-| 300 … 3600 | measurement interval in seconds, whole minutes only |
-| 0 | nothing |
+| Actuator | Push | The node does |
+| --- | --- | --- |
+| *pH calibration* | 7 | `Cal,mid,7.00`. Always first. |
+| | 4 | `Cal,low,4.00` |
+| | 10 | `Cal,high,10.00` |
+| | -1 | clear the pH calibration |
+| *EC calibration* | 1 | `Cal,dry`, probe in air |
+| | 84 | single point `Cal,84.00`, in µS/cm (any value from 20 upwards works the same way: 1413, 12880 …) |
+| | 2 | clear the EC calibration |
+| *Interval* | 1 … 60 | measurement interval in **minutes**; 5 or more outside the bench (duty cycle) |
+| | 0 | back to the firmware default |
+| any | 0 | nothing, but resets the memory: see *Repeating a step* |
+
+### Repeating a step
+
+Pushing the value an actuator already holds sends nothing new, and the node ignores it. To repeat a step, for example after result 92:
+
+1. **Push `0`** to that actuator.
+2. **Wait for the node’s next uplink.** The `0` must reach the node before the value does.
+3. **Push the value again.**
 
 ### The sequence
 
@@ -66,7 +76,7 @@ A pushed value waits on the gateway until the node’s next uplink, then arrives
 
 ### 1 · Shorten the wait
 
-Push `300` to *Interval*. From the next uplink on, the node reports every ~6 min instead of every 30. Optional, but it turns the first step from a half-hour wait into minutes. After any calibration the node cycles every ~5 min for half an hour anyway.
+Push `5` to *Interval*. From the next uplink on, the node reports every ~6 min instead of every 30. Optional, but it turns the first step from a half-hour wait into minutes. After any calibration the node cycles every ~5 min for half an hour anyway.
 
 ### 2 · pH 7
 
@@ -88,7 +98,7 @@ Rinse, shake. Probe into pH 4.00, push `4`, wait. Rinse, shake. Probe into pH 10
 
 ### 4 · EC dry, then 84 µS/cm
 
-EC probe out of the water, rinsed with distilled water and **completely dry**, in air. Push `-3`, wait. Then probe into the 84 µS/cm standard, push `84`, wait.
+EC probe out of the water, rinsed with distilled water and **completely dry**, in air. Push `1` to *EC calibration*, wait. Then probe into the 84 µS/cm standard, push `84`, wait.
 
 > [!TIP]
 > **Gate**
@@ -97,7 +107,9 @@ EC probe out of the water, rinsed with distilled water and **completely dry**, i
 
 ### 5 · Back to normal
 
-Push `1800` to *Interval*. **The interval does not return to 30 min by itself** if you changed it in step 1. Rinse the probes and put them back in the water. Check that the next pH and EC readings look like the lake again.
+Push `0` to *Interval* (the firmware default, 30 min) or `30`. **The interval does not return by itself** if you changed it in step 1: the node keeps it across restarts.
+
+Leave the calibration actuators where they are. Their values are only a memory; set them to `0` when you start the next calibration, one uplink before the first step. Rinse the probes and put them back in the water. Check that the next pH and EC readings look like the lake again.
 
 ### What the result means
 
@@ -105,22 +117,22 @@ Push `1800` to *Interval*. **The interval does not return to 30 min by itself**
 | --- | --- | --- |
 | 0 – 3 | accepted; the number is how many points the circuit now holds | next step |
 | 90 | refused: the steady reading does not fit the solution (pH more than 1.0 away, EC outside half to double) | check which bottle the probe is in. A new or badly drifted probe can also cause this: use Route B. |
-| 91 | the circuit did not answer or rejected the command | push again; if it repeats, Route B and check the circuit with `i` and `Status` |
-| 92 | the reading never settled within ~2.5 min | leave the probe in longer, push the same value again |
+| 91 | the circuit did not answer or rejected the command | repeat the step (push 0 first); if it repeats, Route B and check the circuit with `i` and `Status` |
+| 92 | the reading never settled within ~2.5 min | leave the probe in longer, repeat the step (push 0 first) |
 | 93 | refused: the cell is below 3.6 V and the node is hibernating | wait for sun, or charge |
 
 > [!WARNING]
 > **Limitations of the LoRa route**
 >
-> - **The actuator name never reaches the node.** Pushing 7 to *EC calibration* still calibrates pH. The names are labels for you.
+> - **Only a change counts.** Pushing the same value twice does nothing; push `0` and wait one uplink in between (see *Repeating a step*).
+> - **An actuator without its channel is never sent.** Created by hand in the dashboard, it stays silent; run `update_wazigate_device.js`.
 > - **EC is dry + one point only.** Two-point EC (`Cal,low` / `Cal,high`) is bench work. For the lake’s narrow range one point at 84 is the better choice anyway.
 > - **No `K`, no queries.** The probe constant, `Cal,?` on demand, the pH slope check and the circuit status are only reachable with EZOCal.
-> - **One step at a time.** The gateway keeps only the latest pushed value; a second push before the node picked up the first replaces it.
+> - **One step at a time.** Push, wait for the result, then the next step. Two changed actuators in one downlink are both carried out, one after the other.
 > - **It waits for the next uplink**, up to the full interval. The probe has to be in the solution when the command arrives, not just when you pushed it.
 > - **The temperature used is the lake’s** (DS18B20), not the buffer’s. Hence the 15 minutes in the pond for the bottles.
 > - **The plausibility check can refuse a genuinely wrong probe:** more than 1 pH off, or EC outside half to double. That is the price of refusing lake water by mistake.
 > - **The result is sent once.** If that one uplink is lost, the calibration may still have happened. Judge by the next readings, or check with `Cal,?` in EZOCal.
-> - **A 1500 µS/cm standard** would be read as a 25 min interval. 84, 1413 and 12880 are not affected.
 > - **Not below 3.6 V** (result 93).
 
 ---

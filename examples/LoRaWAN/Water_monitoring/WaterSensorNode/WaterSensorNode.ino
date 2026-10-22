@@ -158,7 +158,8 @@ unsigned char LoRaWANKeys[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF,
 unsigned char devAddr[4]      = {0x26, 0x01, 0x1B, 0xEE};
 
 const int interval  = 3000;   // downlink RX window (ms)
-int       sleep_sec = 60;//1800;   // 30 min base cycle; downlink-settable
+#define   SLEEP_DEFAULT_S 180 //1800   // 30 min base cycle
+int       sleep_sec = SLEEP_DEFAULT_S;  // downlink-settable, see LORAWAN DOWNLINK
 
 //  ####################################################################
 //  ##  VERBOSE_LOG - narration on or off                             ##
@@ -182,6 +183,13 @@ int       sleep_sec = 60;//1800;   // 30 min base cycle; downlink-settable
 //  printf, dtostrf and atof freed ~3.4 KB (see appendFixed2). Until then the
 //  two were mutually exclusive and a #error enforced it.
 #define ENABLE_LORA_CAL  1
+
+//  WDT_TEST_HANG - 1 makes the SECOND cycle stop dead in loop(), on purpose,
+//  to prove the watchdog restarts the node (see WATCHDOG). Expected log:
+//  "WDT_TEST_HANG ..." then, about 8 s later, "Restart cause: ... WATCHDOG,
+//  hung after checkpoint 1 (loop)". It then repeats every second cycle, so
+//  set it back to 0 after the test. Never deploy with 1.
+#define WDT_TEST_HANG  0
 
 //  NEVER put anything with a side effect inside LOG() or LOGLN(). At
 //  VERBOSE_LOG 0 they expand to do {} while (0), which discards the argument
@@ -843,12 +851,142 @@ void unparkPinsAfterSleep() {
   // the pin directions. Hence the block above.
 }
 
+// ===========================================================================
+//  WATCHDOG - a stuck program restarts itself
+//
+//  If the program does not report in ("feed" the watchdog) for 8 s while
+//  the node is awake, it is restarted. That catches the one failure no code
+//  can catch on its own: the code no longer running - a radio call waiting
+//  for a flag that never comes, a crash, a corrupted stack. A potted node in
+//  the field cannot be reset by hand, so without this a single hang silences
+//  the station until the cell is flat.
+//
+//  IT IS BUILT ON TIMER2, NOT ON THE AVR'S HARDWARE WATCHDOG, for two reasons
+//  that each rule the hardware watchdog out on this board:
+//
+//   1. The bootloader cannot survive a watchdog RESET. It is ATmegaBOOT for
+//      the 328 Pro 8 MHz, built without WATCHDOG_MODS (Arduino core,
+//      bootloaders/atmega/Makefile, target atmega328_pro8). After a watchdog
+//      reset the watchdog stays on at 16 ms, the bootloader spends 200 ms
+//      flashing the LED, and it resets itself forever until power is removed.
+//      (Proof that this is the bootloader in use: it does not clear MCUSR, so
+//      the sketch sees the reset flags; Optiboot would hand over 0.)
+//   2. The watchdog INTERRUPT is taken. WaziDev.cpp includes LowPower.h, so
+//      LowPower is always linked, and its ISR(WDT_vect) switches the watchdog
+//      off - a hang would disarm the guard instead of triggering it.
+//
+//  Timer2 is free in this build (LowPower only touches it in idle modes,
+//  never in powerDown; pins 3 and 11 are not used for PWM). It ticks every
+//  32.8 ms while the node is awake and stops in power-down, so sleep costs
+//  nothing and needs no feeding. After 244 ticks without a feed - 8.0 s -
+//  its interrupt records where the program last passed a checkpoint and
+//  jumps to the program start: a restart without a reset, so the bootloader
+//  is never involved. setup() is written for exactly that: it puts Timer0
+//  into a known state and switches every rail off first.
+//
+//  WHERE IT IS FED: in the primitives, not around the phases - every Modbus
+//  transmission (rs485Flush), every EZO command, the DS18B20 read, the radio
+//  calls, and every long wait (pause(), which feeds twice a second). An
+//  earlier watchdog was fed per phase, and phases ran up to 7.5 s against
+//  the 8 s limit: it reset a healthy node whenever Modbus was slow. Every
+//  cycle logs the longest gap between two feeds, so the margin to 8 s is
+//  measured rather than assumed.
+//
+//  WHAT IT CANNOT DO: fix the cause - a fault that always hangs at the same
+//  point restarts the node every cycle, but the other readings still go out
+//  instead of the station falling silent. It cannot fire while interrupts are
+//  disabled; no code in this sketch holds them off for more than a few ms.
+//  And it does not stop the CPU clock failing, which the hardware watchdog
+//  would - a risk far smaller than the two above.
+//
+//  After a watchdog restart the boot log says where it hung, and the next
+//  uplink carries the restart cause on channel 8 (see uplink()).
+// ===========================================================================
+
+//  Checkpoints: the last one passed before a hang is what gets reported.
+enum : uint8_t {
+  CP_LOOP = 1, CP_RADIO_INIT, CP_DS18B20, CP_MODBUS, CP_EZO,
+  CP_WAIT, CP_RADIO_SEND, CP_RADIO_RECEIVE, CP_SLEEP
+};
+
+//  Kept across the restart: .noinit is neither cleared nor copied at start-up.
+//  The magic number tells a recorded hang from whatever RAM held at power-on.
+const uint16_t WDT_MAGIC = 0xD06A;
+uint16_t hangMagic __attribute__((section(".noinit")));
+uint8_t  hangCheckpoint __attribute__((section(".noinit")));
+
+//  The restart cause goes out once per start, on uplink channel 8 (set in
+//  reportResetCause(), sent and cleared in uplink()):
+//    1 power-on   2 external reset   4 brown-out   (MCUSR bits, may combine)
+//    100 + checkpoint   the watchdog restarted a hung program
+//    0   the program restarted with no reset and no watchdog: a crash
+uint8_t restartCode = 0;
+bool    restartSent = false;
+
+const uint8_t WDT_LIMIT_TICKS = 244;   // x 32.768 ms = 8.0 s
+volatile uint8_t wdtTicks      = 0;
+volatile uint8_t wdtCheckpoint = 0;
+uint32_t wdtLastFeed = 0;
+uint16_t wdtMaxGap   = 0;      // longest gap between two feeds this cycle, ms
+
+ISR(TIMER2_COMPA_vect) {
+  if (++wdtTicks < WDT_LIMIT_TICKS) return;
+  // 8 s without a feed: the program is stuck. Note where, stop the timer so
+  // nothing interrupts the restart, and start the program again.
+  hangCheckpoint = wdtCheckpoint;
+  hangMagic = WDT_MAGIC;
+  TIMSK2 = 0;
+  asm volatile ("jmp 0");
+}
+
+//  Timer2 in CTC mode, clk/1024, compare at 255: 8 MHz / 1024 / 256 = 30.5 Hz.
+void wdtStart() {
+  uint8_t sreg = SREG;
+  cli();
+  TCCR2A = _BV(WGM21);
+  TCCR2B = _BV(CS22) | _BV(CS21) | _BV(CS20);
+  OCR2A  = 255;
+  TCNT2  = 0;
+  TIFR2  = _BV(OCF2A);
+  wdtTicks = 0;
+  TIMSK2 = _BV(OCIE2A);
+  SREG = sreg;
+  wdtLastFeed = millis();
+}
+
+void wdtFeed(uint8_t checkpoint) {
+  wdtTicks = 0;                // one byte: an atomic write
+  wdtCheckpoint = checkpoint;
+  uint32_t now = millis();
+  uint32_t gap = now - wdtLastFeed;
+  if (gap > wdtMaxGap) wdtMaxGap = gap > 65535UL ? 65535U : (uint16_t)gap;
+  wdtLastFeed = now;
+}
+
+//  delay() that keeps feeding: for every wait that could approach 8 s.
+void pause(uint32_t ms) {
+  uint32_t t0 = millis();
+  for (;;) {
+    wdtFeed(CP_WAIT);
+    uint32_t elapsed = millis() - t0;
+    if (elapsed >= ms) break;
+    uint32_t left = ms - elapsed;
+    delay(left > 500 ? 500 : left);
+  }
+}
+
 void sleep(int sec_to_sleep) {
   //  Printed at every log level. Without it a sleeping node and a hung one
   //  look the same on the serial monitor: the log just stops after the send.
+  //  The second figure is the longest time the watchdog went unfed this
+  //  cycle; it has to stay well below 8000.
+  wdtFeed(CP_SLEEP);
   Serial.print(F("sleep "));
   Serial.print(sec_to_sleep);
-  Serial.println(F(" s"));
+  Serial.print(F(" s  (watchdog max gap "));
+  Serial.print(wdtMaxGap);
+  Serial.println(F(" ms)"));
+  wdtMaxGap = 0;
 
   // Serial.flush() instead of delay(1000): it waits for exactly as long as
   // the last characters need to leave the UART, rather than a fixed second.
@@ -870,9 +1008,13 @@ void sleep(int sec_to_sleep) {
 
   parkPinsForSleep();
 
+  //  Timer2, the watchdog, stops in power-down, so the sleep needs no
+  //  feeding; one feed per 8 s tick keeps the brief wake-ups covered too.
   for (int i = 0; i < sec_to_sleep / 8; i++) {
+    wdtFeed(CP_SLEEP);
     LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
   }
+  wdtFeed(CP_SLEEP);
 
   unparkPinsAfterSleep();
   Serial.print(F("--- awake after "));
@@ -936,7 +1078,7 @@ void rails33On() {
   LOGLN(F("3.3 V sensor rail ON  (D6)"));
   Serial.flush();                 // a brownout here must not eat the evidence
   railOnSoft(RAIL33_EN);
-  delay(RAIL33_SETTLE_MS);
+  pause(RAIL33_SETTLE_MS);
 }
 
 //  THE ISOLATORS RUN ONLY FOR THE I2C READS.
@@ -967,7 +1109,7 @@ void isolatorsOn() {
   LOGLN(F("Isolators ON          (A1)"));
   Serial.flush();
   digitalWrite(ISO_EN, HIGH);
-  delay(ISO_SETTLE_MS);
+  pause(ISO_SETTLE_MS);
 }
 
 void isolatorsOff() {
@@ -987,7 +1129,7 @@ void rails12On() {
   LOGLN(F("12 V sensor rail ON   (D5)"));
   Serial.flush();
   digitalWrite(RAIL12_EN, HIGH);
-  delay(RAIL12_SETTLE_MS);        // boost start-up + bulk cap charge
+  pause(RAIL12_SETTLE_MS);        // boost start-up + bulk cap charge
 }
 
 void railsOff() {
@@ -1014,6 +1156,7 @@ uint16_t modbusCRC(const uint8_t *buf, uint8_t len) {
 }
 
 void rs485Flush() {
+  wdtFeed(CP_MODBUS);          // runs before every Modbus transmission
   while (rs485.available()) rs485.read();
 }
 
@@ -1273,6 +1416,7 @@ void i2cBusRecover() {
 //  ATLAS SCIENTIFIC EZO  (I2C, ASCII command set)
 // ===========================================================================
 bool ezoCommand(uint8_t addr, const char *cmd, char *resp, uint8_t respSize, uint16_t waitMs) {
+  wdtFeed(CP_EZO);
   if (!i2cBusIdle()) {
     Serial.print(F("  I2C bus stuck (SDA/SCL held low) before 0x"));
     Serial.print(addr, HEX);
@@ -1459,7 +1603,7 @@ void readAllSensors(bool doTurbidity) {
     LOG(TURB_PROBE_MS / 1000);
     LOGLN(F(" s. Does the wiper move NOW?"));
     Serial.flush();
-    delay(TURB_PROBE_MS);
+    pause(TURB_PROBE_MS);
     LOGLN(F("Turb: pause over"));
 #endif
 
@@ -1502,6 +1646,7 @@ void readAllSensors(bool doTurbidity) {
 #if ENABLE_DS18B20
   // Power-gated like everything else on X3, so the bus is re-enumerated each
   // cycle. requestTemperatures() blocks for the 750 ms 12-bit conversion.
+  wdtFeed(CP_DS18B20);
   ds18b20.begin();
   ds18b20.requestTemperatures();
   float t2 = ds18b20.getTempCByIndex(0);
@@ -1529,7 +1674,7 @@ void readAllSensors(bool doTurbidity) {
   // --- dissolved oxygen ---
 #if ENABLE_DO
   LOGLN(F("DO: warming up optics..."));
-  delay(DO_WARMUP_MS);
+  pause(DO_WARMUP_MS);
   rs485SetBaud(DO_BAUD);
 #if DO_WRITE_ATM_PRESSURE
   doApplyCompensation();         // one run only - see the flag's comment
@@ -1615,7 +1760,7 @@ void readAllSensors(bool doTurbidity) {
         LOG(F("Turbidity: waiting "));
         LOG(remaining / 1000);
         LOGLN(F(" s for wiper/optics"));
-        delay(remaining);
+        pause(remaining);
       }
     }
     rs485SetBaud(TURB_BAUD);
@@ -1637,7 +1782,7 @@ void readAllSensors(bool doTurbidity) {
     if (isnan(v_turb) && TURB_NEEDS_START) {
       Serial.println(F("Turbidity: no answer - re-arming, 5 s, one more try"));
       turbStartMeasurement();
-      delay(TURB_RETRY_MS);
+      pause(TURB_RETRY_MS);
       v_turb = modbusReadValue(TURB_ADDR, TURB_REG, TURB_FMT, TURB_SCALE);
     }
 
@@ -1703,6 +1848,9 @@ uint8_t uplink() {
   if (!isnan(v_temp2)) xlpp.addTemperature(7, v_temp2);
 
 #if ENABLE_LORA_CAL
+  // Why the node last started, once per start; cleared only when sent.
+  if (!restartSent) xlpp.addDigitalInput(8, restartCode);
+
   // The answer to a calibration command, once, on the uplink after it ran.
   if (calResultPh != CAL_NONE) { xlpp.addDigitalInput(9,  calResultPh); calResultPh = CAL_NONE; }
   if (calResultEc != CAL_NONE) { xlpp.addDigitalInput(10, calResultEc); calResultEc = CAL_NONE; }
@@ -1716,54 +1864,59 @@ uint8_t uplink() {
   // Serial.print, not serialPrintf: these were the only printf calls left,
   // and printf alone is ~1.1 KB of flash.
   Serial.print(F("LoRaWAN send ... "));
+  wdtFeed(CP_RADIO_SEND);
   uint8_t e = wazidev.sendLoRaWAN(xlpp.buf, xlpp.len);
   if (e != 0) {
     Serial.print(F("Err "));
     Serial.println(e);
-    delay(interval);
+    pause(interval);
     return e;
   }
   Serial.println(F("OK\n"));
+  restartSent = true;
   return 0;
 }
 
 // ===========================================================================
 //  LORAWAN DOWNLINK - calibration and interval, for WaziGate v3
 //
-//  WHAT ARRIVES. WaziGate v3 does not send XLPP downlinks. When a value is
-//  pushed to one of this device's actuators, wazigate-lora forwards the body
-//  of that POST unchanged, on FPort 100 - so the payload is the number as
-//  JSON text: "7", "1413", "-1". There is no channel and no actuator ID in
-//  it. (v2 sent XLPP with every actuator and its channel; this sketch used to
-//  parse that and never received a byte, because the device ran a custom
-//  JavaScript codec, and WaziGate cannot ENCODE downlinks with one - its
-//  JavaScript encoder is a stub. The device must use the XLPP codec.)
+//  WHAT ARRIVES. When a value is pushed to one of this device's actuators,
+//  the gateway's XLPP codec packs EVERY actuator of the device into one
+//  downlink: channel byte, type byte, value - one item per actuator, each
+//  with its current value, the pushed one and all the old ones. An actuator
+//  without "xlppChan" in its meta is left out, and with none left the
+//  payload is empty: that is why pushes never arrived while the gateway
+//  scripts created the actuators bare. The scripts now give each one its
+//  channel and a quantity that selects the XLPP type:
 //
-//  So the node tells commands apart by VALUE. The actuators on the gateway
-//  ("pH calibration", "EC calibration", "Interval") are named for the
-//  person pushing the value; to the node they are one input:
+//     ch 20  pH calibration   analog (type 2 or 3, the gateway picks either)
+//                             1 .. 14   calibrate in that buffer: 6..8 ->
+//                                       Cal,mid (always first, it wipes the
+//                                       others), < 6 Cal,low, > 8 Cal,high
+//                             -1        Cal,clear
+//     ch 21  EC calibration   concentration (type 125, 0 .. 65535)
+//                             1         Cal,dry   probe in AIR, completely dry
+//                             2         Cal,clear
+//                             >= 20     single point in that standard, uS/cm:
+//                                       84 for Lake Victoria's range, 1413 ...
+//     ch 22  Interval         analog, minutes 1 .. 60; 0 = the compiled-in
+//                             default (SLEEP_DEFAULT_S)
 //
-//     0            nothing - lets you clear a field
-//     1 .. 14      pH calibration in that buffer: 6..8 -> Cal,mid
-//                  (always first, it wipes the others), < 6 -> Cal,low,
-//                  > 8 -> Cal,high
-//     -1           pH  Cal,clear
-//     -2           EC  Cal,clear
-//     -3           EC  Cal,dry        probe in AIR, completely dry
-//     60 .. 3600   sampling interval in seconds, WHOLE MINUTES ONLY
-//     any other    EC single-point calibration in uS/cm (Cal,<value>):
-//     >= 20        84 for Lake Victoria's range, 1413, 12880 ...
-//
-//  The one collision is an EC standard that is a whole number of minutes
-//  between 60 and 3600 s - 1500 uS/cm would set a 25 min interval. Atlas'
-//  own standards (84, 1413, 12880, 80000) are clear of it.
+//  ONLY CHANGES COUNT. Because every downlink repeats every actuator, the
+//  node remembers the last value per channel in EEPROM (LATCH_EEPROM) and
+//  acts only on a value that differs from it. The new value is written
+//  BEFORE acting, so a restart in the middle of a calibration does not
+//  start it again. To repeat a step, push 0 first, then the value again.
+//  0 itself does nothing on the calibration channels. The interval is
+//  re-applied from EEPROM at every start, so it survives restarts and
+//  reflashing.
 //
 //  WHAT HAPPENS. The probe must already sit in the buffer when the command
 //  arrives, which is right after the next uplink. The node powers the
 //  isolators, reads until the value has been steady for 10 s (up to about
 //  2.5 min - fresh buffer takes 1-2 min), checks that the steady value is
 //  plausible for what was asked, and only then sends Cal. The circuit keeps
-//  its calibration in its own EEPROM, so nothing is stored here.
+//  its calibration in its own EEPROM.
 //
 //  THE ANSWER comes back on the NEXT uplink, on its own channel:
 //     ch 9  pH  /  ch 10  EC
@@ -1775,6 +1928,25 @@ uint8_t uplink() {
 //  After any calibration the node runs CAL_SESSION_CYCLES short cycles, so
 //  the next step does not wait half an hour.
 // ===========================================================================
+//  The actuator channels, and where the last value of each is kept: three
+//  raw 16-bit words at the top of the EEPROM. WaziDev keeps its own frame
+//  counter at address 0, so stay away from the bottom.
+#define CH_CAL_PH     20
+#define CH_CAL_EC     21
+#define CH_INTERVAL   22
+#define LATCH_EEPROM  1018
+
+uint16_t *latchAddr(uint8_t ch) {
+  return (uint16_t *)(LATCH_EEPROM + 2 * (ch - CH_CAL_PH));
+}
+
+//  Interval channel value (hundredths of a minute) -> sleep_sec. Anything
+//  outside 1..60 min, including a fresh EEPROM, means the default.
+void applyInterval(int16_t raw) {
+  sleep_sec = (raw >= 100 && raw <= 6000) ? (int)((raw * 6L + 5) / 10)
+                                          : SLEEP_DEFAULT_S;
+}
+
 #if ENABLE_LORA_CAL
 //  (The CAL_* codes and the result variables sit with the other globals,
 //  above uplink(), which sends them.)
@@ -1862,10 +2034,12 @@ uint8_t downlink_with_logs(uint16_t timeout) {
   LOG(F("RX1 wait ms: "));
   LOGLN(timeout);
 
+  wdtFeed(CP_RADIO_RECEIVE);
   e = wazidev.receiveLoRaWAN(xlpp.buf, &xlpp.offset, &xlpp.len, timeout);
   if (e == ERR_LORA_TIMEOUT) {
     LOGLN(F("RX1 Timeout. Waiting for RX2..."));
-    delay(2000);
+    pause(2000);
+    wdtFeed(CP_RADIO_RECEIVE);
     e = wazidev.receiveLoRaWAN(xlpp.buf, &xlpp.offset, &xlpp.len, timeout);
     if (e == ERR_LORA_TIMEOUT) {
       Serial.println(F("RX: no downlink"));
@@ -1888,41 +2062,52 @@ uint8_t downlink_with_logs(uint16_t timeout) {
     Serial.println(F("RX: network control frame, no data"));
     return 1;
   }
-  //  WaziGate sends actuator values on FPort 100; the port byte sits just
-  //  before the payload. Anything else - port 0 carries MAC commands as
-  //  data - must never be read as a command.
-  if (xlpp.buf[xlpp.offset - 1] != 100) {
-    Serial.print(F("RX: port "));
-    Serial.print(xlpp.buf[xlpp.offset - 1]);
-    Serial.println(F(" ignored"));
+  //  Port 0 carries MAC commands as data, encrypted with another key: never
+  //  read it as a command. The port byte sits just before the payload.
+  if (xlpp.buf[xlpp.offset - 1] == 0) {
+    Serial.println(F("RX: port 0 ignored"));
     return 1;
   }
 
-  // The value as JSON text, e.g. 7 or -1 or "1413". Copy it out and
-  // terminate it; a quoted number is accepted, true/false and objects are not.
-  char txt[12];
-  uint8_t n = xlpp.len < sizeof(txt) - 1 ? xlpp.len : sizeof(txt) - 1;
-  memcpy(txt, xlpp.buf + xlpp.offset, n);
-  txt[n] = 0;
-  char *p = (txt[0] == '"') ? txt + 1 : txt;
-  Serial.print(F("Downlink: "));
-  Serial.println(txt);
-  if (!((*p >= '0' && *p <= '9') || *p == '-' || *p == '.')) return 1;
+  //  Walk the XLPP items. All three actuator types are 2 bytes big-endian;
+  //  any other type has a length this sketch does not know, so stop there.
+  uint8_t *p = xlpp.buf + xlpp.offset, *end = p + xlpp.len;
+  for (; p + 4 <= end; p += 4) {
+    uint8_t ch = p[0], type = p[1];
+    uint16_t raw = ((uint16_t)p[2] << 8) | p[3];
+    if (type != LPP_ANALOG_INPUT && type != LPP_ANALOG_OUTPUT && type != LPP_CONCENTRATION) {
+      Serial.print(F("Downlink: unknown type "));
+      Serial.println(type);
+      return 1;
+    }
+    Serial.print(F("Downlink ch "));
+    Serial.print(ch);
+    if (ch < CH_CAL_PH || ch > CH_INTERVAL) {
+      Serial.println(F(" not ours, ignored"));
+      continue;
+    }
+    if (eeprom_read_word(latchAddr(ch)) == raw) {
+      Serial.println(F(" unchanged"));
+      continue;
+    }
+    eeprom_update_word(latchAddr(ch), raw);   // before acting - see above
+    float v = (type == LPP_CONCENTRATION) ? raw : (int16_t)raw / 100.0;
+    Serial.print(F(" = "));
+    Serial.println(v, 2);
 
-  float v = parseDecimal(p);
-  if (v == 0) return 0;
-
-  if (v >= 60 && v <= 3600 && v == (long)v && (long)v % 60 == 0) {
-    sleep_sec = (int)v;
-    Serial.print(F("Interval now "));
-    Serial.println(sleep_sec);
+    if (ch == CH_INTERVAL) {
+      applyInterval(raw);
+      Serial.print(F("Interval now "));
+      Serial.println(sleep_sec);
 #if ENABLE_LORA_CAL
-  } else if ((v >= 1 && v <= 14) || v == -1 || v == -2 || v == -3 || v >= 20) {
-    runCalibration(v);
+    } else if (ch == CH_CAL_PH && ((v >= 1 && v <= 14) || v == -1)) {
+      runCalibration(v);
+    } else if (ch == CH_CAL_EC && (v == 1 || v == 2 || v >= 20)) {
+      runCalibration(v == 1 ? -3 : (v == 2 ? -2 : v));
 #endif
-  } else {
-    Serial.println(F("Downlink value not understood, ignored."));
-    return 1;
+    } else if (raw != 0) {
+      Serial.println(F("value not understood, ignored"));
+    }
   }
   return 0;
 }
@@ -1951,25 +2136,36 @@ void captureResetFlags(void) {
   MCUSR = 0;
 }
 
-// A WATCHDOG WAS FITTED HERE AND REMOVED AGAIN. It is still the right idea -
-// this AVR core's Wire has no timeout, so a device holding SDA low blocks
-// forever - but the 8 s window was fed per PHASE and that is not often
-// enough. Measured from the bench logs: 5.57 s from the top of loop() to
-// the DO warm-up on a good cycle, and 7.54 s from the end of that warm-up to
-// the EC reading on a cycle where Modbus timed out. Against an 8 s window
-// that resets the node in exactly the situation the dog was meant to survive.
-//
-// The next attempt must call wdt_reset() inside the low-level primitives -
-// modbusTransaction(), ezoCommand(), readOneWire() - not around the phases
-// that call them. Then the interval is one operation, not one group.
 void reportResetCause() {
+  //  A watchdog restart is a jump, not a reset: MCUSR stays 0 and the
+  //  checkpoint survives in .noinit. Trust the magic only then - after a real
+  //  reset .noinit holds whatever RAM held.
+  bool hung = (resetFlags == 0 && hangMagic == WDT_MAGIC);
+  hangMagic = 0;
+  restartCode = hung ? 100 + hangCheckpoint : (resetFlags & 0x0F);
+
   Serial.print(F(" Restart cause: MCUSR=0x"));
   Serial.print(resetFlags, HEX);
   if (resetFlags & _BV(PORF))  Serial.print(F("  POWER-ON"));
   if (resetFlags & _BV(EXTRF)) Serial.print(F("  EXTERNAL-RESET"));
   if (resetFlags & _BV(BORF))  Serial.print(F("  BROWN-OUT"));
-  if (resetFlags & _BV(WDRF))  Serial.print(F("  WATCHDOG"));
-  if (resetFlags == 0)         Serial.print(F("  ?"));
+  if (hung) {
+    Serial.print(F("  WATCHDOG, hung after checkpoint "));
+    Serial.print(hangCheckpoint);
+    switch (hangCheckpoint) {
+      case CP_LOOP:          Serial.print(F(" (loop)")); break;
+      case CP_RADIO_INIT:    Serial.print(F(" (radio init)")); break;
+      case CP_DS18B20:       Serial.print(F(" (DS18B20)")); break;
+      case CP_MODBUS:        Serial.print(F(" (Modbus)")); break;
+      case CP_EZO:           Serial.print(F(" (EZO)")); break;
+      case CP_WAIT:          Serial.print(F(" (a wait)")); break;
+      case CP_RADIO_SEND:    Serial.print(F(" (radio send)")); break;
+      case CP_RADIO_RECEIVE: Serial.print(F(" (radio receive)")); break;
+      case CP_SLEEP:         Serial.print(F(" (sleep)")); break;
+    }
+  } else if (resetFlags == 0) {
+    Serial.print(F("  ? (restart without reset: a crash)"));
+  }
   Serial.println();
 }
 
@@ -1992,6 +2188,8 @@ void setup() {
 
   Serial.begin(38400);
   reportResetCause();
+  wdtStart();                             // from here on a hang restarts the node
+  applyInterval(eeprom_read_word(latchAddr(CH_INTERVAL)));   // last pushed interval
 
   pinMode(ledPin, OUTPUT);
 
@@ -2038,6 +2236,7 @@ void setup() {
 #endif
   Serial.println(F(" Radio init (peak current)"));
   Serial.flush();
+  wdtFeed(CP_RADIO_INIT);
   wazidev.setupLoRaWAN(devAddr, LoRaWANKeys);
   sx1272.setSF(SF_12);                    // gateway accepts SF12 only
   Serial.println(F(" Radio OK"));
@@ -2046,6 +2245,15 @@ void setup() {
 
 void loop(void) {
   uint8_t e;
+  wdtFeed(CP_LOOP);
+
+#if WDT_TEST_HANG
+  if (cycleCount == 1) {
+    Serial.println(F("WDT_TEST_HANG: stopping here; expect a restart within 8 s"));
+    Serial.flush();
+    for (;;) {}
+  }
+#endif
 
   bool doTurbidity = (TURBIDITY_EVERY_N_CYCLES <= 1) ||
                      (cycleCount % TURBIDITY_EVERY_N_CYCLES == 0);

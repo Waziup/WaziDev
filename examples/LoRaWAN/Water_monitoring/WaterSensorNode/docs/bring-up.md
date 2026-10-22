@@ -35,7 +35,7 @@ All in the repository root. Every diagnostic is read-only on the serial monitor 
 | --- | --- | --- |
 | `I2CScan/` | Can this I²C bus work at all? Measures residual voltage in mV and rise time in µs per line, bit-banged so it cannot hang. | 1, 3 |
 | `EZOSwitch/` | Switches one EZO circuit from UART to I²C, picking the address from the circuit's own reply. | 3 |
-| `EZOBridge/` | A **UART** console to one EZO circuit over the existing SDA/SCL wires. This is the tool that *performs* the switch to I²C — and the moment the switch takes effect, it can no longer reach the circuit. | 3 |
+| `legacy/EZOBridge/` | A **UART** console to one EZO circuit over the existing SDA/SCL wires. This is the tool that *performs* the switch to I²C — and the moment the switch takes effect, it can no longer reach the circuit. | 3 |
 | `EZOCal/` | An **I²C** console to `0x63` / `0x64`. The calibration tool, and the one to use on the circuits as they are now. | 8 |
 | `VccCal/` | Prints the untrimmed bandgap reading and the raw A0 count, so both battery constants can be fitted from one run. | 8 |
 | `RS485Drive/` | Does the node's own RS485 driver work? Two multimeter readings, no probe needed. | 4 |
@@ -287,7 +287,11 @@ Either one:
    an address to the device whose settings were written last;
 2. creates one named sensor per channel, with its unit. The XLPP codec fills sensors by their
    `xlppChan`, so the values land in these instead of in generic entries;
-3. creates the actuators *pH calibration*, *EC calibration* and *Interval*.
+3. creates the actuators *pH calibration*, *EC calibration* and *Interval* on XLPP channels 20, 21
+   and 22. The gateway packs an actuator into a downlink only if it has a channel
+   (`meta.xlppChan`), and picks the XLPP type from its quantity and unit, so these must not be
+   created by hand. The update script also gives existing actuators their channel, after resetting
+   their old value to 0.
 
 Running the update script twice is safe: it renames and completes, and never creates duplicates.
 Older devices with the same address receive no data once a newer one is registered; both scripts
@@ -302,14 +306,17 @@ list them so they can be deleted in the dashboard.
 | 5 | Conductivity | whole µS/cm, concentration type (0–65535) | 1 µS/cm |
 | 6 | Turbidity | NTU, capped at 327 | 0.01 NTU |
 | 7 | Water temperature — DO probe | °C | 0.1 °C |
+| 8 | Restart cause | once per start; see [Restart cause and the watchdog](#restart-cause-and-the-watchdog-channel-8) | — |
 | 9 / 10 | pH / EC calibration result | sent once, after a calibration | — |
 
 1 µS/cm sits just under the EZO-EC's ±2 µS/cm near 100 µS/cm, where Lake Victoria sits. Lake
 turbidity stays far below the 327 NTU cap; a reading of exactly 327 means off the scale.
 
 *History: an earlier version sent conductivity as µS/cm ÷ 100 and turbidity as NTU ÷ 10 and undid the
-scaling in a custom gateway decoder (`decoder.js`, `add_decoder_to_wg.js`, kept in the repository for
-reference). That decoder is also why no downlink ever reached the node.*
+scaling in a custom gateway decoder (`decoder.js`, `add_decoder_to_wg.js`, kept in
+[`legacy/`](../legacy/) for reference). That decoder is also why no downlink ever reached the node. After the switch to XLPP, pushes
+still did not arrive until 22 October 2026: the actuators had been created without a channel, and
+the gateway leaves those out of the downlink.*
 
 > [!TIP]
 > **Gate**
@@ -323,16 +330,19 @@ reference). That decoder is also why no downlink ever reached the node.*
 >
 > Only **pH and EC** need calibrating in the field; DO and turbidity are factory-calibrated and the DS18B20 needs none. Both EZO circuits keep their calibration in their own EEPROM, so the node only forwards the command.
 >
-> **How:** put the probe in the buffer, then push a number to an actuator in the dashboard. It reaches the node right after its next uplink. The node waits until the reading has been steady for 10 s (up to ~2.5 min), refuses anything implausible for that buffer, and only then calibrates.
+> **How:** put the probe in the buffer, then push a number to an actuator in the dashboard. It reaches the node right after its next uplink. The node waits until the reading has been steady for 10 s (up to ~2.5 min), refuses anything implausible for that buffer, and only then calibrates. **Only a changed value is acted on**: every downlink carries all three actuators, so to repeat a value push `0`, wait one uplink, then push it again.
 >
-> | Push | Does |
-> | --- | --- |
-> | `7`, then `4`, then `10` | pH mid (always first, wipes the rest), low, high |
-> | `-3`, then `84` (or `1413`) | EC dry (probe in air), then single point in µS/cm |
-> | `-1` / `-2` | clear pH / clear EC |
-> | `300` … `3600`, whole minutes | sampling interval in seconds |
+> | Actuator | Push | Does |
+> | --- | --- | --- |
+> | *pH calibration* | `7`, then `4`, then `10` | mid (always first, wipes the rest), low, high |
+> | | `-1` | clear |
+> | *EC calibration* | `1`, then `84` (or `1413`) | dry (probe in air), then single point in µS/cm |
+> | | `2` | clear |
+> | *Interval* | `1` … `60` | sampling interval in minutes; `0` = firmware default |
 >
-> **Answer** on the next uplink, sensor *pH / EC calibration result*: **0–3** points now stored, **90** implausible (wrong buffer, or still in lake water), **91** no answer, **92** never settled (leave it in longer, push again), **93** battery too low. After a calibration the node cycles every ~5 min for half an hour, so the next step does not wait 30 min.
+> In the serial log each item shows as `Downlink ch 20 = 7.00`, or `Downlink ch 21 unchanged`.
+>
+> **Answer** on the next uplink, sensor *pH / EC calibration result*: **0–3** points now stored, **90** implausible (wrong buffer, or still in lake water), **91** no answer, **92** never settled (leave it in longer, push `0`, then the value again), **93** battery too low. After a calibration the node cycles every ~5 min for half an hour, so the next step does not wait 30 min.
 >
 > **Firmware:** `ENABLE_LORA_CAL 1`. Since 21 October 2026 it fits together with `VERBOSE_LOG 1`, so the bench log and remote calibration can run at the same time. *(Until then the two did not fit in flash together.)* **Correction:** the single-point EC command is `Cal,<value>`, e.g. `Cal,84`. `EZOCal` documented `Cal,one,<value>`, which is not an Atlas command; check `Cal,?` if an earlier single point is in doubt.
 
@@ -348,6 +358,70 @@ Everything above proves the node reads and transmits. None of it makes the numbe
 - **Calibrate in the configuration you will measure in.** Calibrating without the pH isolator and then fitting one folds the offset into the calibration, where it is far harder to see.
 
 ---
+
+## Restart cause and the watchdog (channel 8)
+
+After every start the node sends **why it started**, once, on uplink channel 8. On the gateway it
+appears as the sensor *Restart cause*. No new value means no restart, which is the normal state.
+
+**The watchdog.** If the firmware stops reporting in for 8 s while the node is awake (a hung radio
+call, a crash), it restarts itself. It runs on Timer2, not on the AVR's hardware watchdog, for two
+reasons:
+- **This board's bootloader cannot survive a watchdog reset.** It would loop forever.
+- **The LowPower library takes the watchdog interrupt.**
+
+Tested on 22 October 2026: with `WDT_TEST_HANG 1` the node restarted after 8 s and reported 101.
+With the switch back at 0 it then ran without a single unexpected restart.
+
+### Reading the value
+
+The low values are reset flags and add up. 6, for example, is 2 + 4.
+
+| Value | Meaning |
+| --- | --- |
+| 1 | power-on: the supply was connected or fully collapsed |
+| 2 | external reset: the reset pin, i.e. the reset button, or the FTDI when flashing or opening the serial monitor |
+| 4 | brown-out: the supply dipped below the reset threshold |
+| 101–109 | watchdog restart; the last digit is the checkpoint passed last before the hang (table below) |
+| 0 | restart without a reset and without the watchdog: a crash |
+
+| Checkpoint | Last passed before the hang |
+| --- | --- |
+| 1 | start of a measurement cycle (`loop`) |
+| 2 | radio initialisation |
+| 3 | DS18B20 read |
+| 4 | Modbus transmission (oxygen or turbidity probe) |
+| 5 | EZO command (pH or conductivity) |
+| 6 | a long wait (warm-up, wiper, rail settling) |
+| 7 | radio send |
+| 8 | radio receive |
+| 9 | sleep |
+
+### What is normal and what needs a look
+
+| Seen | Assessment |
+| --- | --- |
+| 2 or 6 right after flashing | normal |
+| 1 after connecting the cell | normal |
+| **4 or 6 while nobody touched the node** | supply dips: a weak cell or a loose contact. Investigate. |
+| **101–109** | a real hang. One is a hint; repeated ones are a fault to find, starting at the checkpoint named |
+| **0** | a crash. Should never appear; investigate |
+
+### In the serial log
+
+- **At start-up:** `Restart cause: MCUSR=0x… WATCHDOG, hung after checkpoint 7 (radio send)`, or the
+  reset flags in words.
+- **Before every sleep:** `sleep 1800 s  (watchdog max gap 2987 ms)`. The second number is the
+  longest time the watchdog went unfed in that cycle. It must stay well below 8000. Measured on
+  the bench on 22 October 2026: **2,402 ms**, a margin of 5.6 s.
+
+### Testing the watchdog
+
+1. **Set `WDT_TEST_HANG 1` and flash.**
+   - The second cycle stops with `WDT_TEST_HANG: stopping here`.
+   - Within about 8 s the node restarts and reports `WATCHDOG, hung after checkpoint 1 (loop)`.
+   - The gateway shows 101.
+2. **Set it back to 0 and flash.** It would otherwise hang every second cycle. **Never deploy with 1.**
 
 ## A booting oxygen probe reports 0.00 mg/L, and nothing rejects it
 

@@ -168,7 +168,7 @@ void setup() {
   if (addr < 0) {
     Serial.println(F("UNRECOGNISED DEVICE TYPE - no command sent."));
     Serial.println(F(" This sketch only knows pH and EC. Anything else needs"));
-    Serial.println(F(" an address chosen by hand via EZOBridge."));
+    Serial.println(F(" an address chosen by hand via legacy/EZOBridge."));
     digitalWrite(ledPin, LOW);
     return;
   }

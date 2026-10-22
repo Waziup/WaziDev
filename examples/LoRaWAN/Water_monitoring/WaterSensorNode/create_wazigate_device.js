@@ -15,7 +15,8 @@
  *       device gets the data; older devices with the same address get none
  *       and are listed, so they can be deleted in the dashboard;
  *    3. creates the named sensors, one per XLPP channel, and the actuators
- *       pH calibration, EC calibration, Interval.
+ *       pH calibration, EC calibration, Interval on channels 20-22, at 0.
+ *       How to use them: docs/calibration.md.
  *
  *  The key: WaziDev uses ONE 16-byte key as both network and application
  *  session key - the LoRaWANKeys array in WaterSensorNode.ino, written as 32
@@ -40,14 +41,22 @@ var SENSORS = [
   { chan: 5,  name: "Conductivity",          kind: "WaterConductivitySensor", quantity: "Conductivity", unit: "MicroSiemens",      unitSymbol: "µS/cm" },
   { chan: 6,  name: "Turbidity",             kind: "",                        quantity: "",             unit: "",                  unitSymbol: "NTU" },
   { chan: 7,  name: "DO probe temperature",  kind: "Thermometer",             quantity: "Temperature",  unit: "DegreeCelsius",     unitSymbol: "°C" },
+  { chan: 8,  name: "Restart cause",         kind: "",                        quantity: "",             unit: "",                  unitSymbol: "" },
   { chan: 9,  name: "pH calibration result", kind: "",                        quantity: "",             unit: "",                  unitSymbol: "" },
   { chan: 10, name: "EC calibration result", kind: "",                        quantity: "",             unit: "",                  unitSymbol: "" },
 ];
 
+// chan: the XLPP channel the gateway packs the value under (meta.xlppChan);
+// without it the actuator is left out of every downlink. quantity + unit pick
+// the XLPP type: "AnalogeValue" (WaziGate's spelling) is analog, 0.01 steps
+// up to 327.67; concentration in ppm is a whole number up to 65535.
 var ACTUATORS = [
-  { name: "pH calibration", hint: "7 first, then 4, then 10 (probe in that buffer). -1 = clear" },
-  { name: "EC calibration", hint: "-3 = dry (in air), then 84 or 1413 uS/cm in that standard. -2 = clear" },
-  { name: "Interval",       hint: "seconds, whole minutes: 300 / 600 / 1800 / 3600", unitSymbol: "s" },
+  { chan: 20, name: "pH calibration", quantity: "AnalogeValue",               unit: "",                unitSymbol: "pH",
+    hint: "7 first, then 4, then 10 (probe in that buffer); -1 = clear; 0 = nothing" },
+  { chan: 21, name: "EC calibration", quantity: "ChemicalAgentConcentration", unit: "PartsPerMillion", unitSymbol: "µS/cm",
+    hint: "1 = dry (probe in air), then 84 or 1413 (probe in that standard); 2 = clear; 0 = nothing" },
+  { chan: 22, name: "Interval",       quantity: "AnalogeValue",               unit: "",                unitSymbol: "min",
+    hint: "minutes, 5..60 (1..4 only on the bench, duty cycle); 0 = firmware default" },
 ];
 
 async function api(method, path, body) {
@@ -84,14 +93,27 @@ async function configure(device) {
     }
   }
   for (var a of ACTUATORS) {
-    var exists = (device.actuators || []).find(function (x) { return x.name === a.name; });
-    if (exists) { console.log("  actuator exists: " + a.name); continue; }
-    await api("POST", base + "/actuators", {
-      name: a.name,
-      meta: { kind: "", quantity: "", unit: "", unitSymbol: a.unitSymbol || "",
-              hint: a.hint, createdBy: "kijanispace-device-script" },
-    });
-    console.log("  actuator created: " + a.name + "  - " + a.hint);
+    var meta = { xlppChan: a.chan, kind: "", quantity: a.quantity, unit: a.unit,
+                 unitSymbol: a.unitSymbol, hint: a.hint, createdBy: "kijanispace-device-script" };
+    var have = (device.actuators || []).find(function (x) { return x.name === a.name; });
+    if (!have) {
+      await api("POST", base + "/actuators", { name: a.name, value: 0, meta: meta });
+      console.log("  actuator ch " + a.chan + " created: " + a.name + "  - " + a.hint);
+      continue;
+    }
+    // An actuator from before the channels holds a value in the old meaning
+    // (seconds, -3 ...). Zero it while it has no channel yet - that push is
+    // packed into no downlink - and only then give it its channel.
+    if (!(have.meta && have.meta.xlppChan !== undefined && have.meta.xlppChan !== null)) {
+      try {
+        await api("POST", base + "/actuators/" + have.id + "/value", 0);
+        console.log("  actuator " + a.name + ": old value " + JSON.stringify(have.value) + " reset to 0");
+      } catch (e) {
+        console.warn("  actuator " + a.name + ": could not reset the value (" + e.message + "); push 0 by hand");
+      }
+    }
+    await api("POST", base + "/actuators/" + have.id + "/meta", meta);
+    console.log("  actuator ch " + a.chan + " set up: " + a.name + "  - " + a.hint);
   }
 }
 

@@ -71,6 +71,7 @@ from the board file on every build. Where a guide and `FACTS.md` disagree, `FACT
 WaterSensorNode.ino         node firmware
 create_wazigate_device.js   WaziGate v3: create the device from scratch
 update_wazigate_device.js   WaziGate v3: bring an existing device up to date
+wqi-waziapp/                WaziGate app: CCME Water Quality Index as a traffic light (see its README)
 EZOCal/                     I2C console for bench calibration of the EZO circuits
 I2CScan/  EZOSwitch/  VccCal/  RailTest/  SettleTime/  DOCompensation/
 RS485Drive/  RS485Pins/  RS485Turnaround/  RS485Scan/  RS485Config/
@@ -98,9 +99,9 @@ program memory:
 
 | `VERBOSE_LOG` | `ENABLE_LORA_CAL` | Program memory | Use |
 |---|---|---|---|
-| 0 | 1 | 28,886 bytes (94 %) | **deployment**: concise log, remote calibration |
-| 1 | 1 | 29,350 bytes (95 %) | bench: full diagnostic log, remote calibration |
-| 1 | 0 | 27,728 bytes (90 %) | bench: full log; calibrate with `EZOCal` |
+| 0 | 1 | 29,024 bytes (94 %) | **deployment**: concise log, remote calibration |
+| 1 | 1 | 29,444 bytes (95 %) | bench: full diagnostic log, remote calibration |
+| 1 | 0 | 27,750 bytes (90 %) | bench: full log; calibrate with `EZOCal` |
 
 **Watchdog.** If the firmware stops reporting in for 8 s while the node is awake (a hung radio
 call, a crash), it restarts itself. It is built on Timer2 rather than the AVR's hardware
@@ -125,7 +126,7 @@ library takes the watchdog interrupt.
 | 6 | turbidity, NTU (capped at 327) |
 | 7 | temperature at the oxygen probe, °C (cross-check of channel 1) |
 | 8 | restart cause, sent once per start: 1 power-on, 2 external reset, 4 brown-out (may combine); 100 + checkpoint after a watchdog restart; 0 after a crash. How to read it: [Bring-Up guide](docs/bring-up.md#restart-cause-and-the-watchdog-channel-8) |
-| 9, 10 | pH / EC calibration result, sent once after a calibration |
+| 9, 10 | pH / EC calibration result, from the uplink after a calibration until the ~30 min session ends |
 
 **Downlinks.** A value pushed to an actuator reaches the node as XLPP: the gateway packs every
 actuator of the device with its channel and current value, so the node acts only on a value that
@@ -136,7 +137,7 @@ actuators their channels; one created by hand has none and is never sent.
 |---|---|---|
 | pH calibration (20) | `7`, `4`, `10` / `-1` | calibrate mid, low, high / clear |
 | EC calibration (21) | `1`, then e.g. `84` / `2` | dry, then single point in µS/cm / clear |
-| Interval (22) | `1` … `60` / `0` | measurement interval in minutes / firmware default |
+| Interval (22) | `60` … `7200` / `0` | measurement interval in seconds / firmware default |
 | any | `0` | nothing; push it before repeating the same value |
 
 The Probe Calibration guide gives the full procedure, the result codes and the limits of remote
@@ -166,7 +167,7 @@ manufacturing notes.
 |---|---|
 | Firmware | functional; all sensors verified on the prototype |
 | Carrier board | Rev C manufactured |
-| Remote calibration | implemented; hardware validation pending |
+| Remote calibration | downlink path and pH verified over LoRa (plausibility refusal, pH 7 point); EC pending |
 | Next steps | carrier bring-up and power measurements, enclosure, field calibration |
 
 ## License

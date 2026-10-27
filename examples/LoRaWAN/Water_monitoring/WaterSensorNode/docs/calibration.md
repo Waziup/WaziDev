@@ -58,7 +58,7 @@ A push makes the gateway send **every actuator of the device, each with its chan
 | *EC calibration* | 1 | `Cal,dry`, probe in air |
 | | 84 | single point `Cal,84.00`, in µS/cm (any value from 20 upwards works the same way: 1413, 12880 …) |
 | | 2 | clear the EC calibration |
-| *Interval* | 1 … 60 | measurement interval in **minutes**; 5 or more outside the bench (duty cycle) |
+| *Interval* | 60 … 7200 | measurement interval in **seconds**; 300 or more outside the bench (duty cycle). Other values are ignored. A long interval also delays every push: a command waits for the next uplink. |
 | | 0 | back to the firmware default |
 | any | 0 | nothing, but resets the memory: see *Repeating a step* |
 
@@ -74,9 +74,11 @@ Pushing the value an actuator already holds sends nothing new, and the node igno
 
 A pushed value waits on the gateway until the node’s next uplink, then arrives. The node reads until the value has been steady for 10 s (up to about 2.5 min), calibrates, sleeps, and reports on the uplink after that. **The probe stays in the solution from the push until the result appears.**
 
+**The result on the gateway lags the serial log by one cycle.** The node cannot transmit right after calibrating without breaking the duty cycle, so until the next uplink (about 4 min in a calibration session) the dashboard still shows the previous result, for example the 90 of a refusal test. Check the time stamp of *pH calibration result*, not only its value. From then on the result is repeated on every uplink until the session ends, about 30 min after the last calibration, so one lost uplink no longer loses it.
+
 ### 1 · Shorten the wait
 
-Push `5` to *Interval*. From the next uplink on, the node reports every ~6 min instead of every 30. Optional, but it turns the first step from a half-hour wait into minutes. After any calibration the node cycles every ~5 min for half an hour anyway.
+Push `300` to *Interval*. From the next uplink on, the node reports every ~6 min instead of every 30. Optional, but it turns the first step from a half-hour wait into minutes. After any calibration the node cycles every ~5 min for half an hour anyway.
 
 ### 2 · pH 7
 
@@ -107,7 +109,7 @@ EC probe out of the water, rinsed with distilled water and **completely dry**, i
 
 ### 5 · Back to normal
 
-Push `0` to *Interval* (the firmware default, 30 min) or `30`. **The interval does not return by itself** if you changed it in step 1: the node keeps it across restarts.
+Push `0` to *Interval* (the firmware default, 30 min) or `1800`. **The interval does not return by itself** if you changed it in step 1: the node keeps it across restarts.
 
 Leave the calibration actuators where they are. Their values are only a memory; set them to `0` when you start the next calibration, one uplink before the first step. Rinse the probes and put them back in the water. Check that the next pH and EC readings look like the lake again.
 
@@ -132,7 +134,7 @@ Leave the calibration actuators where they are. Their values are only a memory; 
 > - **It waits for the next uplink**, up to the full interval. The probe has to be in the solution when the command arrives, not just when you pushed it.
 > - **The temperature used is the lake’s** (DS18B20), not the buffer’s. Hence the 15 minutes in the pond for the bottles.
 > - **The plausibility check can refuse a genuinely wrong probe:** more than 1 pH off, or EC outside half to double. That is the price of refusing lake water by mistake.
-> - **The result is sent once.** If that one uplink is lost, the calibration may still have happened. Judge by the next readings, or check with `Cal,?` in EZOCal.
+> - **The result lives in RAM.** It is repeated on every uplink of the session, but a restart before the next uplink loses it, and the short cycles with it. Opening the serial monitor resets the node. The calibration itself is safe in the circuit; check with `Cal,?` in EZOCal if in doubt.
 > - **Not below 3.6 V** (result 93).
 
 ---

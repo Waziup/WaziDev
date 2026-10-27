@@ -49,14 +49,15 @@ var SENSORS = [
 // chan: the XLPP channel the gateway packs the value under (meta.xlppChan);
 // without it the actuator is left out of every downlink. quantity + unit pick
 // the XLPP type: "AnalogeValue" (WaziGate's spelling) is analog, 0.01 steps
-// up to 327.67; concentration in ppm is a whole number up to 65535.
+// up to 327.67; concentration in ppm is a whole number up to 65535 (the
+// interval uses it for that range, not for its meaning).
 var ACTUATORS = [
   { chan: 20, name: "pH calibration", quantity: "AnalogeValue",               unit: "",                unitSymbol: "pH",
     hint: "7 first, then 4, then 10 (probe in that buffer); -1 = clear; 0 = nothing" },
   { chan: 21, name: "EC calibration", quantity: "ChemicalAgentConcentration", unit: "PartsPerMillion", unitSymbol: "µS/cm",
     hint: "1 = dry (probe in air), then 84 or 1413 (probe in that standard); 2 = clear; 0 = nothing" },
-  { chan: 22, name: "Interval",       quantity: "AnalogeValue",               unit: "",                unitSymbol: "min",
-    hint: "minutes, 5..60 (1..4 only on the bench, duty cycle); 0 = firmware default" },
+  { chan: 22, name: "Interval",       quantity: "ChemicalAgentConcentration", unit: "PartsPerMillion", unitSymbol: "s",
+    hint: "seconds, 60..7200 (300 or more outside the bench, duty cycle); 0 = firmware default" },
 ];
 
 async function api(method, path, body) {

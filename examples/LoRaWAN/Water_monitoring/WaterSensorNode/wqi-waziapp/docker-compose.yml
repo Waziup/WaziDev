@@ -1,0 +1,20 @@
+version: "3"
+
+services:
+  wqi:
+    container_name: kijanispace.wqi
+    image: kijanispace/wqi:latest
+    build: .
+    # The edge API listens on the host; from the host network the app reaches
+    # it on 127.0.0.1, and the edge lets loopback requests in without a token.
+    network_mode: host
+    volumes:
+      # The edge looks for the app's socket in its folder:
+      # /var/lib/wazigate/apps/kijanispace.wqi/proxy.sock
+      - ./:/var/lib/waziapp
+    labels:
+      - io.waziup.waziapp=kijanispace.wqi
+    environment:
+      - DEVICE_ID=          # empty: pick the water node by its sensor channels
+      - WINDOW_HOURS=       # empty: window_hours from objectives.json
+    restart: unless-stopped

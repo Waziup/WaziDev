@@ -179,7 +179,7 @@ That is deliberate. Setting a Modbus address is a one-time operation needing a t
 | --- | --- | --- | --- | --- |
 | DS18B20 temperature | **1-Wire** | single device — index 0, no addressing | `D6(+)` | 750 ms conversion (12-bit) |
 | DO — DFRobot SEN0680 | RS485 **@ 4800** | `0x01` | +12 V rail | **15 s** optics warm-up, then a readiness check on the probe's own temperature register |
-| Turbidity — Y511-A | RS485 **@ 9600** | `0x01` | +12 V rail | **35 s** — wiper sweep plus optics; read every cycle |
+| Turbidity — Y511-A | RS485 **@ 9600** | `0x01` | +12 V rail | wiper sweep at power-up (~10 s), then `startMeasurement` and **5 s** to the read; read every cycle |
 | Atlas EZO-pH | I²C | `0x63` | 3.3 V | 900 ms per `R` |
 | Atlas EZO-EC | I²C | `0x64` | 3.3 V | 900 ms per `R` |
 

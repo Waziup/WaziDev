@@ -28,7 +28,7 @@
  *  value; the node acts only on a value that changed since the last downlink:
  *    pH calibration   7 (always first), then 4, then 10; -1 = clear
  *    EC calibration   1 = dry (probe in air), then 84 or 1413 uS/cm; 2 = clear
- *    Interval         minutes 1..60; 0 = the firmware default
+ *    Interval         seconds 60..7200; 0 = the firmware default
  *  To repeat a step, push 0 first. Results arrive on "pH / EC calibration
  *  result": 0..3 = points stored, 90 = implausible, 91 = no answer,
  *  92 = never settled, 93 = battery low. Full procedure: docs/calibration.md.
@@ -38,7 +38,7 @@
  * ========================================================================= */
 
 var DEV_ADDR = "00000000";   // the node's DevAddr, 8 hex digits, as in WaterSensorNode.ino (devAddr)
-var DEVICE_ID = "";          // optional: a WaziGate device id, overrides the search by DEV_ADDR
+var DEVICE_ID = "6ada0ba468f31908de7a03c3";          // optional: a WaziGate device id, overrides the search by DEV_ADDR
 
 var SENSORS = [
   { chan: 1,  name: "Water temperature",     kind: "Thermometer",             quantity: "Temperature",  unit: "DegreeCelsius",     unitSymbol: "°C" },
@@ -56,14 +56,15 @@ var SENSORS = [
 // chan: the XLPP channel the gateway packs the value under (meta.xlppChan);
 // without it the actuator is left out of every downlink. quantity + unit pick
 // the XLPP type: "AnalogeValue" (WaziGate's spelling) is analog, 0.01 steps
-// up to 327.67; concentration in ppm is a whole number up to 65535.
+// up to 327.67; concentration in ppm is a whole number up to 65535 (the
+// interval uses it for that range, not for its meaning).
 var ACTUATORS = [
   { chan: 20, name: "pH calibration", quantity: "AnalogeValue",               unit: "",                unitSymbol: "pH",
     hint: "7 first, then 4, then 10 (probe in that buffer); -1 = clear; 0 = nothing" },
   { chan: 21, name: "EC calibration", quantity: "ChemicalAgentConcentration", unit: "PartsPerMillion", unitSymbol: "µS/cm",
     hint: "1 = dry (probe in air), then 84 or 1413 (probe in that standard); 2 = clear; 0 = nothing" },
-  { chan: 22, name: "Interval",       quantity: "AnalogeValue",               unit: "",                unitSymbol: "min",
-    hint: "minutes, 5..60 (1..4 only on the bench, duty cycle); 0 = firmware default" },
+  { chan: 22, name: "Interval",       quantity: "ChemicalAgentConcentration", unit: "PartsPerMillion", unitSymbol: "s",
+    hint: "seconds, 60..7200 (300 or more outside the bench, duty cycle); 0 = firmware default" },
 ];
 
 async function api(method, path, body) {

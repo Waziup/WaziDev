@@ -158,7 +158,7 @@ unsigned char LoRaWANKeys[16] = {0x23, 0x15, 0x8D, 0x3B, 0xBC, 0x31, 0xE6, 0xAF,
 unsigned char devAddr[4]      = {0x26, 0x01, 0x1B, 0xEE};
 
 const int interval  = 3000;   // downlink RX window (ms)
-#define   SLEEP_DEFAULT_S 180 //1800   // 30 min base cycle
+#define   SLEEP_DEFAULT_S 1800 //1800   // 30 min base cycle
 int       sleep_sec = SLEEP_DEFAULT_S;  // downlink-settable, see LORAWAN DOWNLINK
 
 //  ####################################################################
@@ -176,7 +176,7 @@ int       sleep_sec = SLEEP_DEFAULT_S;  // downlink-settable, see LORAWAN DOWNLI
 //  ##  cost. The sketch sits at 99 % and every feature from here on  ##
 //  ##  has to be paid for out of something.                          ##
 //  ####################################################################
-#define VERBOSE_LOG  0
+#define VERBOSE_LOG  1
 
 //  ENABLE_LORA_CAL - pH/EC calibration by downlink (see LORAWAN DOWNLINK).
 //  It fits together with VERBOSE_LOG 1 since 21 Oct 2026, when dropping
@@ -219,8 +219,8 @@ int       sleep_sec = SLEEP_DEFAULT_S;  // downlink-settable, see LORAWAN DOWNLI
 //
 //  The gap between the two thresholds is deliberate: a cell sitting near the
 //  line would otherwise measure, sag, hibernate, recover, measure again.
-const float    HIBERNATE_ENTER_V = 3.60;
-const float    HIBERNATE_EXIT_V  = 3.80;
+const float    HIBERNATE_ENTER_V = 3.50;
+const float    HIBERNATE_EXIT_V  = 3.70;
 const int      HIBERNATE_SLEEP_S = 3600;   // once an hour, battery only
 bool           hibernate         = false;
 
@@ -524,8 +524,16 @@ const uint16_t TURB_TEMP_REG     = 0x2600;   // its own temperature, degC
 const uint16_t TURB_BRUSH_REG    = 0x3100;   // activateBrush,    fn 0x10
 const uint16_t TURB_START_REG    = 0x2500;   // startMeasurement, fn 0x03
 const uint8_t  TURB_NEEDS_START  = 1;
-const uint16_t TURB_WARMUP_MS    = 35000;    // brush sweep + optics settle
-const uint16_t TURB_RETRY_MS     = 5000;     // before the one real retry
+//  startMeasurement goes out only once the power-up wiper sweep is over. Sent
+//  3 s after the rail came up, as it was until 23 Oct 2026, it landed in the
+//  running sweep (heard at the bench: the wiper still turns at that point) and
+//  was lost in about 4 cycles out of 5: three Modbus timeouts ~35 s later,
+//  then the re-armed retry read fine 5 s after a fresh start, every time.
+//  TURB_WIPER_MS counts from the end of RAIL12_SETTLE_MS; the sweep is ~10 s.
+//  In a normal cycle DO, pH and EC take longer than that, so it costs nothing.
+const uint16_t TURB_WIPER_MS     = 15000;    // earliest start after rail settle
+const uint16_t TURB_START_MS     = 5000;     // startMeasurement -> first read,
+                                             // and again before the one retry
 
 //  ####################################################################
 //  ##  THE BRUSH IS COMMANDED, NOT SCHEDULED                         ##
@@ -1622,15 +1630,8 @@ void readAllSensors(bool doTurbidity) {
     turbReadCount++;
 #endif
 
-    if (TURB_NEEDS_START) {
-      //  Hoisted for the same reason, and this one matters more: inside a
-      //  LOG() the measurement would simply never be started.
-      const bool startOk = turbStartMeasurement();
-      (void)startOk;
-      LOG(F("Turbidity: start measurement ("));
-      LOG(startOk ? F("acknowledged") : F("NO REPLY"));
-      LOGLN(F(")"));
-    }
+    //  The wiper is sweeping now; startMeasurement waits until it is done,
+    //  see TURB_WIPER_MS and the turbidity read below.
     turbStart = millis();
   }
 #endif
@@ -1754,16 +1755,24 @@ void readAllSensors(bool doTurbidity) {
   // --- turbidity: read once the wiper sweep has finished ---
 #if ENABLE_TURBIDITY
   if (doTurbidity) {
+    rs485SetBaud(TURB_BAUD);
     if (TURB_NEEDS_START) {
-      long remaining = (long)TURB_WARMUP_MS - (long)(millis() - turbStart);
+      long remaining = (long)TURB_WIPER_MS - (long)(millis() - turbStart);
       if (remaining > 0) {
         LOG(F("Turbidity: waiting "));
         LOG(remaining / 1000);
-        LOGLN(F(" s for wiper/optics"));
+        LOGLN(F(" s for the wiper"));
         pause(remaining);
       }
+      //  Hoisted: inside a LOG() the measurement would simply never be
+      //  started. "acknowledged" only means some byte came back.
+      const bool startOk = turbStartMeasurement();
+      (void)startOk;
+      LOG(F("Turbidity: start measurement ("));
+      LOG(startOk ? F("acknowledged") : F("NO REPLY"));
+      LOGLN(F(")"));
+      pause(TURB_START_MS);
     }
-    rs485SetBaud(TURB_BAUD);
     v_turb = modbusReadValue(TURB_ADDR, TURB_REG, TURB_FMT, TURB_SCALE);
 
     //  ONE REAL SECOND ATTEMPT - which the three MODBUS_RETRIES are not.
@@ -1772,7 +1781,7 @@ void readAllSensors(bool doTurbidity) {
     //  re-send the same read to a probe that has already stopped answering,
     //  so a brief deafness defeats all three identically. This attempt is
     //  different in kind: it re-arms the measurement with startMeasurement
-    //  and waits TURB_RETRY_MS before asking again, which is long enough for
+    //  and waits TURB_START_MS before asking again, which is long enough for
     //  the probe's own firmware to have come back to the bus.
     //
     //  It also tells you WHICH failure you have. If the retry succeeds, the
@@ -1782,7 +1791,7 @@ void readAllSensors(bool doTurbidity) {
     if (isnan(v_turb) && TURB_NEEDS_START) {
       Serial.println(F("Turbidity: no answer - re-arming, 5 s, one more try"));
       turbStartMeasurement();
-      pause(TURB_RETRY_MS);
+      pause(TURB_START_MS);
       v_turb = modbusReadValue(TURB_ADDR, TURB_REG, TURB_FMT, TURB_SCALE);
     }
 
@@ -1815,7 +1824,8 @@ void readAllSensors(bool doTurbidity) {
 //                                             the DS18B20 in a different spot.
 //
 //    ch 9  pH calibration   addDigitalInput  result code, see LORAWAN DOWNLINK
-//    ch 10 EC calibration   addDigitalInput  result code, only after a Cal
+//    ch 10 EC calibration   addDigitalInput  result code; both on every
+//                                             uplink of the calibration session
 //
 //  The device runs WaziGate's built-in XLPP codec, not a script decoder -
 //  a script codec cannot send downlinks, and calibration needs them. So
@@ -1852,8 +1862,11 @@ uint8_t uplink() {
   if (!restartSent) xlpp.addDigitalInput(8, restartCode);
 
   // The answer to a calibration command, once, on the uplink after it ran.
-  if (calResultPh != CAL_NONE) { xlpp.addDigitalInput(9,  calResultPh); calResultPh = CAL_NONE; }
-  if (calResultEc != CAL_NONE) { xlpp.addDigitalInput(10, calResultEc); calResultEc = CAL_NONE; }
+  //  Repeated on every uplink of the calibration session, not sent once: a
+  //  single lost uplink used to lose the answer, and the gateway kept showing
+  //  the previous one. Cleared in loop() when the session ends.
+  if (calResultPh != CAL_NONE) xlpp.addDigitalInput(9,  calResultPh);
+  if (calResultEc != CAL_NONE) xlpp.addDigitalInput(10, calResultEc);
 #endif
 
 
@@ -1899,8 +1912,12 @@ uint8_t uplink() {
 //                             2         Cal,clear
 //                             >= 20     single point in that standard, uS/cm:
 //                                       84 for Lake Victoria's range, 1413 ...
-//     ch 22  Interval         analog, minutes 1 .. 60; 0 = the compiled-in
-//                             default (SLEEP_DEFAULT_S)
+//     ch 22  Interval         concentration (type 125), SECONDS 60 .. 7200;
+//                             0 = the compiled-in default (SLEEP_DEFAULT_S).
+//                             Anything else is ignored and not remembered.
+//                             (Analog would end at 327: hence concentration.
+//                             Minutes were tried on 23 Oct 2026; a pushed
+//                             "180" meant seconds to the person pushing it.)
 //
 //  ONLY CHANGES COUNT. Because every downlink repeats every actuator, the
 //  node remembers the last value per channel in EEPROM (LATCH_EEPROM) and
@@ -1918,7 +1935,8 @@ uint8_t uplink() {
 //  plausible for what was asked, and only then sends Cal. The circuit keeps
 //  its calibration in its own EEPROM.
 //
-//  THE ANSWER comes back on the NEXT uplink, on its own channel:
+//  THE ANSWER comes back from the NEXT uplink on, on its own channel, and is
+//  repeated on every uplink until the calibration session ends:
 //     ch 9  pH  /  ch 10  EC
 //     0..3  calibration points the circuit now holds (Cal,?)
 //     90    refused - steady reading implausible for that buffer
@@ -1940,11 +1958,16 @@ uint16_t *latchAddr(uint8_t ch) {
   return (uint16_t *)(LATCH_EEPROM + 2 * (ch - CH_CAL_PH));
 }
 
-//  Interval channel value (hundredths of a minute) -> sleep_sec. Anything
-//  outside 1..60 min, including a fresh EEPROM, means the default.
-void applyInterval(int16_t raw) {
-  sleep_sec = (raw >= 100 && raw <= 6000) ? (int)((raw * 6L + 5) / 10)
-                                          : SLEEP_DEFAULT_S;
+//  Interval in seconds -> sleep_sec. 0, and anything else outside
+//  60..INTERVAL_MAX_S (a fresh EEPROM reads 65535), means the default.
+//  The cap is a safety net: a downlink can only arrive after an uplink, so a
+//  mistyped huge interval would leave the node out of reach until it wakes.
+//  sleep() takes an int, so never raise it beyond 32767.
+#define INTERVAL_MAX_S 7200
+bool intervalValid(float s) { return s >= 60 && s <= INTERVAL_MAX_S; }
+
+void applyInterval(float s) {
+  sleep_sec = intervalValid(s) ? (int)s : SLEEP_DEFAULT_S;
 }
 
 #if ENABLE_LORA_CAL
@@ -2090,13 +2113,17 @@ uint8_t downlink_with_logs(uint16_t timeout) {
       Serial.println(F(" unchanged"));
       continue;
     }
-    eeprom_update_word(latchAddr(ch), raw);   // before acting - see above
     float v = (type == LPP_CONCENTRATION) ? raw : (int16_t)raw / 100.0;
     Serial.print(F(" = "));
     Serial.println(v, 2);
+    if (ch == CH_INTERVAL && v != 0 && !intervalValid(v)) {
+      Serial.println(F("Interval: 60..7200 s only, ignored"));
+      continue;                               // not latched: the old one stays
+    }
+    eeprom_update_word(latchAddr(ch), raw);   // before acting - see above
 
     if (ch == CH_INTERVAL) {
-      applyInterval(raw);
+      applyInterval(v);
       Serial.print(F("Interval now "));
       Serial.println(sleep_sec);
 #if ENABLE_LORA_CAL
@@ -2268,8 +2295,14 @@ void loop(void) {
     // 3. LoRaWAN downlink
     downlink_with_logs(interval);
     cycleCount++;
-    if (calSession) calSession--;
-    sleep(hibernate ? HIBERNATE_SLEEP_S
+    if (calSession && --calSession == 0) {
+      calResultPh = CAL_NONE;               // session over: stop repeating
+      calResultEc = CAL_NONE;
+    }
+    //  Hibernation never wakes MORE often than the normal interval: with a
+    //  2 h interval, the hourly hibernation cycle would cost the weak cell
+    //  more, not less.
+    sleep(hibernate ? max(HIBERNATE_SLEEP_S, sleep_sec)
                     : (calSession ? CAL_SESSION_SLEEP_S : sleep_sec));
   } else {
     Serial.print(F("Error: "));

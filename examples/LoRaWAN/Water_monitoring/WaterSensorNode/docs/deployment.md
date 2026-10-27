@@ -144,7 +144,7 @@ Runs: cell connected · probes in a bucket of water · FTDI for the log only
 ### 9 · Commission
 
 1. Calibrate in place over LoRa: pH 7, 4, 10, then EC dry and 84 µS/cm.
-2. Check the *Interval* is back at `0` (firmware default, 30 min) or `30`.
+2. Check the *Interval* is back at `0` (firmware default, 30 min) or `1800`.
 3. Watch the first day of data.
 
 > [!TIP]

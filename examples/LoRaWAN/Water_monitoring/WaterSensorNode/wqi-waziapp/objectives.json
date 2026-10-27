@@ -1,0 +1,12 @@
+{
+  "_note": "Starting values for Nile tilapia culture, to be replaced by the local guideline. min/max must be > 0. xlppChan is the node's uplink channel.",
+  "window_hours": 24,
+  "traffic_light": { "green": 80, "amber": 65 },
+  "variables": {
+    "Water temperature": { "xlppChan": 1, "min": 22, "max": 32,   "unit": "°C" },
+    "pH":                { "xlppChan": 3, "min": 6.5, "max": 8.5, "unit": "" },
+    "Dissolved oxygen":  { "xlppChan": 4, "min": 5,               "unit": "mg/L" },
+    "Conductivity":      { "xlppChan": 5, "max": 2000,            "unit": "µS/cm" },
+    "Turbidity":         { "xlppChan": 6, "max": 30,              "unit": "NTU" }
+  }
+}

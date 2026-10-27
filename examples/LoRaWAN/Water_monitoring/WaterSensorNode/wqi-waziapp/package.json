@@ -1,0 +1,17 @@
+{
+  "name": "Water Quality Index",
+  "version": "1.0.0",
+  "description": "CCME Water Quality Index of the KijaniSpace water node, shown as a number and a traffic light",
+  "author": { "name": "KijaniSpace" },
+  "license": "GPL-3.0-or-later",
+  "waziapp": {
+    "icon": "ui/icon.svg",
+    "menu": {
+      "kijanispace.wqi": {
+        "primary": "Water Quality Index",
+        "icon": "ui/icon.svg",
+        "href": "#/apps/kijanispace.wqi/ui/"
+      }
+    }
+  }
+}

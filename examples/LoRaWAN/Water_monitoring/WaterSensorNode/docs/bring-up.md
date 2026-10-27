@@ -223,7 +223,6 @@ The rate difference also separates them despite the shared address: a frame sent
 > ```
 > 3.3 V sensor rail ON  (D6)
 > 12 V sensor rail ON   (D5)
-> Turbidity: start measurement (acknowledged)
 > Temperature (DS18B20): 22.19 degC
 > DO: warming up optics...
 > Dissolved oxygen: 8.77 mg/L
@@ -232,7 +231,7 @@ The rate difference also separates them despite the shared address: a frame sent
 > pH: 5.65                          (probe still in storage solution)
 > Conductivity: 0.0 uS/cm
 > Isolators OFF
-> Turbidity: waiting 1 s for wiper/optics
+> Turbidity: start measurement (acknowledged)
 > Turbidity: 2.36 NTU
 > Both sensor rails OFF
 > Battery: 3.94 V
@@ -241,6 +240,8 @@ The rate difference also separates them despite the shared address: a frame sent
 > **This is the `VERBOSE_LOG 1` log** — the bench setting. The firmware is *meant* to ship with it at `0`, and **the working copy has been at `0` since 15 October 2026** — set back after the October bench runs, and not yet compiled since, so build it once and check the flash use before the next upload. At `0`, where the rail transitions, the isolator lines, the warm-up notice and the downlink chatter are all compiled out and only measured values, `FAIL`s, the battery, the send result, the hibernation notice and a terse `sleep 1800` remain. **Set it to 1 before using this guide as a checklist**, or the lines below will not be there to check.
 >
 > No `FAIL` line, and **no `re-arming` line** — that one only appears when the first turbidity read times out and the sketch makes its one real second attempt. If it appears followed by a value, the probe dropped off briefly and the reading was saved; followed by `FAIL`, the fault is supply or wiring.
+
+> **`startMeasurement` goes out after pH and EC, not right after the rail comes up** (changed 23 October 2026). Sent 3 s after power-up, it landed in the probe's own wiper sweep and was lost in about four cycles out of five: three `Modbus timeout 0x1`, then `re-arming`, and the retry read fine every time. The sketch now waits until at least `TURB_WIPER_MS` after the rail settled, which a normal cycle has long passed by then, starts the measurement and reads 5 s later. A `Turbidity: waiting n s for the wiper` line appears only when DO, pH and EC were skipped or very fast.
 >
 > **There is no brush line, and that is correct.** The wiper still sweeps — listen for it right after the 12 V rail comes up. It is the probe doing that by itself.
 >
@@ -293,6 +294,11 @@ Either one:
    created by hand. The update script also gives existing actuators their channel, after resetting
    their old value to 0.
 
+   **To change an actuator's type** (its quantity and unit), delete the actuator in the dashboard
+   and run the update script again, which recreates it at 0. Updating the type of an existing
+   actuator in place did not take effect once: *Interval* was still sent as analog, so a pushed 3500
+   arrived as 223.20 (3500 × 100 wraps around in 16 bits). After delete and rerun it arrived as 3500.
+
 Running the update script twice is safe: it renames and completes, and never creates duplicates.
 Older devices with the same address receive no data once a newer one is registered; both scripts
 list them so they can be deleted in the dashboard.
@@ -307,7 +313,7 @@ list them so they can be deleted in the dashboard.
 | 6 | Turbidity | NTU, capped at 327 | 0.01 NTU |
 | 7 | Water temperature — DO probe | °C | 0.1 °C |
 | 8 | Restart cause | once per start; see [Restart cause and the watchdog](#restart-cause-and-the-watchdog-channel-8) | — |
-| 9 / 10 | pH / EC calibration result | sent once, after a calibration | — |
+| 9 / 10 | pH / EC calibration result | from the uplink after a calibration, repeated until the ~30 min session ends | — |
 
 1 µS/cm sits just under the EZO-EC's ±2 µS/cm near 100 µS/cm, where Lake Victoria sits. Lake
 turbidity stays far below the 327 NTU cap; a reading of exactly 327 means off the scale.
@@ -338,11 +344,11 @@ the gateway leaves those out of the downlink.*
 > | | `-1` | clear |
 > | *EC calibration* | `1`, then `84` (or `1413`) | dry (probe in air), then single point in µS/cm |
 > | | `2` | clear |
-> | *Interval* | `1` … `60` | sampling interval in minutes; `0` = firmware default |
+> | *Interval* | `60` … `7200` | sampling interval in seconds; `0` = firmware default; anything else is ignored |
 >
 > In the serial log each item shows as `Downlink ch 20 = 7.00`, or `Downlink ch 21 unchanged`.
 >
-> **Answer** on the next uplink, sensor *pH / EC calibration result*: **0–3** points now stored, **90** implausible (wrong buffer, or still in lake water), **91** no answer, **92** never settled (leave it in longer, push `0`, then the value again), **93** battery too low. After a calibration the node cycles every ~5 min for half an hour, so the next step does not wait 30 min.
+> **Answer** from the next uplink on, repeated for the rest of the session, sensor *pH / EC calibration result*: **0–3** points now stored, **90** implausible (wrong buffer, or still in lake water), **91** no answer, **92** never settled (leave it in longer, push `0`, then the value again), **93** battery too low. After a calibration the node cycles every ~5 min for half an hour, so the next step does not wait 30 min.
 >
 > **Firmware:** `ENABLE_LORA_CAL 1`. Since 21 October 2026 it fits together with `VERBOSE_LOG 1`, so the bench log and remote calibration can run at the same time. *(Until then the two did not fit in flash together.)* **Correction:** the single-point EC command is `Cal,<value>`, e.g. `Cal,84`. `EZOCal` documented `Cal,one,<value>`, which is not an Atlas command; check `Cal,?` if an earlier single point is in doubt.
 

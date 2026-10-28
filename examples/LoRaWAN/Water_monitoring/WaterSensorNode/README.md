@@ -21,8 +21,9 @@ electronics sit on the **KijaniSpace Carrier**, a 100 × 100 mm, two-layer PCB:
 ## Design highlights
 
 - **Energy-aware.** Every sensor group is power-gated and switched off between measurements. The
-  node hibernates below 3.6 V and still reports its battery voltage while hibernating. From a full
-  18650 cell it runs about 25 days without sun.
+  node hibernates below 3.5 V and still reports its battery voltage every 2 h while hibernating. From a full
+  18650 cell it runs about 25 days without sun, and about 50 days from the two-cell pack used in the
+  field. The pack ships switched off and is switched on at installation.
 - **Isolated electrochemistry.** pH and EC each sit behind their own isolator, on a separate ground
   island bounded by routed slots in the PCB. This removes the ground loop between the two probes.
 - **Remote calibration.** pH (three points) and EC (dry + one point) can be calibrated over LoRaWAN

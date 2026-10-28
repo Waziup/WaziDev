@@ -219,9 +219,13 @@ int       sleep_sec = SLEEP_DEFAULT_S;  // downlink-settable, see LORAWAN DOWNLI
 //
 //  The gap between the two thresholds is deliberate: a cell sitting near the
 //  line would otherwise measure, sag, hibernate, recover, measure again.
+//  3.50 / 3.70 since 28 Oct 2026 (was 3.60 / 3.80): 3.5 V still measures
+//  everything on the bench, and the two-cell pack has a protection board
+//  below it. The 2 h hibernation cycle halves the radio's share of the drain;
+//  the ~1.5 mA sleep current stays either way.
 const float    HIBERNATE_ENTER_V = 3.50;
 const float    HIBERNATE_EXIT_V  = 3.70;
-const int      HIBERNATE_SLEEP_S = 3600;   // once an hour, battery only
+const int      HIBERNATE_SLEEP_S = 7200;   // every 2 h, battery only
 bool           hibernate         = false;
 
 // ---------------------------------------------------------------------------
@@ -2299,9 +2303,9 @@ void loop(void) {
       calResultPh = CAL_NONE;               // session over: stop repeating
       calResultEc = CAL_NONE;
     }
-    //  Hibernation never wakes MORE often than the normal interval: with a
-    //  2 h interval, the hourly hibernation cycle would cost the weak cell
-    //  more, not less.
+    //  Hibernation never wakes MORE often than the normal interval. With
+    //  HIBERNATE_SLEEP_S at INTERVAL_MAX_S the max() changes nothing today;
+    //  it keeps that true if either is changed.
     sleep(hibernate ? max(HIBERNATE_SLEEP_S, sleep_sec)
                     : (calSession ? CAL_SESSION_SLEEP_S : sleep_sec));
   } else {

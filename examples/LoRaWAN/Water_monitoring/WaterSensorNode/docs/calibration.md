@@ -121,7 +121,7 @@ Leave the calibration actuators where they are. Their values are only a memory; 
 | 90 | refused: the steady reading does not fit the solution (pH more than 1.0 away, EC outside half to double) | check which bottle the probe is in. A new or badly drifted probe can also cause this: use Route B. |
 | 91 | the circuit did not answer or rejected the command | repeat the step (push 0 first); if it repeats, Route B and check the circuit with `i` and `Status` |
 | 92 | the reading never settled within ~2.5 min | leave the probe in longer, repeat the step (push 0 first) |
-| 93 | refused: the cell is below 3.6 V and the node is hibernating | wait for sun, or charge |
+| 93 | refused: the cell is below 3.5 V and the node is hibernating | wait for sun, or charge (it resumes above 3.7 V) |
 
 > [!WARNING]
 > **Limitations of the LoRa route**
@@ -135,7 +135,7 @@ Leave the calibration actuators where they are. Their values are only a memory; 
 > - **The temperature used is the lake’s** (DS18B20), not the buffer’s. Hence the 15 minutes in the pond for the bottles.
 > - **The plausibility check can refuse a genuinely wrong probe:** more than 1 pH off, or EC outside half to double. That is the price of refusing lake water by mistake.
 > - **The result lives in RAM.** It is repeated on every uplink of the session, but a restart before the next uplink loses it, and the short cycles with it. Opening the serial monitor resets the node. The calibration itself is safe in the circuit; check with `Cal,?` in EZOCal if in doubt.
-> - **Not below 3.6 V** (result 93).
+> - **Not below 3.5 V** (result 93).
 
 ---
 

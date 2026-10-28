@@ -293,7 +293,7 @@ Reference designators are provisional and become fixed when the schematic is dra
 
 | Ref | Part | From | To | Net class |
 | --- | --- | --- | --- | --- |
-| `X1` | 2-way screw block, 5 mm | 18650 +/− | `F1` / `GND` | battery |
+| `X1` | 2-way screw block, 5 mm | 18650 +/− | `F1` / `GND` | battery: in the field the two-cell pack, through its protection board, switch and connector ([Node Deployment](deployment.md) step 8) |
 | `F1` | PTC 2.6 A hold | `X1-1` | `Q5` drain | battery |
 | `Q5` | AO3401A ideal diode *(was `D1`, SS34)* | `F1` | `+VBATT` | battery |
 | `R13` | 100 kΩ gate pull-down for `Q5` | `Q5` gate | `GND` | battery |

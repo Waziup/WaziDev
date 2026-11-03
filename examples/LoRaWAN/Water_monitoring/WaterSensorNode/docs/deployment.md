@@ -15,14 +15,14 @@ From an assembled KijaniSpace Carrier Rev C to a running station at the pond: in
 > - **`H1` stays on 3.3 V.** BATT puts up to 4.2 V on a 3.8 V pin.
 > - **Pin 1 of every module on the square pad marked `1:…`**. VCC and GND swapped destroys the transceiver and both EZO circuits.
 > - **Nothing ever connects `D6−` to GND.** It is the switched return; one wire there and the sensor rail never switches off.
-> - **Do not fit `R11`/`R12`, do not close `I2C_J`** on the WaziSense. The isolators bring their own pull-ups.
+> - **Do not fit `R11`/`R12`, do not close `I2C_J`** on the WaziSense. The isolators bring their own pull-ups. *Only exception: `U4` empty or bridged (step 4).*
 
 ## What you need
 
 | Group | Items |
 | --- | --- |
 | Boards | Carrier Rev C (assembled by JLCPCB), WaziSense v2, LoRa antenna |
-| Plug-in modules | Pololu U3V9F12 (12 V boost), RS485 module (MAX13487), 2 × Atlas Basic EZO Inline Voltage Isolator, Atlas EZO-pH, Atlas EZO-EC |
+| Plug-in modules | Pololu U3V9F12 (12 V boost), RS485 module (MAX13487), 2 × Atlas Basic EZO Inline Voltage Isolator (the EC one can be replaced by a bridge plug, step 4), Atlas EZO-pH, Atlas EZO-EC |
 | Power | 2 × 18650 with welded solder tabs (same type and batch), 1S protection board (e.g. DW01 + 8205A), sealed toggle or rocker switch rated ≥ 3 A DC (IP67), 2-pin polarised connector (JST-PH or XT30), **12 V** solar panel 5–10 W |
 | Probes | DS18B20, DFRobot SEN0680 (DO), Yosemitech Y511-A (turbidity), Atlas pH and EC probes with SMA extensions |
 | Enclosure | IP67 box, cable glands (UV-stable, black PA), membrane pressure vent, silica gel (plus one sealed spare for the installer), adhesive-lined heat shrink, self-amalgamating tape; optional: electronics potting compound |
@@ -75,7 +75,12 @@ Lay each module on the board as it will sit: component side up, pins down. Its p
 | `U4` / `U5` | isolator for pH / for EC, MCU row on top | `1:VCC` |
 | `U6` / `U7` | EZO-pH (above `J7` pH) / EZO-EC (above `J9` EC), bus row on top | `1:GND` |
 
-- **The EZO circuits must already be in I²C mode** (`0x63` / `0x64`). The two from the prototype are. A new circuit ships in UART mode: switch it first with `EZOSwitch` on the bench, one circuit at a time.
+- **The EZO circuits must be in I²C mode** (`0x63` / `0x64`). A new circuit ships in UART mode. Switch it with `EZOSwitch`, on the carrier itself:
+  - **only the one circuit in its socket**, the other one pulled;
+  - **the cell connected**: the sketch powers `A1` and `D6` (since November 2026; before that it powered `D6` only and found nothing on the carrier);
+  - it tries every EZO baud rate, factory 9600 first, and sends `I2C,99` / `I2C,100` only after the circuit has named itself;
+  - LED: **green** = UART, **blue** = I²C, **red flashes** = "command not understood" (usually a circuit set to another baud rate), **dark** = no supply: measure VCC to GND at its socket (`U6`/`U7` pin 4 to pin 1).
+- **No isolator at hand?** A position can be bridged; with `U4` empty or bridged the bus then needs 2 × 4.7 kΩ to `3V3P`. Pin map, pull-ups and which bridge may stay: [Sensor Carrier](sensor-carrier.md), *Running without an isolator*. In short: EC may stay bridged after its gate, pH is bench-only.
 - **RS485 module to `J8`:** two short wires from the module’s own `A`/`B` screw terminal to `J8` `A`/`B`.
 
 ### 5 · Wire carrier to WaziSense, then the probes
@@ -86,9 +91,18 @@ Five short cables join the boards. **Wire by name, not by position**: the blocks
 | --- | --- | --- | --- |
 | `J2` SW\_1 | `D6− · D6+` | **Sensor Power 1** (SW\_1): − to −, + to + | not Sensor Power 2 |
 | `J3` ANALOG | `GND · A1 · A2` | ANALOG\_PINS | A2 = 1-Wire, A1 = isolators |
-| `J4` DIGITAL | `GND · D3 · D4` | DIGITAL\_PINS | RS485 RX / TX |
+| `J4` DIGITAL | `GND · D3 · D4` | DIGITAL\_PINS | RS485 RX / TX. **Run `RS485Pins` before the probes**: if it reports `REVERSED`, cross `D3` and `D4` here (below) |
 | `J5B` + `J5A` I2C\_PORT | `GND · D5 · SDA · SCL` | I2C\_PORT | D5 = 12 V switch |
 | `J6` POWER\_OUT | `GND · +BAT` | BAT\_IN | the WaziSense’s only battery feed |
+
+> [!WARNING]
+> **The RS485 module’s `TXD`/`RXD` labels are not the same on every module** *(November 2026)*
+>
+> The board joins `D4` (transmit) to the module pad labelled `TXD`, which is right for the module the prototype used. On a second carrier the module fitted the same way, `VCC` on `1:VCC`, but its `TXD` pin was the receiver *output*. Nothing was sent, both probes were silent on every baud rate and address, and A/B, power, terminator and bias all measured correct. `RS485Drive` showed it (A–B did not move while transmitting) and `RS485Pins` named it (`REVERSED`).
+>
+> - **Fix:** swap the two wires on `J4`, so `D4` lands on the pin that was `D3` and vice versa. `GND` stays. Then `RS485Pins` must report `CORRECT AS WIRED`.
+> - **Not in software**, although the sketch once suggested it: the firmware and every diagnostic sketch expect `D4` = TX, and a carrier-specific build is a trap for the next flash.
+> - Swap only *after* `RS485Pins` has spoken. Wired the wrong way, `D4` is fighting a push-pull output; guessing twice can exceed the AVR’s per-pin limit.
 
 | Carrier | Connects | Note |
 | --- | --- | --- |
@@ -180,6 +194,14 @@ The box, the glands and the vent keep the water out; potting adds protection aga
 > - Sleep current unchanged with the lead-out fitted.
 > - Ten power cycles with the switch, all of which start.
 > - Several days in a bucket with a LoRa calibration and an interval change, without a `FAIL` or an unexpected *Restart cause*.
+
+> [!WARNING]
+> **A probe that dies while the resin cures** *(November 2026)*
+>
+> On one node every probe read correctly right before pouring; after curing the turbidity probe answered no more, while the oxygen probe on the same bus and the same 12 V rail still read correctly. That combination clears the rail, the transceiver and the bus: the fault is in that probe's own four leads inside the resin (a joint pulled by shrinkage or curing heat, a lead moved while the resin set), or in the probe.
+>
+> - **Strain-relieve and fix every probe lead before pouring**, and do not move the cables until the resin has set.
+> - **Repair without opening:** both Modbus probes are wired in parallel to the same four nets (`+12V`, `GND`, `A`, `B`) and the firmware tells them apart by baud rate. So the dead probe can be spliced onto the working probe's cable **outside** the box, by function, not by colour (the two makers use different colour codes; find `+12V` with a meter during a cycle). Test with temporary clamps first: if the probe answers, the fault was inside; if not, it is the probe. Make the splice above the waterline in a gel-filled or IP68 junction box, add no second 120 Ω terminator, and insulate each core of the dead lead separately: its `+12V` core is still switched on every cycle.
 
 ### 10 · Shipping
 

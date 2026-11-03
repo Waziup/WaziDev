@@ -26,6 +26,8 @@ electronics sit on the **KijaniSpace Carrier**, a 100 × 100 mm, two-layer PCB:
   field. The pack ships switched off and is switched on at installation.
 - **Isolated electrochemistry.** pH and EC each sit behind their own isolator, on a separate ground
   island bounded by routed slots in the PCB. This removes the ground loop between the two probes.
+  The pH isolator is the one that matters; the EC position can be bridged after a test
+  ([docs/sensor-carrier.md](docs/sensor-carrier.md), *Running without an isolator*).
 - **Remote calibration.** pH (three points) and EC (dry + one point) can be calibrated over LoRaWAN
   downlinks from the gateway dashboard. The node checks that the reading is stable and plausible
   before it calibrates, and reports the result.

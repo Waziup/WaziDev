@@ -36,14 +36,23 @@
 #include <SoftwareSerial.h>
 
 const int RAIL33_EN = 6;      // "Sensor Power 1" -> switched 3.3 V
+const int ISO_EN    = A1;      // #2810 (B) -> isolators / EZO supply, off the cell
 const int ledPin    = 8;      // on-board LED1
 
 const int EZO_RX_PIN = A4;    // we receive the EZO's TX here (your SDA wire)
 const int EZO_TX_PIN = A5;    // we transmit to the EZO's RX here (your SCL wire)
 
 const uint16_t RAIL_SETTLE_MS = 1500;   // EZO circuits need ~1 s to boot
+const uint16_t ISO_SETTLE_MS  = 200;    // isolator DC-DC, before the rail
 const uint16_t QUIET_MS       = 1200;   // after C,0, let the stream die down
 const uint16_t INFO_WINDOW_MS = 2500;   // how long to listen for ?I, replies
+
+// Every UART rate an EZO accepts, factory 9600 first. A circuit that was set
+// to another rate before answers nothing at 9600 and flashes red ("command
+// not understood") at every frame, so the sketch walks the list until one
+// answers. 57600 and 115200 are marginal for SoftwareSerial at 8 MHz.
+const long BAUDS[] = { 9600, 38400, 19200, 2400, 1200, 300, 57600, 115200 };
+long ezoBaud = 0;             // the rate that answered
 
 SoftwareSerial ezo(EZO_RX_PIN, EZO_TX_PIN);
 
@@ -108,43 +117,60 @@ void setup() {
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, HIGH);
 
+  // THE ISOLATOR SUPPLY COMES UP FIRST - same invariant as the main sketch.
+  // On the carrier the only I2C pull-ups sit on the isolators, fed from A1,
+  // and a bridged isolator position feeds the EZO from A1 as well. Without
+  // it the lines float low and nothing answers. THE CELL MUST BE CONNECTED.
+  pinMode(ISO_EN, OUTPUT);
+  digitalWrite(ISO_EN, HIGH);
+  delay(ISO_SETTLE_MS);
+
   pinMode(RAIL33_EN, OUTPUT);
   digitalWrite(RAIL33_EN, HIGH);
-  ezo.begin(9600);
 
   Serial.println();
   Serial.println(F("=================================================="));
   Serial.println(F(" EZO auto-switch: UART -> I2C"));
   Serial.println(F("=================================================="));
   Serial.println(F(" Nothing to type. ONE circuit's SDA+SCL connected."));
+  Serial.println(F(" A1 (isolator supply) ON - the cell must be connected."));
   Serial.print(F(" 3.3 V rail ON, waiting "));
   Serial.print(RAIL_SETTLE_MS);
   Serial.println(F(" ms for boot..."));
   delay(RAIL_SETTLE_MS);
   Serial.println(F("--------------------------------------------------"));
 
-  drain();
-
-  Serial.println(F("Step 1  stop the continuous reading stream"));
-  send("C,0");
-  delay(QUIET_MS);
-  drain();
-
-  Serial.println(F("Step 2  ask who is there"));
-  send("i");
-
   char device[12];
-  uint8_t n = collectInfo(INFO_WINDOW_MS, device, sizeof(device));
+  uint8_t n = 0;
+  for (uint8_t b = 0; b < sizeof(BAUDS) / sizeof(BAUDS[0]) && n == 0; b++) {
+    ezo.begin(BAUDS[b]);
+    Serial.print(F("== trying "));
+    Serial.print(BAUDS[b]);
+    Serial.println(F(" baud"));
+    drain();
+
+    Serial.println(F("Step 1  stop the continuous reading stream"));
+    send("");                 // a lone CR clears a half-received line
+    send("C,0");
+    delay(QUIET_MS);
+    drain();
+
+    Serial.println(F("Step 2  ask who is there"));
+    send("i");
+    n = collectInfo(INFO_WINDOW_MS, device, sizeof(device));
+    if (n > 0) ezoBaud = BAUDS[b];
+  }
 
   Serial.println(F("--------------------------------------------------"));
   Serial.print(F("Replies to `i`: "));
   Serial.println(n);
 
   if (n == 0) {
-    Serial.println(F("NOTHING ANSWERED - no command sent."));
+    Serial.println(F("NOTHING ANSWERED at any baud rate - no command sent."));
     Serial.println(F(" Either this circuit is ALREADY in I2C mode (then you"));
-    Serial.println(F(" are done with it - verify with I2CScan), or its SDA/SCL"));
-    Serial.println(F(" wires are not making contact. Reseat them and reset."));
+    Serial.println(F(" are done with it - verify with I2CScan), or it has no"));
+    Serial.println(F(" supply (LED dark: measure VCC-GND at its socket), or"));
+    Serial.println(F(" its SDA/SCL wires are not making contact."));
     digitalWrite(ledPin, LOW);
     return;
   }
@@ -159,7 +185,10 @@ void setup() {
   }
 
   Serial.print(F("Device type: "));
-  Serial.println(device);
+  Serial.print(device);
+  Serial.print(F(" at "));
+  Serial.print(ezoBaud);
+  Serial.println(F(" baud"));
 
   int16_t addr = -1;
   if      (strcasecmp(device, "pH") == 0) addr = 99;    // 0x63

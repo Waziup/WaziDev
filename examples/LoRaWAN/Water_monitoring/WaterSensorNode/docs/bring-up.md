@@ -34,7 +34,7 @@ All in the repository root. Every diagnostic is read-only on the serial monitor 
 | Sketch | Answers | Stage |
 | --- | --- | --- |
 | `I2CScan/` | Can this I²C bus work at all? Measures residual voltage in mV and rise time in µs per line, bit-banged so it cannot hang. | 1, 3 |
-| `EZOSwitch/` | Switches one EZO circuit from UART to I²C, picking the address from the circuit's own reply. | 3 |
+| `EZOSwitch/` | Switches one EZO circuit from UART to I²C, picking the address from the circuit's own reply. Tries every EZO baud rate, 9600 first (since November 2026). | 3 |
 | `legacy/EZOBridge/` | A **UART** console to one EZO circuit over the existing SDA/SCL wires. This is the tool that *performs* the switch to I²C — and the moment the switch takes effect, it can no longer reach the circuit. | 3 |
 | `EZOCal/` | An **I²C** console to `0x63` / `0x64`. The calibration tool, and the one to use on the circuits as they are now. | 8 |
 | `VccCal/` | Prints the untrimmed bandgap reading and the raw A0 count, so both battery constants can be fitted from one run. | 8 |
@@ -147,6 +147,10 @@ Atlas EZO circuits ship in **UART mode**, not I²C. In that state they are not m
 > [!NOTE]
 > **Wiring detail**
 >
+> **On the carrier, both sketches need the cell** *(corrected November 2026)*. Until then `I2CScan` and `EZOSwitch` powered `D6` only. On the carrier the I²C pull-ups sit on the isolators and the EZO supply comes from `A1`, so with `A1` low the lines float and the scan reports `rise=never ... FAULT: no pull-up` although nothing is wrong. Both now raise `A1` first, as the firmware and `EZOCal` do. With `U4` empty or bridged there are no pull-ups even then: see [Sensor Carrier](sensor-carrier.md), *Running without an isolator*.
+>
+> **The LED, read correctly:** green = UART, blue = I²C, **red flashes = "command not understood"**: the circuit hears the bytes and cannot parse them, usually because it was set to another baud rate. `EZOSwitch` therefore walks every EZO rate. **Dark = no supply**, whatever the mode: measure VCC to GND at the circuit's socket before anything else.
+>
 > **I²C goes straight through: SDA to SDA, SCL to SCL.** Only UART is crossed. The EZO pins are dual-function, so the same physical wires carry both — which is also what lets `EZOBridge` talk UART to a circuit with no rewiring at all.
 
 ### 4 · RS485 — the node side, before any probe
@@ -173,7 +177,7 @@ A silent Modbus device tells you nothing about which side is at fault, and "time
 >
 > **Driver:** while transmitting, `A`−`B` must go *negative*. The passive bias network can only ever make A higher than B, so a sign change is proof the driver is active — here it swung to **−0.675 V**.
 >
-> **Receiver:** `RS485Pins` must report `D3` driven and `D4` floating. With a valid idle bus the transceiver's `RO` output holds a logic HIGH, so the pin that recovers after being discharged is the module's output. Reversed, the MCU's transmit pin would be fighting that output at roughly 66 mA — above the ATmega328P's 40 mA per-pin maximum, which is why this is tested in software rather than by swapping wires to see.
+> **Receiver:** `RS485Pins` must report `D3` driven and `D4` floating. With a valid idle bus the transceiver's `RO` output holds a logic HIGH, so the pin that recovers after being discharged is the module's output. Reversed, the MCU's transmit pin would be fighting that output at roughly 66 mA — above the ATmega328P's 40 mA per-pin maximum, which is why this is tested in software rather than by swapping wires to see. **On the carrier, if it reports `REVERSED`, swap the two wires on `J4`, not the pin constants** — the module’s `TXD`/`RXD` labels differ between modules (found on a second carrier, November 2026), and the firmware expects `D4` = TX.
 >
 > **Turnaround:** under 3.5 character times — 7.3 ms at 4800 baud, 3.65 ms at 9600. Measured **2.06 ms**, very consistently. A slave only recognises end-of-frame after 3.5 characters of silence and so cannot answer sooner, which means anything below that has released the bus in time.
 

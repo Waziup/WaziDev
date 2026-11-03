@@ -44,7 +44,7 @@
  */
 
 const int RAIL33_EN = 6;      // "Sensor Power 1" -> switched 3.3 V
-const int RAIL12_EN = 7;      // "Sensor Power 2" -> control of the 12 V rail
+const int RAIL12_EN = 5;      // #2810 (A) -> 12 V boost (carrier; D7 on the bare prototype)
 const int ledPin    = 8;
 
 const uint16_t STATE_MS = 10000;

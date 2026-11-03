@@ -287,6 +287,34 @@ Each isolator carries **its own 4.7 kΩ pull-ups on both sides** — confirmed i
 
 *Two isolated islands, each with its own floating ground, each separated by a routed slot. Neither isolated ground touches `GND`, `SWGND`, or the other one.*
 
+### Running without an isolator — the bridge plug
+
+*Added November 2026.* An isolator position can be bridged when no isolator is at hand (one lost in a potted node, one still on order) or, for EC, as a deliberate saving. The plug is a scrap of stripboard with two 5-pin male headers 17.78 mm (7 × 2.54 mm) apart, or four jumper wires; each pin goes **straight across to the pin opposite**:
+
+| Bridge | Joins | So the EZO gets |
+| --- | --- | --- |
+| pin 1 → pin 6 | `ISO_VIN` → `ISOx_3V9` | the cell behind `Q3`, 3.5–4.2 V (EZO range 3.3–5 V) |
+| pin 3 → pin 8 | `SWGND` → `ISOx_GND` | the switched ground, so `A1` and `D6` still both have to be on |
+| pin 4 → pin 9 | `SDA` → `ISOx_A` | the bus directly |
+| pin 5 → pin 10 | `SCL` → `ISOx_B` | the bus directly |
+
+Pins 2 (`OFF`) and 7 (`N/C`) stay empty. Before the cell goes on, check with a meter that no bridge touches a neighbour: pin 1 to pin 3 is a short across the cell. Nothing else hangs on the isolated nets (only `U5`/`U7`, or `U4`/`U6`, plus the probe connector), so the plug replaces the module completely. **No firmware change:** the rail sequence, `RAIL33_SETTLE_MS` and the addresses stay as they are.
+
+**Pull-ups.** The isolators' MCU-side 4.7 kΩ are the only I²C pull-ups on this board. **With `U4` empty or bridged there are none**, and `I2CScan` reports `rise=never ... FAULT: no pull-up`. Fit **2 × 4.7 kΩ to `3V3P`** (`D6(+)`), whichever is easiest:
+- at the input terminals: `J5A` pin 2 (`SDA`) and `J5A` pin 1 (`SCL`) to `J2` pin 1 (`3V3P`). **Not `J2` pin 2**: that is `SWGND`, which would make them pull-downs;
+- on the `R11`/`R12` pads, with **4.7 kΩ, not the 47 kΩ in the BOM** (too weak for 100 kHz); `JP1` joins `3V3REG` to `3V3P`;
+- or by closing `I2C_J` on the WaziSense.
+
+Take them out again as soon as an isolator sits in `U4`: it brings its own pair, and two pairs in parallel (~2.35 kΩ) are needlessly close to the I²C sink limit. A bridged `U5` needs none of its own; the pair from `U4` serves the whole bus.
+
+**Which positions may stay bridged:**
+- **`U5` (EC): may stay**, if it passes this gate. A loop needs two grounded ends and the pH isolator alone opens it. Gate: the EC reading in the 1413 µS/cm standard must agree within 1–2 % with the EC probe alone and with every other probe in the same vessel while the node runs. During the EC read the oxygen, turbidity and temperature probes are powered and on the same ground; a probe with a conductive part on `GND` takes some of the EC drive current. The bridge also saves the price of an isolator and its current for ~2 s a cycle.
+- **`U4` (pH): bench test only.** With both bridged, the EC drive current reaches the pH reference through the shared ground and the pH reading wanders. Test each probe in its own vessel, and **never calibrate pH in this state**; calibrate in the configuration that will be deployed.
+
+**Sleep current with a bridge: not yet measured.** In sleep the external pull-ups stay on the live `3V3P`; the unpowered EZO's input clamps lead only to `ISO_VIN` (`Q3` off) and to `SWGND`, whose one path to `GND` is the ~47 kΩ through the open `D6` switch. Expect tens of microamps at most, and measure it once.
+
+*Bench status (Rev C, November 2026):* with the pull-ups on `J5A`/`J2` both lines read `driven-low=12 mV`; a new EZO-EC on the bridged `U5` was switched to I²C there with `EZOSwitch` (LED blue). It answers at `0x64` through the bridge and calibrates normally (dry, then 1413 µS/cm, reading 1413 afterwards). The shared-vessel gate is still to be confirmed, and only means something with an isolator in `U4`.
+
   ## Section 05Complete netlist
 
 Reference designators are provisional and become fixed when the schematic is drawn. Nets in `SWGND` and the two isolated groups are marked, because those are the ones that must not be merged.
@@ -314,7 +342,7 @@ Reference designators are provisional and become fixed when the schematic is dra
 | `RT1` | 120 Ω terminator | `RS485_A` | `RS485_B` | — |
 | `R9` | 10 kΩ | `RXI_PU` | `3V3REG` | trap 4 |
 | `R10` | 4.7 kΩ | `OW_DATA` | `3V3REG` | mandatory |
-| `R11`/`R12` | 2 × 4.7 kΩ | `SDA`/`SCL` | `3V3REG` | **DO NOT FIT — this row used to say the opposite.** It was written when `H1` was going to sit on BATT; the BOM, schematic sheet C and the placement drawing have said DNP throughout, and they are right. The isolators carry their own 4.7 kΩ pull-ups on *both* sides, powered from `ISO_VIN`, which `A1` switches. Fitting `R11`/`R12` to the permanently live `3V3REG` would rebuild the bench build’s worst sleep load on the PCB: there, unpowered modules clamp the bus and the lines measure **2.25 V instead of 3.3 V — 223 µA per line, 447 µA continuously**. Leave them empty and leave `I2C_J` open. |
+| `R11`/`R12` | 2 × 4.7 kΩ | `SDA`/`SCL` | `3V3REG` | **DO NOT FIT — this row used to say the opposite.** It was written when `H1` was going to sit on BATT; the BOM, schematic sheet C and the placement drawing have said DNP throughout, and they are right. The isolators carry their own 4.7 kΩ pull-ups on *both* sides, powered from `ISO_VIN`, which `A1` switches. Fitting `R11`/`R12` to the permanently live `3V3REG` would rebuild the bench build’s worst sleep load on the PCB: there, unpowered modules clamp the bus and the lines measure **2.25 V instead of 3.3 V — 223 µA per line, 447 µA continuously**. Leave them empty and leave `I2C_J` open. **One exception (November 2026):** with `U4` empty or bridged there is no isolator on the bus and therefore no pull-up at all; then fit 4.7 kΩ here (not the 47 kΩ in the BOM) or at the input terminals, see *Running without an isolator*. |
 | `C5` | 470 µF | `3V3REG` | `GND` | the cold-start brownout reserve, now on the carrier’s own rail instead of the WaziSense’s |
 | `C6` | 10 µF X7R + 100 nF | `3V3REG` | `GND` | short leads — the electrolytic’s ESR cannot supply the first microseconds |
 | `X2` | 3-way block | DS18B20 | `3V3REG`, `OW_DATA`, `SWGND` | **SWGND** |
@@ -433,6 +461,8 @@ Four pads, 2.54 pitch, in a line. The module stands on them.
 > **Mark pin 1 on the silkscreen.** The order along the row is fixed, but which end you turn it towards is decided at assembly — and `VCC` swapped with `GND` destroys the transceiver on first power-up.
 >
 > **It is 53 mm tall.** That is an enclosure dimension, not a board one. Check it against your housing before you commit to this module.
+>
+> **The `TXD`/`RXD` labels do not mean the same thing on every module** *(November 2026)*. The footprint joins `RS_TX` (`D4`) to the pad labelled `TXD`, which is right for the prototype’s module. A second module, fitted the right way round, had its receiver output on `TXD`; nothing was ever transmitted. `RS485Pins` detects this; the fix is to swap the two wires on `J4`. A later revision could add a 2 × 2 solder-jumper crossover between `U3` and `J4`.
 
 ## Section 11Preliminary placement
 
@@ -549,7 +579,7 @@ The first board gets tested before any module is fitted. Every step below can on
 3. **WaziSense connected, no other modules.** It should boot and blink. Drive `D5` and `A1` high by hand and watch `V12IN` and `ISO_VIN` follow, then fall when driven low.
 4. **Fit U1.** `+12V` must be 12 V ± 0.5 V under no load, and stay above 11 V with a 250 mA dummy load. This is the step that catches a converter like the XL6009 that put out 30 V from a 3.6 V input.
 5. **Fit U2 and the DS18B20.** Check that with `D6` low, the current into `SW_1` pin 1 is microamps, not milliamps. This is where a stitched `SWGND` would show up if step 1 was somehow passed.
-6. **Fit the isolators, then the EZO circuits.** Power the isolators with the EZO circuits unplugged and measure the isolated data lines against isolated ground: about 3.9 V means `R13–R16` are right, near zero means they are missing and `Wire` will hang with no message.
+6. **Fit the isolators, then the EZO circuits.** Power the isolators with the EZO circuits unplugged and measure the isolated data lines against isolated ground: about 3.9 V means `R13–R16` are right, near zero means they are missing and `Wire` will hang with no message. A bridged position has no isolated side to measure; it needs the external pull-ups described under *Running without an isolator*.
 7. **Probes last**, one at a time, checking each reads before adding the next.
 
 > [!NOTE]

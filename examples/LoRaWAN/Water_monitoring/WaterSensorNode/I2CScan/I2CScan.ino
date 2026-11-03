@@ -29,9 +29,11 @@
 #define SCL_PIN A5
 
 const int RAIL33_EN = 6;      // "Sensor Power 1" -> switched 3.3 V
+const int ISO_EN    = A1;      // #2810 (B) -> isolators / EZO supply, off the cell
 const int ledPin    = 8;      // on-board LED1
 
 const uint16_t RAIL_SETTLE_MS = 1500;   // EZO circuits need ~1 s to boot
+const uint16_t ISO_SETTLE_MS  = 200;    // isolator DC-DC, before the rail
 const uint16_t SCAN_PERIOD_MS = 5000;
 
 const uint8_t  HALF_US   = 5;    // ~100 kHz bit clock
@@ -262,6 +264,14 @@ void setup() {
   sdaRelease();
   sclRelease();
 
+  // THE ISOLATOR SUPPLY COMES UP FIRST - same invariant as the main sketch.
+  // On the carrier the only I2C pull-ups sit on the isolators, fed from A1,
+  // and a bridged isolator position feeds the EZO from A1 as well. Without
+  // it the lines float low and nothing answers. THE CELL MUST BE CONNECTED.
+  pinMode(ISO_EN, OUTPUT);
+  digitalWrite(ISO_EN, HIGH);
+  delay(ISO_SETTLE_MS);
+
   pinMode(RAIL33_EN, OUTPUT);
   digitalWrite(RAIL33_EN, HIGH);        // sensors need power to answer
   // D7 (12 V rail) is deliberately left as an input - nothing here needs it.
@@ -270,6 +280,7 @@ void setup() {
   Serial.println(F("=================================================="));
   Serial.println(F(" I2C scan (bit-banged, cannot hang)"));
   Serial.println(F("=================================================="));
+  Serial.println(F(" A1 (isolator supply): ON - the cell must be connected"));
   Serial.println(F(" D6 (3.3 V sensor rail): ON"));
   Serial.print(F(" waiting "));
   Serial.print(RAIL_SETTLE_MS);

@@ -124,11 +124,10 @@ void setup() {
     Serial.println(F(" has been fighting it and nothing ever reached DI."));
     Serial.println(F(" That is exactly why the bus never left its bias level."));
     Serial.println();
-    Serial.println(F(" FIX IT IN SOFTWARE - no rewiring needed. In every"));
-    Serial.println(F(" sketch swap the two constants:"));
-    Serial.println(F("     const int RS485_RX_PIN = 4;"));
-    Serial.println(F("     const int RS485_TX_PIN = 3;"));
-    Serial.println(F(" and in RS485Scan / RS485Drive likewise."));
+    Serial.println(F(" FIX: swap the two data wires (on the carrier: at J4),"));
+    Serial.println(F(" now that you know which is which. Do NOT swap the pin"));
+    Serial.println(F(" constants: the firmware and every sketch expect D4=TX."));
+    Serial.println(F(" Module TXD/RXD labels differ between modules."));
   } else if (!d3 && !d4) {
     Serial.println(F("NEITHER PIN IS DRIVEN."));
     Serial.println(F(" The module's receiver output is not producing a level,"));

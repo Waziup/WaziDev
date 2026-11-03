@@ -65,7 +65,7 @@
 const int RS485_RX_PIN = 3;
 const int RS485_TX_PIN = 4;
 const int RAIL33_EN    = 6;
-const int RAIL12_EN    = 7;
+const int RAIL12_EN    = 5;     // #2810 (A) -> 12 V boost (carrier; D7 on the bare prototype)
 const int ledPin       = 8;
 
 const uint32_t BAUDS[] = {4800, 9600, 19200, 2400, 38400};

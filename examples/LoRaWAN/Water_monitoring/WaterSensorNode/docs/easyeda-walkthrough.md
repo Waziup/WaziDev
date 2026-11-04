@@ -8,7 +8,7 @@ From an empty project to ten assembled boards at JLCPCB — written for someone 
 > **Historical document: do not build from it**
 >
 > This walkthrough was written for drawing the carrier in EasyEDA Pro. The board was drawn in KiCad
-> instead and is finished; see [Sensor Carrier](sensor-carrier.md) and [`pcb/README.md`](../pcb/README.md).
+> instead and is finished; see [Sensor Carrier](sensor-carrier.md) and [`pcb/revC/README.md`](../pcb/revC/README.md).
 > It is kept for its research. Two of its figures are **wrong** and would produce scrap:
 >
 > - **Every module footprint's pad row below is mirrored.** The order as the module sits on the
@@ -25,7 +25,7 @@ From an empty project to ten assembled boards at JLCPCB — written for someone 
 >
 > - **The Pololu's pin labels are printed on its back**, so reading them gives the mirror image.
 >
-> Where this walkthrough and [`pcb/out/FACTS.md`](../pcb/out/FACTS.md) disagree, FACTS.md is right.
+> Where this walkthrough and [`pcb/revC/out/FACTS.md`](../pcb/revC/out/FACTS.md) disagree, FACTS.md is right.
 
 Every menu path below was checked against EasyEDA's own documentation and JLCPCB's own capability and price pages, then checked a second time by someone whose job was to prove it wrong. Where the second pass found an error, the corrected version is what you are reading. Where nothing could be confirmed, it says so.
 

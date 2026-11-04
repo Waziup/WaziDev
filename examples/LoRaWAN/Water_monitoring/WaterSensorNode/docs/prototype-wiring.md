@@ -13,7 +13,9 @@ Once it is wired, [Water Node Bring-Up](bring-up.md) is the companion runbook: w
 > [!NOTE]
 > ### Status · 7 October 2026
 >
-> **There is now a carrier board.** Everything below describes the jumper-wire build that the node was brought up on, and it stays accurate for that build. The same circuit has since been laid out as a PCB: [`pcb/out/FACTS.md`](../pcb/out/FACTS.md) is generated from the board file itself and **wins over this guide wherever the two disagree**. *(This paragraph named `pcb/README.md` until 13 October 2026. That file is ordinary prose, is not generated, and had drifted.)* The [Sensor Carrier](sensor-carrier.md) page carries the reasoning behind it.
+> **There is now a carrier board.** Everything below describes the jumper-wire build that the node was brought up on, and it stays accurate for that build. The same circuit has since been laid out as a PCB: [`pcb/revC/out/FACTS.md`](../pcb/revC/out/FACTS.md) is generated from the board file itself and **wins over this guide wherever the two disagree**. *(This paragraph named `pcb/revC/README.md` until 13 October 2026. That file is ordinary prose, is not generated, and had drifted.)* The [Sensor Carrier](sensor-carrier.md) page carries the reasoning behind it.
+>
+> **Rev D, not yet built:** a later carrier revision is laid out and checked in [`pcb/revD/`](../pcb/revD/README.md), with the RS485 transceiver and the 12 V boost on the board. The carrier this guide refers to is Rev C, the revision that was built.
 >
 > On the carrier, what this guide calls `D6(−)` is the net `SWGND`, and it is wired as its own net rather than left to a ground pour. The four grounds — `GND`, `SWGND`, `ISO1_GND`, `ISO2_GND` — must never meet, and `PGND` is not a ground at all but the probe’s reference electrode.
 >
@@ -40,9 +42,11 @@ permanent 3.3 V switched return gate drive
 >
 > **Where it goes, as far as it is traced.** The manual puts the bare board at **29 µA** asleep with the solar circuit active and **6.5 µA** without, so the WaziSense is 2 % of the measurement and the search belongs elsewhere. The I²C pull-ups are the first real item: **in sleep, SDA and SCL measure 2.25 V, not 3.3 V**. Unpowered modules on the bus clamp the lines, and the pull-ups hang on the permanently live `D6(+)`, so (3.3 − 2.25) / 4.7 kΩ = **223 µA per line, 447 µA for the pair**, around the clock. That leaves about **984 µA unexplained**. The **SMBJ5.0A** was the prime suspect and has since been **cleared**: from a bench supply the sleep current went 4.2 V → 1.46 mA, 3.0 V → 1.17 mA, where a purely resistive load would have given 1.04 mA. Avalanche leakage falls away far faster than linearly, so the TVS can be at most ~0.4 mA of the total and is probably much less.
 >
+> **Found, 4 Nov 2026: it is the RS485 bus.** In sleep `D6(−)` floats, the bias pulls A and B up to 3.3 V, and the unpowered probes, whose receiver inputs sit on `GND`, take about 0.5 mA each. Measured on a carrier: 0.53 mA with the DO probe on the bus, 0.03 mA with only its A/B wires out. Two probes make about 1 mA, which is the unexplained remainder. Firmware cannot remove it; carrier Rev D switches the transceiver's supply instead (`pcb/revD/README.md`).
+>
 > **Beware of your own meter here.** Near the bottom of the cell the node bootlooped with the multimeter in series and ran correctly without it — **burden voltage**, the meter's shunt eating the headroom the 160 mA peak needs. Measure sleep current with the meter in voltage mode across a 1 Ω shunt, or on a 10 A range, not in a milliamp range.
 >
-> **The carrier board does not have the pull-up problem.** There, `R11`/`R12` are unfitted and the only pull-ups are the isolators’ own, fed from `ISO_VIN`, which `A1` switches. Pull-ups and bus go dead together and there is no DC path left to clamp. **Do not retrofit the external 4.7 kΩ resistors onto the carrier, and leave `I2C_J` open.**
+> **The carrier board does not have the pull-up problem.** There, `R11`/`R12` are unfitted and the only pull-ups are the isolators’ own, fed from `ISO_VIN`, which `A1` switches. Pull-ups and bus go dead together and there is no DC path left to clamp. **Do not retrofit the external 4.7 kΩ resistors onto the carrier, and leave `I2C_J` open.** *(Until 4 November 2026 this note gave no exception. With both isolator positions bridged there are no isolator pull-ups, so the bench carrier carries 2 × 4.7 kΩ from `J5A` SDA/SCL to `J2` pin 1 (`3V3P`). A bridge is a bench stop-gap only; for deployment both isolators are fitted and this note stands.)*
 >
 > The bus reference RS485 needs is established *through* the conducting MOSFET during a measurement: tens of milliohms against a −7 to +12 V common-mode range. During sleep nothing drives the bus, so there is nothing to reference.
 
@@ -240,9 +244,9 @@ V+ (12 V) V− (GND) RS485 A / B
 
 ## DRAWING 08I²C chain — EZO-pH and EZO-EC
 
-**Two isolators are fitted; only the pH one is required.** A galvanic loop needs *two* grounded ends, so floating the pH side already opens it — an open loop does not become more open by cutting it a second time. The EC circuit is the *aggressor* in that pairing anyway: it drives the AC into the water and its own reading barely cares about the resulting potentials.
+**Two isolators are fitted, and both are required.** *(Until 4 November 2026 this guide said "only the pH one is required"; the next paragraph says why that no longer holds.)* For the ground loop alone the pH one would do: a galvanic loop needs *two* grounded ends, so floating the pH side already opens it — an open loop does not become more open by cutting it a second time. The EC circuit is the *aggressor* in that pairing anyway: it drives the AC into the water and its own reading barely cares about the resulting potentials.
 
-**Keep both, and drop the EC one first if anything ever forces a choice.** The pH pair draws **57 mA** and the EC pair **82 mA** at 3.3 V per the datasheet, and **130 mA was measured for the two together** — an earlier version of this guide gave 130 mA as the figure for *each*. The second one costs about 2 mA of daily average and takes autonomy from roughly 19 days to 14 — against a 5–10 W panel that is headroom, not a constraint. The better argument for removing it is not energy: *every* isolator on the bus is one more device that clamps `SDA`/`SCL` when unpowered, and one more floating ground that must never touch anything.
+**Keep both.** *(Until 4 November 2026 this said "Keep both, and drop the EC one first if anything ever forces a choice". The isolator is also the EZO's regulated supply. On a carrier with the EC position bridged, the EZO-EC runs straight off the cell, and in the same water it read 81–82 µS/cm at 4.18 V, 0–10 at 3.38 V and 0 at 3.07 V. It still answers on I²C, so that 0 goes out as a valid reading. A bridge is a bench stop-gap only.)* The pH pair draws **57 mA** and the EC pair **82 mA** at 3.3 V per the datasheet, and **130 mA was measured for the two together** — an earlier version of this guide gave 130 mA as the figure for *each*. The second one costs about 2 mA of daily average and takes autonomy from roughly 19 days to 14 — against a 5–10 W panel that is headroom, not a constraint. The better argument for removing it is not energy: *every* isolator on the bus is one more device that clamps `SDA`/`SCL` when unpowered, and one more floating ground that must never touch anything.
 
 **Neither runs off `D6(+)`, and that part is not optional.** The two together draw **130 mA** measured — switching that onto the board's own 3.3 V regulator, the one feeding the ATmega, browns the MCU out at every rail switch-on. Its input is specified for 3.0–5.0 V, so it runs from the cell behind a **Pololu #2810**, gated by A1. Both isolators share that one switch — its 3 A rating makes 130 mA nothing.
 
@@ -429,18 +433,18 @@ The probe supplied is a **bare 3-wire RTD** (2 × red + 1 × white), not a Modbu
 
 ## TABLE 08Netlist — I²C, isolators and EZO circuits
 
-**As built: two isolators, though only the pH one is needed.** Wire this block once per isolator. If you are building fresh, fit the pH one and skip the EC one — floating one end of the loop is what opens it. Table 08b remains the variant for no isolation at all.
+**As built: two isolators, and both are needed.** Wire this block once per isolator. If you are building fresh, fit both. *(Until 4 November 2026 this said "only the pH one is needed" and "fit the pH one and skip the EC one — floating one end of the loop is what opens it". That still holds for the ground loop, but the isolator is also the EZO's regulated supply; see Drawing 08.)* Table 08b remains the variant for no isolation at all.
 
 **And it is powered from the battery, not from `D6(+)`.** That is the part worth reading twice; the note below has the measurements behind it.
 
 > [!NOTE]
-> ### The isolators are a separate purchase — and one of the two is mandatory
+> ### The isolators are a separate purchase — and both are mandatory
 >
 > EZO circuits do not ship with isolation. You need **one isolator per channel you want protected**, and the two channels are not equally at risk:
 >
 > **pH — mandatory.** Atlas's own pH datasheet is explicit: the circuit is sensitive enough to read micro-voltages bleeding into the water from other equipment, "which is why the power and data lines need to be electrically isolated". A pH channel sharing a ground with an EC probe in the same water is the textbook case.
 >
-> **EC — optional.** The EC circuit is the *aggressor*, not the victim: it drives AC excitation current through the water, and its own reading barely cares about the resulting potentials. Isolating the pH already breaks the galvanic loop between the two. A second isolator on EC is belt-and-braces, not a prerequisite.
+> **EC — mandatory too, for its supply.** *(Until 4 November 2026 this read "EC — optional" and ended "A second isolator on EC is belt-and-braces, not a prerequisite"; the heading of this note said "one of the two is mandatory".)* For the ground loop the EC circuit is the *aggressor*, not the victim: it drives AC excitation current through the water, and its own reading barely cares about the resulting potentials. Isolating the pH already breaks the galvanic loop between the two. But the isolator also regulates the EZO's supply, and a bridged EC position feeds the EZO-EC straight from the cell: it read 0–10 µS/cm at 3.38 V instead of 81–82 (see Drawing 08). A bridge is a bench stop-gap only.
 >
 > Nothing else in this build adds a galvanic path through the water — the DO probe is a sealed optical RS485 device and the DS18B20 is a sealed digital probe, so neither electrode-couples to the pH cell. The same held for the PT1000 it replaces.
 >
@@ -541,7 +545,7 @@ Everything else in this document is unchanged: the rail gating on `D6`, the ~1 s
 **Confirm the converter's input range.** The U3V9F12 starts at 2.6 V, which covers a flat cell. A generic module may not — the one replaced here stopped regulating below 3.2 V and simply passed its input through. You are feeding it from a 3.0–4.2 V cell, so verify the low end and set the output trimpot to 12 V *before* connecting any probe.
 - 04
 
-**Two isolators are fitted; only the pH one is required.** A loop needs two grounded ends, so floating the pH side already opens it and EC needs none — the EC one is the first thing to remove if autonomy ever binds. Power both from the battery through #2810 (B), *not* from `D6(+)`: the pH pair draws **57 mA** and the EC pair **82 mA** at 3.3 V (datasheet), **130 mA measured together**, and switching that onto the board's own 3.3 V regulator browns the MCU out at every rail switch-on.
+**Two isolators are fitted; only the pH one is required.** A loop needs two grounded ends, so floating the pH side already opens it and EC needs none — the EC one is the first thing to remove if autonomy ever binds. *(Superseded on 4 November 2026: an EZO-EC on the raw cell read 0–10 µS/cm at 3.38 V, so it keeps its isolator unless it gets another regulated supply.)* Power both from the battery through #2810 (B), *not* from `D6(+)`: the pH pair draws **57 mA** and the EC pair **82 mA** at 3.3 V (datasheet), **130 mA measured together**, and switching that onto the board's own 3.3 V regulator browns the MCU out at every rail switch-on.
 - 05
 
 **Ground the cable shield at one end only.** The enclosure end. Grounding both ends turns the shield into a ground loop.

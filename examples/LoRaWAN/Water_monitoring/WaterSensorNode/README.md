@@ -21,13 +21,18 @@ electronics sit on the **KijaniSpace Carrier**, a 100 × 100 mm, two-layer PCB:
 ## Design highlights
 
 - **Energy-aware.** Every sensor group is power-gated and switched off between measurements. The
-  node hibernates below 3.5 V and still reports its battery voltage every 2 h while hibernating. From a full
-  18650 cell it runs about 25 days without sun, and about 50 days from the two-cell pack used in the
-  field. The pack ships switched off and is switched on at installation.
+  node hibernates below 3.5 V (and resumes above 3.7 V) and still reports its battery voltage every
+  2 h while hibernating; since 4 November 2026 it also checks the cell at start-up, before the first
+  cycle, so an empty cell no longer keeps it restarting. From a full 18650 cell it runs about
+  25 days without sun, and about 50 days from the two-cell pack used in the field. The pack ships switched off and is switched on at installation.
 - **Isolated electrochemistry.** pH and EC each sit behind their own isolator, on a separate ground
   island bounded by routed slots in the PCB. This removes the ground loop between the two probes.
-  The pH isolator is the one that matters; the EC position can be bridged after a test
-  ([docs/sensor-carrier.md](docs/sensor-carrier.md), *Running without an isolator*).
+  Both isolators are required for deployment: each also gives its EZO circuit a regulated supply.
+  With a position bridged, the EZO runs on the raw cell, and at a low cell a bridged EZO-EC reads 0,
+  which the firmware sends as a valid reading. A bridge is a bench stop-gap only
+  ([docs/sensor-carrier.md](docs/sensor-carrier.md), *Running without an isolator*). *(Until
+  4 November 2026 this said that the pH isolator is the one that matters and that the EC position
+  can be bridged after a test.)*
 - **Remote calibration.** pH (three points) and EC (dry + one point) can be calibrated over LoRaWAN
   downlinks from the gateway dashboard. The node checks that the reading is stable and plausible
   before it calibrates, and reports the result.
@@ -42,21 +47,26 @@ Use the guides in this order:
 | # | Guide | Purpose |
 |---|---|---|
 | 1 | [Sensor Carrier](docs/sensor-carrier.md) | board design and rationale |
-| 2 | [Parts List](docs/parts-list.md) | complete bill of materials for one node |
-| 3 | [Node Deployment](docs/deployment.md) | from an assembled board to a running station, with a check after every step |
-| 4 | [Probe Calibration](docs/calibration.md) | pH and EC calibration, remote and on the bench |
-| 5 | [Node Bring-Up](docs/bring-up.md) | stage-by-stage diagnostics |
+| 2 | [Build List](docs/build-list.md) | everything to buy for one node on the carrier, per item and position |
+| 3 | [Parts List](docs/parts-list.md) | complete bill of materials for one node, with the reasons and history behind each part |
+| 4 | [Node Deployment](docs/deployment.md) | from an assembled board to a running station, with a check after every step |
+| 5 | [Probe Calibration](docs/calibration.md) | pH and EC calibration, remote and on the bench |
+| 6 | [Node Bring-Up](docs/bring-up.md) | stage-by-stage diagnostics |
 | — | [Prototype Wiring](docs/prototype-wiring.md) | the jumper-wire prototype that preceded the carrier (reference) |
 | — | [EasyEDA Walkthrough](docs/easyeda-walkthrough.md) | the abandoned EasyEDA design route (history only; its pad orders are wrong) |
 
 **Source of truth.** For anything about the board itself (component count, nets, bill of materials,
-manufacturing settings), [`pcb/out/FACTS.md`](pcb/out/FACTS.md) is authoritative. It is generated
+manufacturing settings), [`pcb/revC/out/FACTS.md`](pcb/revC/out/FACTS.md) is authoritative. It is generated
 from the board file on every build. Where a guide and `FACTS.md` disagree, `FACTS.md` is correct.
 
 ## Getting started
 
-1. **Hardware:** order the carrier from the fabrication files in `pcb/out/fab/`
-   (see [`pcb/README.md`](pcb/README.md)). Source the remaining parts from the Parts List.
+1. **Hardware:** order the carrier from the fabrication files in `pcb/revC/out/fab/`
+   (see [`pcb/revC/README.md`](pcb/revC/README.md)). Source the remaining parts from the Parts List.
+   Rev C is the built and proven revision. **Rev D** ([`pcb/revD/README.md`](pcb/revD/README.md))
+   is in design, not yet built: RS485 transceiver and 12 V boost on the board, and a switched
+   transceiver rail that is expected to remove most of the sleep current: about 65 instead of
+   about 90 mAh/day, so very roughly a third more autonomy (expected, not measured).
 2. **Firmware:** enter your device's LoRaWAN credentials in `WaterSensorNode.ino` and flash it
    (see below).
 3. **Assembly and installation:** follow the Node Deployment guide.
@@ -79,7 +89,9 @@ EZOCal/                     I2C console for bench calibration of the EZO circuit
 I2CScan/  EZOSwitch/  VccCal/  RailTest/  SettleTime/  DOCompensation/
 RS485Drive/  RS485Pins/  RS485Turnaround/  RS485Scan/  RS485Config/
                             diagnostic sketches, one question each
-pcb/                        KiCad 10 carrier board: generator scripts, checks, fabrication output
+pcb/                        KiCad 10 carrier board, one folder per revision:
+  revC/                     the board as built: generator scripts, checks, fabrication output
+  revD/                     next revision, in design (see pcb/revD/README.md)
 docs/                       the guides, with their drawings in docs/img/
 LICENSES/                   full licence texts (see LICENSE.md)
 legacy/                     superseded tools, kept for reference (see legacy/README.md)
@@ -102,9 +114,13 @@ program memory:
 
 | `VERBOSE_LOG` | `ENABLE_LORA_CAL` | Program memory | Use |
 |---|---|---|---|
-| 0 | 1 | 29,024 bytes (94 %) | **deployment**: concise log, remote calibration |
-| 1 | 1 | 29,444 bytes (95 %) | bench: full diagnostic log, remote calibration |
+| 0 | 1 | 29,226 bytes (95 %) | **deployment**: concise log, remote calibration |
+| 1 | 1 | 29,674 bytes (97 %) | bench: full diagnostic log, remote calibration |
 | 1 | 0 | 27,750 bytes (90 %) | bench: full log; calibrate with `EZOCal` |
+
+*(Sizes with the Arduino IDE libraries, 4 November 2026. Until then this table gave 29,024 and
+29,444 bytes for the first two rows; the third row is from that earlier build.)* The working copy
+in this repository is set to `VERBOSE_LOG 1` for bench work: **set it to 0 before deployment.**
 
 **Watchdog.** If the firmware stops reporting in for 8 s while the node is awake (a hung radio
 call, a crash), it restarts itself. It is built on Timer2 rather than the AVR's hardware
@@ -148,20 +164,20 @@ calibration.
 
 ## Hardware
 
-The carrier board is generated with KiCad 10 from Python scripts in `pcb/gen/`. All paths are
+The carrier board is generated with KiCad 10 from Python scripts in `pcb/revC/gen/`. All paths are
 relative to the repository; only the KiCad installation is machine-specific and can be set with
 `KICAD_DIR` (or `KICAD_CLI` and `KICAD_PYTHON` individually). Rebuild with:
 
 ```bash
-bash pcb/gen/build.sh
+bash pcb/revC/gen/build.sh
 ```
 
 ```bash
-bash pcb/gen/fab.sh
+bash pcb/revC/gen/fab.sh
 ```
 
 `build.sh` regenerates and routes the board. `fab.sh` produces the Gerber, drill, BOM and placement
-files and verifies them. [`pcb/README.md`](pcb/README.md) documents the design, the checks and the
+files and verifies them. [`pcb/revC/README.md`](pcb/revC/README.md) documents the design, the checks and the
 manufacturing notes.
 
 ## Project status
@@ -171,7 +187,7 @@ manufacturing notes.
 | Firmware | functional; all sensors verified on the prototype |
 | Carrier board | Rev C manufactured |
 | Remote calibration | downlink path and pH verified over LoRa (plausibility refusal, pH 7 point); EC pending |
-| Next steps | carrier bring-up and power measurements, enclosure, field calibration |
+| Next steps | carrier bring-up (sleep current and low-cell floor measured on 4 Nov 2026; isolators for both positions, pH calibration and the EC checks still open), enclosure, field calibration |
 
 ## License
 

@@ -1,11 +1,11 @@
 # Probe Calibration
 
-How the pH and conductivity probes of the KijaniSpace node are calibrated: in the field over LoRa, or on the bench with `EZOCal`. What each route can and cannot do, step by step, and what the node answers. Part of the series with the [Bring-Up](bring-up.md) and [Parts List](parts-list.md) pages.
+How the pH and conductivity probes of the KijaniSpace node are calibrated: in the field over LoRa, or on the bench with `EZOCal`. What each route can and cannot do, step by step, and what the node answers. Part of the series with the [Bring-Up](bring-up.md) and [Parts List](parts-list.md) guides.
 
 - pH   **Atlas EZO-pH · 0x63**
 - EC   **Atlas EZO-EC · 0x64**
 - ROUTES **LoRa · EZOCal**
-- AS OF **19 Oct 2026**
+- AS OF **4 Nov 2026**
 
 ## What needs calibrating
 
@@ -29,6 +29,7 @@ Both EZO circuits keep their calibration in their own EEPROM. It survives power 
 > - **Rinse between solutions**, then shake the probe dry. Never wipe the glass: rubbing charges it and the reading drifts for minutes.
 > - **Submerge bulb and reference junction**, about 2–3 cm. A narrow 50 mL tube needs only 20–30 mL.
 > - **pH: mid (7) always first.** `Cal,mid` wipes the other two points.
+> - **pH: check the probe before you start.** Cap off, rinse, read it in pH 7 buffer, and check `Cal,?` (EZOCal) for points already stored. On the bench in November 2026 a probe still in its storage cap read 11.2–11.5, where a storage solution is about pH 4; that is not explained yet.
 > - **EC: dry always first**, with the probe in air and completely dry.
 > - **EC values are in µS/cm**, whatever the bottle says. 12.88 *m*S/cm is 12880. Lake Victoria sits near 100 µS/cm, so the **84 µS/cm** standard is the right one; 1413 is fourteen times above the range the node measures.
 
@@ -129,6 +130,7 @@ Leave the calibration actuators where they are. Their values are only a memory; 
 > - **Only a change counts.** Pushing the same value twice does nothing; push `0` and wait one uplink in between (see *Repeating a step*).
 > - **An actuator without its channel is never sent.** Created by hand in the dashboard, it stays silent; run `update_wazigate_device.js`.
 > - **EC is dry + one point only.** Two-point EC (`Cal,low` / `Cal,high`) is bench work. For the lake’s narrow range one point at 84 is the better choice anyway.
+> - **EC by downlink is not yet tested on hardware** (November 2026). The first time, confirm the stored point with `Cal,?` in EZOCal.
 > - **No `K`, no queries.** The probe constant, `Cal,?` on demand, the pH slope check and the circuit status are only reachable with EZOCal.
 > - **One step at a time.** Push, wait for the result, then the next step. Two changed actuators in one downlink are both carried out, one after the other.
 > - **It waits for the next uplink**, up to the full interval. The probe has to be in the solution when the command arrives, not just when you pushed it.

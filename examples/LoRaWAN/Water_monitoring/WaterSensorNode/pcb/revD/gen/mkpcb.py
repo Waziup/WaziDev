@@ -1,0 +1,290 @@
+# -*- coding: utf-8 -*-
+"""Assemble KijaniCarrier.kicad_pcb from the verified placement."""
+
+from __future__ import print_function
+
+import sys as _sys
+_GENERATOR_GUARD = True
+if __name__ != '__main__':
+    raise ImportError('mkpcb.py rewrites the board file; run it, do not import it')
+import io, os, re, math, hashlib
+
+from paths import KICAD_FOOTPRINTS as KI
+from paths import PCBDIR as OUT
+MYLIB = os.path.join(OUT, 'KijaniSpace.pretty')
+PCBVER = '20241229'
+
+# KiCad Y grows downward; our plan has Y growing up. Mirror about the board.
+BOARD = 100.0
+ORG = 20.0          # keep the board away from the sheet edge
+
+def Y(y):
+    return round(ORG + (BOARD - y), 3)
+
+def X(x):
+    return round(ORG + x, 3)
+
+def uid(seed):
+    h = hashlib.md5(seed.encode('utf-8')).hexdigest()
+    return '%s-%s-%s-%s-%s' % (h[0:8], h[8:12], h[12:16], h[16:20], h[20:32])
+
+# ref, x, y, rot, footprint, value
+C = [
+    ('J2', 20, 93, 180, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x02_P3.50mm_Vertical', 'SW_1'),
+    ('J3', 34, 93, 180, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x03_P3.50mm_Vertical', 'ANALOG'),
+    ('J4', 50, 93, 180, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x03_P3.50mm_Vertical', 'DIGITAL'),
+    # J5/X3/X4 were 4-pole parts JLCPCB does not stock. Two ganged 2-pole
+    # blocks 7.00 mm apart put the pads exactly where they were.
+    ('J5A', 68, 93, 180, 'KijaniSpace:TerminalBlock_KF350_1x02', 'I2C_PORT'),
+    ('J5B', 61, 93, 180, 'KijaniSpace:TerminalBlock_KF350_1x02', 'I2C_PORT'),
+    ('J6', 86, 93, 180, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x02_P3.50mm_Vertical', 'BAT_IN'),
+
+    ('X1', 12, 80, 0, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x02_P3.50mm_Vertical', 'CELL'),
+    ('F1', 25, 82, 0, 'Resistor_SMD:R_1812_4532Metric', 'PTC 2.6A'),
+    # Ideal diode, not a Schottky. rot 180 puts the drain on the left,
+    # towards F1, where the old cathode band used to face.
+    ('Q5', 32, 82, 180, 'Package_TO_SOT_SMD:SOT-23', 'AO3401A'),
+    ('R13', 32.0, 78.5, 270, 'Resistor_SMD:R_0603_1608Metric', '100k'),
+    ('D2', 33, 70, 0, 'Diode_SMD:D_SMB', 'SMBJ5.0A'),
+    ('C1', 22, 75, 0, 'Capacitor_THT:CP_Radial_D5.0mm_P2.00mm', '100uF'),
+    ('Q1', 12, 66, 0, 'Package_TO_SOT_SMD:SOT-23', 'AO3401A'),
+    ('Q2', 18, 66, 0, 'Package_TO_SOT_SMD:SOT-23', '2N7002'),
+    ('C3', 24, 66, 0, 'Capacitor_SMD:C_0603_1608Metric', '100nF'),
+    ('R1', 12, 62, 0, 'Resistor_SMD:R_0603_1608Metric', '100k'),
+    ('R2', 18, 62, 0, 'Resistor_SMD:R_0603_1608Metric', '10k'),
+    ('R3', 24, 62, 0, 'Resistor_SMD:R_0603_1608Metric', '100k'),
+    ('U1', 14, 53, 0, 'KijaniSpace:Pololu_U3V9F12', 'U3V9F12'),
+    ('C4', 28, 54, 0, 'Capacitor_THT:CP_Radial_D10.0mm_P5.00mm', '470uF'),
+    ('Q3', 12, 44, 0, 'Package_TO_SOT_SMD:SOT-23', 'AO3401A'),
+    ('Q4', 18, 44, 0, 'Package_TO_SOT_SMD:SOT-23', '2N7002'),
+    ('C5', 24, 44, 0, 'Capacitor_SMD:C_0603_1608Metric', '100nF'),
+    ('R4', 12, 40, 0, 'Resistor_SMD:R_0603_1608Metric', '100k'),
+    ('R5', 18, 40, 0, 'Resistor_SMD:R_0603_1608Metric', '10k'),
+    ('R6', 24, 40, 0, 'Resistor_SMD:R_0603_1608Metric', '100k'),
+    ('U2', 12, 32, 0, 'Package_TO_SOT_SMD:SOT-23', 'MCP1700-3302'),
+    ('C6', 18, 32, 0, 'Capacitor_SMD:C_0603_1608Metric', '1uF'),
+    ('C7', 24, 32, 0, 'Capacitor_SMD:C_0603_1608Metric', '1uF'),
+    ('JP1', 12, 28, 0, 'Resistor_SMD:R_0603_1608Metric', '0R DNP'),
+
+    # Rev D: the RS485 transceiver is a chip on the board, not a plug-in
+    # module, so the A/B terminal J8 that linked the module to the bus is gone.
+    # rot 270: north row D SHDN RE R, south row GND A B VCC (west to east).
+    ('U3', 48, 75, 270, 'Package_SO:SOIC-8_3.9x4.9mm_P1.27mm', 'THVD1406'),
+    ('C11', 51.5, 72.1, 270, 'Capacitor_SMD:C_0603_1608Metric', '100nF'),
+    # The transceiver and its bias run from 3V3RS, a rail Q6 switches from
+    # 3V3REG while SWGND is low (D6 on). Off, the bus sits at GND like the
+    # dead probes, instead of at 3.3 V into their inputs (0.5 mA per probe,
+    # measured on Rev C, 4 Nov 2026). rot 270: S and G on top, D below.
+    ('Q6', 43.45, 79.9, 270, 'Package_TO_SOT_SMD:SOT-23', 'AO3401A'),
+    ('R17', 43.45, 83.3, 0, 'Resistor_SMD:R_0603_1608Metric', '100k'),
+    # RS485 TVS by the probe terminals, where a surge on the cable arrives
+    ('D3', 41, 16.8, 270, 'Package_TO_SOT_SMD:SOT-23', 'SM712'),
+    ('RT1', 40, 62, 0, 'Resistor_SMD:R_0603_1608Metric', '120R'),
+    ('R7', 45, 62, 0, 'Resistor_SMD:R_0603_1608Metric', '470R'),
+    ('R8', 50, 62, 0, 'Resistor_SMD:R_0603_1608Metric', '470R'),
+    ('C8', 44, 54, 0, 'Capacitor_THT:CP_Radial_D10.0mm_P5.00mm', '470uF'),
+    ('C9', 40, 46, 0, 'Capacitor_SMD:C_0805_2012Metric', '10uF'),
+    ('C10', 45, 46, 0, 'Capacitor_SMD:C_0603_1608Metric', '100nF'),
+    ('R11', 64, 70, 180, 'Resistor_SMD:R_0603_1608Metric', '47k DNP'),
+    ('R12', 64, 74, 180, 'Resistor_SMD:R_0603_1608Metric', '47k DNP'),
+
+    ('U4', 64, 50, 270, 'KijaniSpace:BE_IVI_Isolator', 'BE-IVI pH'),
+    ('U6', 64, 24, 270, 'KijaniSpace:EZO_Circuit', 'EZO-pH'),
+    ('U5', 86, 50, 270, 'KijaniSpace:BE_IVI_Isolator', 'BE-IVI EC'),
+    ('U7', 86, 24, 270, 'KijaniSpace:EZO_Circuit', 'EZO-EC'),
+
+    ('X2', 9, 7, 0, 'TerminalBlock_4Ucon:TerminalBlock_4Ucon_1x03_P3.50mm_Vertical', 'DS18B20'),
+    ('X3A', 26, 7, 0, 'KijaniSpace:TerminalBlock_KF350_1x02', 'PROBE1'),
+    ('X3B', 33, 7, 0, 'KijaniSpace:TerminalBlock_KF350_1x02', 'PROBE1'),
+    ('X4A', 45, 7, 0, 'KijaniSpace:TerminalBlock_KF350_1x02', 'PROBE2'),
+    ('X4B', 52, 7, 0, 'KijaniSpace:TerminalBlock_KF350_1x02', 'PROBE2'),
+    ('J7', 64, 7, 0, 'Connector_Coaxial:SMA_Amphenol_132291_Vertical', 'SMA pH'),
+    ('J9', 86, 7, 0, 'Connector_Coaxial:SMA_Amphenol_132291_Vertical', 'SMA EC'),
+    ('R9', 20, 20, 0, 'Resistor_SMD:R_0603_1608Metric', '4k7'),
+
+    # Rev D: the 12 V boost on the board, TI's TPS61085 3.3 V -> 12 V example.
+    # JP3 picks its input: 1-2 (bridged by a trace) = this converter, 2-3 =
+    # the Pololu socket U1, which stays as the fallback.
+    ('JP3', 21.5, 53.0, 180, 'Jumper:SolderJumper-3_P1.3mm_Bridged12_RoundedPad1.0x1.5mm_NumberLabels', 'BOOST SEL'),
+    ('U8', 37.0, 29.5, 0, 'Package_SO:MSOP-8_3x3mm_P0.65mm', 'TPS61085'),
+    ('L1', 43.6, 28.4, 0, 'Inductor_SMD:L_Sunlord_SWPA4030S', '3.3uH'),
+    ('D4', 39.6, 24.4, 0, 'Diode_SMD:D_SMA', 'SS14'),
+    ('C12', 44.6, 32.6, 0, 'Capacitor_SMD:C_0805_2012Metric', '10uF'),
+    ('C13', 41.4, 32.2, 90, 'Capacitor_SMD:C_0603_1608Metric', '1uF'),
+    ('C14', 34.4, 25.4, 90, 'Capacitor_SMD:C_1206_3216Metric', '10uF 50V'),
+    ('C15', 31.6, 25.4, 90, 'Capacitor_SMD:C_1206_3216Metric', '10uF 50V'),
+    # soft start 1 uF, not TI's 100 nF: see C16 in nets.py
+    ('C16', 39.8, 32.8, 90, 'Capacitor_SMD:C_0603_1608Metric', '1uF'),
+    ('C17', 37.45, 33.625, 0, 'Capacitor_SMD:C_0603_1608Metric', '1.5nF'),
+    ('R14', 35.2, 32.8, 90, 'Resistor_SMD:R_0603_1608Metric', '47k'),
+    ('R15', 32.825, 32.1, 90, 'Resistor_SMD:R_0603_1608Metric', '200k'),
+    ('R16', 32.0, 29.825, 0, 'Resistor_SMD:R_0603_1608Metric', '22k'),
+
+    ('H1', 5, 18, 0, 'MountingHole:MountingHole_3.2mm_M3', 'M3'),
+    ('H2', 95, 8, 0, 'MountingHole:MountingHole_3.2mm_M3', 'M3'),
+    ('H3', 5, 95, 0, 'MountingHole:MountingHole_3.2mm_M3', 'M3'),
+    ('H4', 95, 95, 0, 'MountingHole:MountingHole_3.2mm_M3', 'M3'),
+]
+
+def load_fp(libref):
+    lib, name = libref.split(':')
+    if lib == 'KijaniSpace':
+        path = os.path.join(MYLIB, name + '.kicad_mod')
+    else:
+        path = os.path.join(KI, lib + '.pretty', name + '.kicad_mod')
+    return io.open(path, encoding='utf-8').read()
+
+# Reference designators that land on a neighbour's silkscreen, on a pad, or
+# in the isolation slot. Absolute KiCad mm; the DRC report is the arbiter.
+REFPOS = {
+    # the WaziSense connectors: the pin names go under them, so the
+    # designator moves to the left-hand end, read sideways
+    'J2': (33.0, 27.0, 90), 'J3': (43.5, 27.0, 90), 'J4': (59.5, 27.0, 90),
+    'J6': (99.5, 27.0, 90),
+    'J7': (79.8, 113.0, 90), 'J9': (112.5, 113.0, 90),
+    'Q3': (27.0, 74.0),
+    # Q4's name sat 7.5 mm above its body, beside U1's socket, and read as
+    # U1's label: in the Rev C placement review U1 was called 'Q4'. It now
+    # sits in the gap between its own pad 3 and C5.
+    'Q4': (41.1, 76.0),
+    'U1': (40.0, 62.0),
+    'C1': (47.4, 45.0),   # beside the D5 can; at 51.0 it read as a label for C3
+    'U4': (84.0, 56.0),
+    'U5': (106.0, 56.0),
+    # Q5 and R13 arrived on 9 October on top of U3's 1:VCC label, and the
+    # three texts printed through each other as 'VBC'. Q5 goes above its
+    # own body, R13 to the left of its pads.
+    'Q5': (52.0, 35.2),
+    'R13': (49.4, 41.5),
+    # Rev D. The boost block is too dense for designators beside each part,
+    # so its small parts are named in a row of upright labels just above it,
+    # in the same order as the parts below them.
+    'R16': (50.9, 82.6, 90), 'R15': (52.5, 82.6, 90), 'R14': (54.2, 82.6, 90),
+    'C17': (57.6, 82.6, 90), 'C16': (59.4, 82.6, 90), 'C13': (61.2, 82.6, 90),
+    'C12': (64.4, 82.6, 90),
+    'L1': (68.6, 91.6, 90),
+    'C15': (49.0, 94.6, 90), 'C14': (54.4, 98.2),
+    'D3': (64.2, 103.2, 90),
+    'U3': (68.0, 39.4),
+    'C11': (74.0, 47.9, 90),
+    'Q6': (59.6, 40.1), 'R17': (59.6, 36.7),
+    # the probe pairs: between PROBE n and the blocks, not on the +12V label
+    'X3A': (47.75, 107.2), 'X3B': (54.75, 107.2),
+    'X4A': (66.75, 107.2), 'X4B': (73.75, 107.2),
+}
+
+
+def instance(ref, x, y, rot, libref, value):
+    src = load_fp(libref)
+    # strip the stand-alone library header lines
+    src = re.sub(r'\n\t\(version \d+\)', '', src, count=1)
+    src = re.sub(r'\n\t\(generator "[^"]*"\)', '', src, count=1)
+    src = re.sub(r'\n\t\(generator_version "[^"]*"\)', '', src, count=1)
+    # name it, position it
+    src = re.sub(r'^\(footprint "[^"]*"', '(footprint "%s"' % libref, src, count=1)
+    src = src.replace('\t(layer "F.Cu")',
+                      '\t(layer "F.Cu")\n\t(uuid "%s")\n\t(at %s %s %s)' % (uid(ref + 'fp'), X(x), Y(y), rot), 1)
+    src = re.sub(r'\(property "Reference" "[^"]*"', '(property "Reference" "%s"' % ref, src, count=1)
+    if ref in REFPOS:
+        v = REFPOS[ref]
+        rx, ry, trot = (v + (0,))[:3]
+        i = src.index('(property "Reference"')
+        j = src.index('(at ', i)
+        k = src.index(')', j)
+        # KiCad stores the text offset in the footprint's own frame and then
+        # applies the footprint rotation to it, so the offset has to be
+        # rotated back out first.
+        th = math.radians(float(rot))
+        c, si = math.cos(th), math.sin(th)
+        dx, dy = rx - X(x), ry - Y(y)
+        src = src[:j] + '(at %s %s %s) (unlocked yes)' % (
+            round(dx * c - dy * si, 3), round(dx * si + dy * c, 3), trot) + src[k + 1:]
+    src = re.sub(r'\(property "Value" "[^"]*"', '(property "Value" "%s"' % value, src, count=1)
+    # every uuid in the instance must be unique
+    n = [0]
+
+    def fresh(m):
+        n[0] += 1
+        return '(uuid "%s")' % uid('%s-%d' % (ref, n[0]))
+
+    head, sep, tail = src.partition('(at %s %s %s)' % (X(x), Y(y), rot))
+    tail = re.sub(r'\(uuid "[^"]*"\)', fresh, tail)
+    # A pad's angle in a board file is ABSOLUTE: KiCad adds nothing to it.
+    # The library stores it relative to the footprint, so the footprint's
+    # rotation has to be added here. Until Rev D it was not, and every
+    # rotated footprint kept its pads in library orientation - invisible on
+    # round and square pads, harmless on R13's near-square ones, and fatal
+    # on a SOIC turned 270 degrees, whose pads then overlap.
+    if rot % 360:
+        def turn(m):
+            ang = (float(m.group(3) or 0) + rot) % 360
+            return '%s(at %s %s %s)' % (m.group(1), m.group(2).split()[0],
+                                        m.group(2).split()[1], ('%g' % ang))
+        tail = re.sub(r'(\(pad "[^"]*" \w+ \w+\s*)\(at ([-0-9.]+ [-0-9.]+)(?: ([-0-9.]+))?\)',
+                      turn, tail)
+    return head + sep + tail
+
+LAYERS = '''\t(layers
+\t\t(0 "F.Cu" signal)
+\t\t(2 "B.Cu" signal)
+\t\t(9 "F.Adhes" user "F.Adhesive")
+\t\t(11 "B.Adhes" user "B.Adhesive")
+\t\t(13 "F.Paste" user)
+\t\t(15 "B.Paste" user)
+\t\t(5 "F.SilkS" user "F.Silkscreen")
+\t\t(7 "B.SilkS" user "B.Silkscreen")
+\t\t(1 "F.Mask" user)
+\t\t(3 "B.Mask" user)
+\t\t(17 "Dwgs.User" user "User.Drawings")
+\t\t(19 "Cmts.User" user "User.Comments")
+\t\t(21 "Eco1.User" user "User.Eco1")
+\t\t(23 "Eco2.User" user "User.Eco2")
+\t\t(25 "Edge.Cuts" user)
+\t\t(27 "Margin" user)
+\t\t(31 "F.CrtYd" user "F.Courtyard")
+\t\t(29 "B.CrtYd" user "B.Courtyard")
+\t\t(35 "F.Fab" user)
+\t\t(33 "B.Fab" user)
+\t)
+'''
+
+def edge_rect(x1, y1, x2, y2, seed):
+    pts = [(x1, y1, x2, y1), (x2, y1, x2, y2), (x2, y2, x1, y2), (x1, y2, x1, y1)]
+    s = ''
+    for i, (ax, ay, bx, by) in enumerate(pts):
+        s += ('\t(gr_line\n\t\t(start %s %s)\n\t\t(end %s %s)\n'
+              '\t\t(stroke (width 0.1) (type default))\n\t\t(layer "Edge.Cuts")\n\t\t(uuid "%s")\n\t)\n'
+              ) % (ax, ay, bx, by, uid(seed + str(i)))
+    return s
+
+body = '(kicad_pcb\n\t(version %s)\n\t(generator "kijani-gen")\n\t(generator_version "9.0")\n' % PCBVER
+body += '\t(general\n\t\t(thickness 1.6)\n\t\t(legacy_teardrops no)\n\t)\n\t(paper "A4")\n'
+body += LAYERS
+body += '\t(setup\n\t\t(pad_to_mask_clearance 0)\n\t\t(allow_soldermask_bridges_in_footprints no)\n\t)\n'
+body += '\t(net 0 "")\n'
+
+# board outline and the isolation slot
+body += edge_rect(X(0), Y(100), X(100), Y(0), 'outline')
+body += edge_rect(74.0, 68.8, 94.0, 71.2, 'slot_ph')
+body += edge_rect(96.0, 68.8, 116.0, 71.2, 'slot_ec')
+
+for ref, x, y, rot, fp, val in C:
+    body += instance(ref, x, y, rot, fp, val)
+
+body += ')\n'
+
+if not os.path.isdir(OUT):
+    os.makedirs(OUT)
+io.open(os.path.join(OUT, 'KijaniCarrier.kicad_pcb'), 'w', encoding='utf-8', newline='\n').write(body)
+print('wrote KijaniCarrier.kicad_pcb  %d bytes, %d components' % (len(body), len(C)))
+
+PRO = '''{
+  "board": {"design_settings": {}},
+  "libraries": {"pinned_footprint_libs": [], "pinned_symbol_libs": []},
+  "meta": {"filename": "KijaniCarrier.kicad_pro", "version": 3},
+  "sheets": [],
+  "text_variables": {}
+}
+'''
+io.open(os.path.join(OUT, 'KijaniCarrier.kicad_pro'), 'w', encoding='utf-8', newline='\n').write(PRO)
+print('wrote KijaniCarrier.kicad_pro')

@@ -4,12 +4,19 @@ A carrier board for the Lake Victoria water-quality node: the WaziSense v2, five
 
 - Design Rev E · board silkscreen reads **Rev C** · as built, 13 October 2026 · routed, verified, fabrication files released
 
+> [!NOTE]
+> **Rev D — laid out, not yet built.** The next board, silkscreen Rev D (November 2026), is laid out and checked in [`pcb/revD/`](../pcb/revD/README.md); nothing on it has been measured. Main changes against Rev C:
+> - the RS485 transceiver (THVD1406, auto-direction) and the 12 V boost (TPS61085) on the board, the Pololu socket kept as a fallback behind the solder jumper `JP3`, `J8` gone;
+> - the transceiver and its bias on a switched rail, `3V3RS`, which is meant to remove the RS485 sleep leak described under Trap 2 (expected ~0.03 mA with both probes); `R7`/`R8` at 470 Ω, an SM712 TVS on A/B.
+>
+> The full record is [`pcb/revD/README.md`](../pcb/revD/README.md). This guide describes the board as built, silkscreen **Rev C**. Everything needed to build a complete node on it is in the [Build List](build-list.md). Its "design Rev A…E" are revisions of this document, not boards: "Rev D" below means the document, not the new board.
+
 This board exists because the wiring is now well understood and the mistakes are documented. Every trap below was found the expensive way on the hand-wired node. A PCB is the one place where a mistake you have already made can be made impossible rather than merely written down.
 
 > [!TIP]
 > **As built — 7 October 2026**
 >
-> The board exists. It is placed, routed, verified and released: **253 track segments, 37 vias, 36 nets, 0 unconnected, 0 electrical errors, 0 silkscreen errors** with the copper pours filled. Gerbers, drill file, BOM and placement files are in [`pcb/`](../pcb/), and [`pcb/out/FACTS.md`](../pcb/out/FACTS.md) is the file that is kept current — where this guide and that file disagree, FACTS.md is right, because `gen/facts.py` reads it straight out of `KijaniCarrier.kicad_pcb`. **Correction:** this paragraph previously named `pcb/README.md` as the generated file. It is not generated — nothing in `gen/` writes it — and it had drifted.
+> The board exists. It is placed, routed, verified and released: **253 track segments, 37 vias, 36 nets, 0 unconnected, 0 electrical errors, 0 silkscreen errors** with the copper pours filled. Gerbers, drill file, BOM and placement files are in [`pcb/`](../pcb/), and [`pcb/revC/out/FACTS.md`](../pcb/revC/out/FACTS.md) is the file that is kept current — where this guide and that file disagree, FACTS.md is right, because `gen/facts.py` reads it straight out of `KijaniCarrier.kicad_pcb`. **Correction:** this paragraph previously named `pcb/revC/README.md` as the generated file. It is not generated — nothing in `gen/` writes it — and it had drifted.
 >
 > Three checks run on every rebuild and are the reason the numbers above can be trusted: `barrier.py` proves no track, via or pour crosses an isolation slot; `check.py` proves every track endpoint lands on a pad of its own net; `pour.py` floods the filled ground and proves every GND pad is reachable. The last one found three pads walled into pockets by their own neighbours, and KiCad’s own filler found a fourth that the raster had let through.
 
@@ -84,6 +91,8 @@ The RS485 bias as currently specified runs from the permanently live `D6(+)`, th
 
 Against the whole-node sleep current of 3.2 mA measured at the time, that is most of it. (It was found: the pull-down now returns to `D6(−)`, and with the radio also put to sleep the node reached **1.08 mA**.) The fix costs nothing: return the pull-down to `D6(−)` instead of `GND`. With the rail on, the MOSFET holds `D6(−)` at zero and the bias works exactly as before. With the rail off the chain has no destination — the switched node floats up to `D6(+)`, the differential is zero, and no current flows.
 
+*Found, 4 Nov 2026: that holds for the bias chain, not for the bus.* With `D6(−)` floating in sleep, the bias pulls A and B to about 3.3 V, and the unpowered probes' receiver inputs are referenced to `GND`, so each probe on the bus takes about **0.5 mA**. Measured on a Rev C carrier (FTDI unplugged, isolators bridged, no turbidity probe): **0.53 mA** with the DO probe on the bus, **0.03 mA** with only its A/B wires out, reproducible. Two probes make about 1.0–1.1 mA, which is the hand-wired node's 1.08 mA above, until then unexplained. Every Rev C node has it, and no firmware fix exists. *(Until that day this guide said only "no current flows".)*
+
 > [!TIP]
 > **This one is worth doing on the hand-wired node today**
 >
@@ -145,7 +154,7 @@ The carrier resolves it instead of choosing between the two. `H1` goes to **BATT
 >
 > Referencing the LDO to `GND` costs nothing, because the low-side principle still does the work: with `D6` open the transceiver’s supply is held at 3.3 V while its *ground* floats up to meet it. Zero volts across the part, no current, exactly as before. The only permanent draw is the LDO’s own quiescent current — **1.6 µA** for an MCP1700, against the 2.23 mA the bias network is giving back.
 >
-> **The LDO is also what makes `H1` on BATT safe at all,** which is not obvious. Today the transceiver is fed from `SW_OUT` directly, so when `D6` opens its ground floats up to *whatever `SW_OUT` is*. At 3.3 V that matches the parked state of `D3`/`D4` and nothing flows. Move `H1` to BATT without the LDO and that floating ground rises to 4.2 V while `D3`/`D4` sit at 3.3 V — almost a volt backwards into the transceiver’s I/O pins, through its ESD clamps. With the LDO in front, `SW_OUT` feeds only the LDO, and the island floats to the LDO’s 3.3 V instead. The differential is zero again.
+> **The LDO is also what makes `H1` on BATT safe at all,** which is not obvious. Today the transceiver is fed from `SW_OUT` directly, so when `D6` opens its ground floats up to *whatever `SW_OUT` is*. At 3.3 V that matches the parked state of `D3`/`D4` and nothing flows. *(Since 4 Nov 2026 the firmware parks `D3`/`D4` in sleep as plain inputs without pull-up; on Rev C that makes no difference.)* Move `H1` to BATT without the LDO and that floating ground rises to 4.2 V while `D3`/`D4` sit at 3.3 V — almost a volt backwards into the transceiver’s I/O pins, through its ESD clamps. With the LDO in front, `SW_OUT` feeds only the LDO, and the island floats to the LDO’s 3.3 V instead. The differential is zero again.
 
 > [!WARNING]
 > **Do not move H1 before the LDO exists**
@@ -176,7 +185,7 @@ The carrier resolves it instead of choosing between the two. `H1` goes to **BATT
 >
 > **And the reason the manual gives is already dealt with here.** Its complaint is that the solar circuit’s ripple reaches the radio through a loaded regulator, so moving the sensor load off that regulator cleans up transmissions. On this board the sensor load is *already* off it: the isolators’ 130 mA go through `Q3` and the 12 V chain’s ~400 mA through `Q1`, both straight from `+VBATT`. What is left on `3V3REG` is the RS485 module, the DS18B20 and the bias network — under 10 mA, against a regulator rated above 400 mA. **The carrier achieves what BATT was for, using two MOSFETs instead of a jumper.**
 >
-> **What actually costs the bottom of the cell is `D1`.** Measured on the bench: the node transmits normally at a 3.5 V cell, loses pH, EC and turbidity at 3.4 V, and will not start below that. What drops out at 3.4 V are exactly the three measurements with a heavy supply behind them — and all of that current crosses the series SS34, which drops **0.45–0.5 V at the ~400 mA** the 12 V converter pulls. An ideal-diode P-MOSFET there (AO3401A at 50 mΩ: drain to the cell, source to the load, gate to ground through 100 kΩ) drops 20 mV instead and moves the working floor from ~3.5 V to ~3.2 V.
+> **What actually costs the bottom of the cell is `D1`.** Measured on the bench: the node transmits normally at a 3.5 V cell, loses pH, EC and turbidity at 3.4 V, and will not start below that. What drops out at 3.4 V are exactly the three measurements with a heavy supply behind them — and all of that current crosses the series SS34, which drops **0.45–0.5 V at the ~400 mA** the 12 V converter pulls. An ideal-diode P-MOSFET there (AO3401A at 50 mΩ: drain to the cell, source to the load, gate to ground through 100 kΩ) drops 20 mV instead and moves the working floor from ~3.5 V to ~3.2 V. *Measured on a carrier with `Q5`, 4 Nov 2026, bench supply, DO probe only:* a full cycle including the 12 V switch-on at **3.05 V**; at 3.0 V it bootloops.
 >
 > > [!NOTE]
 > >  ### Done — `D1` is now `Q5` + `R13` (9 October 2026)
@@ -191,7 +200,7 @@ The carrier resolves it instead of choosing between the two. `H1` goes to **BATT
 > >
 > >
 >
-> Regulator floor, for the record: HE2031A33MPR, **3.5–25 V in**, 0.18 V dropout at 100 mA, 2.0 µA quiescent. With `D1` in series the cell-side cut-off lands near 3.3 V. That is a brown-out, **not a disconnect** — nothing on this board or the WaziSense isolates the cell afterwards, so deep-discharge protection has to come from the cell’s own PCM or from a firmware hibernate threshold.
+> Regulator floor, for the record: HE2031A33MPR, **3.5–25 V in**, 0.18 V dropout at 100 mA, 2.0 µA quiescent. With `D1` in series the cell-side cut-off lands near 3.3 V; with `Q5`, below the regulator’s rated minimum, a full cycle was measured at 3.05 V (above). That is a brown-out, **not a disconnect** — nothing on this board or the WaziSense isolates the cell afterwards, so deep-discharge protection has to come from the cell’s own PCM or from a firmware hibernate threshold. *(The firmware threshold is built: below 3.50 V the node stops measuring, above 3.70 V it resumes, and since 4 Nov 2026 the cell is also checked in `setup()`, before the first cycle.)* A hardware under-voltage switch on the carrier was considered and rejected: the charger charges the cell back through `BAT_IN`, so such a switch would also cut the charge path, and a small hysteresis trips on the 12 V load dips. **The pack’s protection board is the hardware cut-off.** One with a higher under-voltage threshold (around 3.0 V instead of the usual 2.4–2.5 V) keeps more reserve and still lets the charger bring the pack back.
 
 ## Section 03Block diagram
 
@@ -289,11 +298,11 @@ Each isolator carries **its own 4.7 kΩ pull-ups on both sides** — confirmed i
 
 ### Running without an isolator — the bridge plug
 
-*Added November 2026.* An isolator position can be bridged when no isolator is at hand (one lost in a potted node, one still on order) or, for EC, as a deliberate saving. The plug is a scrap of stripboard with two 5-pin male headers 17.78 mm (7 × 2.54 mm) apart, or four jumper wires; each pin goes **straight across to the pin opposite**:
+*Added November 2026.* An isolator position can be bridged when no isolator is at hand (one lost in a potted node, one still on order), as a **bench stop-gap only: both isolators are required for deployment** (measured 4 Nov 2026, see *Which positions may stay bridged*). *(Until that day this guide also offered a bridge "for EC, as a deliberate saving".)* The plug is a scrap of stripboard with two 5-pin male headers 17.78 mm (7 × 2.54 mm) apart, or four jumper wires; each pin goes **straight across to the pin opposite**:
 
 | Bridge | Joins | So the EZO gets |
 | --- | --- | --- |
-| pin 1 → pin 6 | `ISO_VIN` → `ISOx_3V9` | the cell behind `Q3`, 3.5–4.2 V (EZO range 3.3–5 V) |
+| pin 1 → pin 6 | `ISO_VIN` → `ISOx_3V9` | the cell behind `Q3`, 3.5–4.2 V (EZO range 3.3–5 V). **Unregulated:** measured on a carrier (4 Nov 2026), the pH reading collapses towards 7 between 3.38 V and 3.07 V at the cell (6.8 at 3.05 V and 7.78 at 3.07 V, against 11.2–11.5 from 3.38 to 4.18 V, same probe). The EZO-EC fails earlier: 0–10 µS/cm at 3.38 V against 82 at 4.18 V, same water. A fitted isolator delivers a regulated ~3.8 V instead (*Parts list*, Group 05) |
 | pin 3 → pin 8 | `SWGND` → `ISOx_GND` | the switched ground, so `A1` and `D6` still both have to be on |
 | pin 4 → pin 9 | `SDA` → `ISOx_A` | the bus directly |
 | pin 5 → pin 10 | `SCL` → `ISOx_B` | the bus directly |
@@ -308,12 +317,12 @@ Pins 2 (`OFF`) and 7 (`N/C`) stay empty. Before the cell goes on, check with a m
 Take them out again as soon as an isolator sits in `U4`: it brings its own pair, and two pairs in parallel (~2.35 kΩ) are needlessly close to the I²C sink limit. A bridged `U5` needs none of its own; the pair from `U4` serves the whole bus.
 
 **Which positions may stay bridged:**
-- **`U5` (EC): may stay**, if it passes this gate. A loop needs two grounded ends and the pH isolator alone opens it. Gate: the EC reading in the 1413 µS/cm standard must agree within 1–2 % with the EC probe alone and with every other probe in the same vessel while the node runs. During the EC read the oxygen, turbidity and temperature probes are powered and on the same ground; a probe with a conductive part on `GND` takes some of the EC drive current. The bridge also saves the price of an isolator and its current for ~2 s a cycle.
+- **`U5` (EC): bench test only, measured 4 Nov 2026.** Same water, probes untouched, supply stepped: **81–82 µS/cm at 4.18 V, 0–10 µS/cm at 3.38 V**, 0 at 3.07 V. The firmware measures down to 3.50 V, and the 12 V load pulls a real cell about 0.1 V further down, so a bridged EZO-EC reads zero exactly when the cell is low. It still answers on I²C, and the firmware sends that 0 as a valid reading. Fit the isolator: its output is regulated at about 3.8 V from 3.0 V up. *(Until that day this guide said "may stay", if it passed the gates below; the low-cell gate is the one it failed.)* A loop needs two grounded ends and the pH isolator alone opens it. Gate: the EC reading in the 1413 µS/cm standard must agree within 1–2 % with the EC probe alone and with every other probe in the same vessel while the node runs. During the EC read the oxygen, turbidity and temperature probes are powered and on the same ground; a probe with a conductive part on `GND` takes some of the EC drive current. The bridge also saves the price of an isolator and its current for ~2 s a cycle. **Second gate, low cell:** a bridged EZO runs on the raw cell, and the pH circuit read wrong below about 3.38 V (row above). The firmware stops measuring below 3.50 V, but the EC read happens with the 12 V rail on, which pulls the cell down further. Repeat the 1413 reading with the supply at 3.50 V and both probes running; it must match the reading at 4 V.
 - **`U4` (pH): bench test only.** With both bridged, the EC drive current reaches the pH reference through the shared ground and the pH reading wanders. Test each probe in its own vessel, and **never calibrate pH in this state**; calibrate in the configuration that will be deployed.
 
-**Sleep current with a bridge: not yet measured.** In sleep the external pull-ups stay on the live `3V3P`; the unpowered EZO's input clamps lead only to `ISO_VIN` (`Q3` off) and to `SWGND`, whose one path to `GND` is the ~47 kΩ through the open `D6` switch. Expect tens of microamps at most, and measure it once.
+**Sleep current with a bridge: measured, 4 Nov 2026.** In sleep the external pull-ups stay on the live `3V3P`; the unpowered EZO's input clamps lead only to `ISO_VIN` (`Q3` off) and to `SWGND`, whose one path to `GND` is the ~47 kΩ through the open `D6` switch. *(This guide expected "tens of microamps at most".)* A Rev C carrier with both positions bridged and the pull-ups on `3V3P` slept at **0.03 mA for the whole node** with the RS485 probe's A/B wires out. With the DO probe on the bus it read 0.53 mA. The extra 0.5 mA is the RS485 bus leak (*Parts list*, energy budget), not the bridge.
 
-*Bench status (Rev C, November 2026):* with the pull-ups on `J5A`/`J2` both lines read `driven-low=12 mV`; a new EZO-EC on the bridged `U5` was switched to I²C there with `EZOSwitch` (LED blue). It answers at `0x64` through the bridge and calibrates normally (dry, then 1413 µS/cm, reading 1413 afterwards). The shared-vessel gate is still to be confirmed, and only means something with an isolator in `U4`.
+*Bench status (Rev C, November 2026):* with the pull-ups on `J5A`/`J2` both lines read `driven-low=12 mV`; a new EZO-EC on the bridged `U5` was switched to I²C there with `EZOSwitch` (LED blue). It answers at `0x64` through the bridge and calibrates normally (dry, then 1413 µS/cm, reading 1413 afterwards). The shared-vessel gate was never run: the low-cell gate failed first (4 Nov 2026, see `U5` above), so `U5` takes an isolator for deployment.
 
   ## Section 05Complete netlist
 
@@ -325,7 +334,7 @@ Reference designators are provisional and become fixed when the schematic is dra
 | `F1` | PTC 2.6 A hold | `X1-1` | `Q5` drain | battery |
 | `Q5` | AO3401A ideal diode *(was `D1`, SS34)* | `F1` | `+VBATT` | battery |
 | `R13` | 100 kΩ gate pull-down for `Q5` | `Q5` gate | `GND` | battery |
-| `D2` | SMBJ5.0A TVS | `+VBATT` | `GND` | **Was the prime suspect for the node’s unexplained sleep current. Cleared — keep it as specified.** Its datasheet leakage is alarming here (IR 800 µA max at 5.0 V, permanently across the cell) but the bench supply acquits it: **4.2 V → 1.46 mA, 3.0 V → 1.17 mA**, where a purely resistive load would give 1.04 mA. Avalanche leakage collapses far faster than linearly, so the TVS is at most ~0.4 mA of the total and probably much less. |
+| `D2` | SMBJ5.0A TVS | `+VBATT` | `GND` | **Was the prime suspect for the node’s unexplained sleep current. Cleared — keep it as specified.** Its datasheet leakage is alarming here (IR 800 µA max at 5.0 V, permanently across the cell) but the bench supply acquits it: **4.2 V → 1.46 mA, 3.0 V → 1.17 mA**, where a purely resistive load would give 1.04 mA. Avalanche leakage collapses far faster than linearly, so the TVS is at most ~0.4 mA of the total and probably much less. *Found, 4 Nov 2026:* the unexplained current is the RS485 bus, about 0.5 mA per probe (Trap 2); a Rev C carrier with the probe's A/B wires out sleeps at 0.03 mA for the whole node. |
 | `C1` | 100 µF + 100 nF | `+VBATT` | `GND` | battery |
 | `Q1`/`Q2` | AO3401A + 2N7002 | `+VBATT` | `V12IN` | battery → 12 V |
 | `R1–R3` | 100 k / 100 k / 10 k | gate network A | — | — |
@@ -373,7 +382,7 @@ Two #2810 indicator LEDs, modules removed−1.6 mA
 
 Continuous saving−3.8 mA
 
-That is about 91 mAh per day against a 3400 mAh cell, or roughly the difference between a fortnight of autonomy and a month. The number to check it against is a sleep-current measurement, which has still not been taken on the final topology — with the FTDI removed, since it feeds the battery domain and hides exactly this class of fault.
+That is about 91 mAh per day against a 3400 mAh cell, or roughly the difference between a fortnight of autonomy and a month. The number to check it against is a sleep-current measurement on the final topology — with the FTDI removed, since it feeds the battery domain and hides exactly this class of fault. *Taken on a Rev C carrier, 4 Nov 2026 (until then this guide said it had still not been taken):* **0.03 mA** for the whole node with the RS485 probe's A/B wires out, **0.53 mA** with the DO probe on the bus. The difference is the bus leak under Trap 2, about 0.5 mA per probe, which the board does not remove: with both probes a Rev C node sleeps at about 1.0–1.1 mA, about 26 mAh/day. A meter in series in a µA/mA range browns the node out at boot and while sending; short the meter with a clip lead during boot and send, and take the lead off once the node sleeps.
 
 ## Section 08Footprints
 
@@ -562,8 +571,8 @@ None of these change the schematic, and two of them change how the node should b
 
 | From the manual | What follows |
 | --- | --- |
-| Sleep current **29 µA** with the solar circuit active, **6.5 µA** without | The 3.2 mA measured at the time was about **110×** the board’s own figure, and it is 1.08 mA today. Whatever is drawing it is external, which is what the bias-network finding in Section 02 says it is. |
-| The HE2031A33 regulator needs **3.5 V minimum input** | A cell at 3.2 V is already below it. That, not the radio, sets the floor for a low-battery cut-off. |
+| Sleep current **29 µA** with the solar circuit active, **6.5 µA** without | The 3.2 mA measured at the time was about **110×** the board’s own figure, and it is 1.08 mA today. Whatever is drawing it is external, which is what the bias-network finding in Section 02 says it is. *Found, 4 Nov 2026:* the 1.08 mA is the RS485 bus, about 0.5 mA per probe on a ~0.03 mA base (Trap 2). |
+| The HE2031A33 regulator needs **3.5 V minimum input** | A cell at 3.2 V is already below it. That, not the radio, sets the floor for a low-battery cut-off. *Measured on a Rev C carrier, 4 Nov 2026 (bench supply, DO probe only):* a full cycle including the 12 V switch-on still works at **3.05 V**, below the rated minimum; at 3.0 V the node bootloops. The firmware stops measuring below 3.50 V. |
 | “allow a delay of at least **1500 ms**” after switching a sensor rail on | `RAIL33_SETTLE_MS` is **1200**. It works, but it is under the manual’s figure — worth raising if anything on that rail ever misbehaves at start-up. |
 | `A3`, `A6` and `A7` are brought out as pads in the prototyping area | Two more analog inputs than this build assumed. `A6`/`A7` are **input-only** on this part, so they cannot gate a switch — but they can read one more sensor each. |
 | Square holes in the prototyping area are **ground**; the rest are unconnected | Useful if anything has to be bodged onto the WaziSense itself. |
@@ -592,7 +601,7 @@ The first board gets tested before any module is fitted. Every step below can on
 > > [!WARNING]
 > >  **Superseded — this is the planning BOM**
 > >
-> >  The tables below are the BOM as planned before layout and are kept for the reasoning. They are **not** what was ordered: on the Rev C order **everything is assembled by JLCPCB**, through-hole included, there is no `X5`, `X1` is a 3.5 mm block, `X3`/`X4` are each two ganged 2-pole blocks, and every part has an LCSC code. The ordered BOM is `pcb/BOM.csv` and `pcb/out/FACTS.md`.
+> >  The tables below are the BOM as planned before layout and are kept for the reasoning. They are **not** what was ordered: on the Rev C order **everything is assembled by JLCPCB**, through-hole included, there is no `X5`, `X1` is a 3.5 mm block, `X3`/`X4` are each two ganged 2-pole blocks, and every part has an LCSC code. The ordered BOM is `pcb/revC/BOM.csv` and `pcb/revC/out/FACTS.md`.
 > >
 > >
 >

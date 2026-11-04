@@ -223,6 +223,10 @@ int       sleep_sec = SLEEP_DEFAULT_S;  // downlink-settable, see LORAWAN DOWNLI
 //  everything on the bench, and the two-cell pack has a protection board
 //  below it. The 2 h hibernation cycle halves the radio's share of the drain;
 //  the ~1.5 mA sleep current stays either way.
+//  Rev C carrier, 4 Nov 2026 (bench supply, DO probe only): the 12 V switch-on
+//  survives 3.05 V, 3.0 V bootloops. With an isolator position BRIDGED the
+//  EZO runs straight off the cell and reads wrong below ~3.38 V; with the
+//  isolator fitted it gets a regulated ~3.8 V. setup() checks the cell too.
 const float    HIBERNATE_ENTER_V = 3.50;
 const float    HIBERNATE_EXIT_V  = 3.70;
 const int      HIBERNATE_SLEEP_S = 7200;   // every 2 h, battery only
@@ -783,16 +787,25 @@ void parkPinsForSleep() {
   //    That is the same push-pull contention that makes swapping D3/D4 by
   //    hand a bad idea; there is no reason it becomes safe in software.
   //
-  //    D3  transceiver RO -> MCU input.  NEVER drive this pin. Input with the
-  //        internal pull-up: it cannot fight RO while the rail is live, and
-  //        it cannot float once the rail is dead and RO goes high-impedance.
-  pinMode(RS485_RX_PIN, INPUT_PULLUP);
-
-  //    D4  MCU output -> transceiver DI. Safe to drive, but pointless to
-  //        drive low: on an auto-direction module a low on DI looks like a
-  //        start bit and asserts the driver, which then sits on the bus
-  //        burning current. UART idle is a mark, so leave it pulled high.
-  pinMode(RS485_TX_PIN, INPUT_PULLUP);
+  //    D3  transceiver RO -> MCU input.  NEVER drive this pin.
+  //    D4  MCU output -> transceiver DI.
+  //        Both plain inputs, NO pull-up. In sleep the transceiver has no
+  //        supply on either carrier, so there is nothing to fight and
+  //        nothing to keep idle - but a pull-up would push current into a
+  //        dead chip. On the Rev D carrier the THVD1406's supply really is
+  //        0 V in sleep (Q6 cuts it, so the bus can rest at GND with the
+  //        probes), and the D3 pull-up would feed it through RO's output
+  //        stage: up to about 0.1 mA, several times the whole node's sleep
+  //        current (0.03 mA). On Rev C the
+  //        module floats with SWGND and it makes no difference either way.
+  //        Neither pin can float into trouble: SoftwareSerial's pin-change
+  //        interrupt is off (step 1), and in power-down the AVR clamps the
+  //        input buffer of every pin that is not a wake source.
+  //        unparkPinsAfterSleep() restores both before the rails come up.
+  //        (The AVR core's pinMode(INPUT) clears the PORT bit as well, so
+  //        this is the pull-up off, not just the direction.)
+  pinMode(RS485_RX_PIN, INPUT);
+  pinMode(RS485_TX_PIN, INPUT);
 
   //    A4/A5  open-drain I2C with external 4.7k pull-ups on the SWITCHED
   //        rail. Inputs with the internal pull-up OFF: while the rail is live
@@ -2230,6 +2243,13 @@ void setup() {
   digitalWrite(RAIL33_EN, LOW);           // everything OFF at boot
   digitalWrite(RAIL12_EN, LOW);
   digitalWrite(ISO_EN,    LOW);
+
+  // Decide hibernation BEFORE the first cycle. uplink() sets the flag only
+  // after a cycle has measured, so until 4 Nov 2026 every restart began with
+  // the 12 V switch-on whatever the cell. On a Rev C carrier that survives
+  // 3.05 V and bootloops at 3.0 V: an empty cell then restarts the node over
+  // and over instead of letting it hibernate. Exit stays at HIBERNATE_EXIT_V.
+  if (readVolts() < HIBERNATE_ENTER_V) hibernate = true;
 
 #if ENABLE_PT1000
   pinMode(MAX31865_CS, OUTPUT);

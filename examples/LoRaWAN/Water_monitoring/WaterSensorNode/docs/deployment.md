@@ -5,7 +5,7 @@ From an assembled KijaniSpace Carrier Rev C to a running station at the pond: in
 - BOARD **Carrier Rev C · 100 × 100 mm**
 - MCU   **WaziSense v2**
 - SITE  **Lake Victoria · 1135 m**
-- AS OF **28 Oct 2026**
+- AS OF **4 Nov 2026**
 
 > [!WARNING]
 > **Six rules that protect hardware**
@@ -19,10 +19,12 @@ From an assembled KijaniSpace Carrier Rev C to a running station at the pond: in
 
 ## What you need
 
+The full list, item by item with its position on the board, is the [Build List](build-list.md). In short:
+
 | Group | Items |
 | --- | --- |
 | Boards | Carrier Rev C (assembled by JLCPCB), WaziSense v2, LoRa antenna |
-| Plug-in modules | Pololu U3V9F12 (12 V boost), RS485 module (MAX13487), 2 × Atlas Basic EZO Inline Voltage Isolator (the EC one can be replaced by a bridge plug, step 4), Atlas EZO-pH, Atlas EZO-EC |
+| Plug-in modules | Pololu U3V9F12 (12 V boost), RS485 module (MAX13487), 2 × Atlas Basic EZO Inline Voltage Isolator (both required; a bridge plug is a bench stop-gap only, step 4), Atlas EZO-pH, Atlas EZO-EC |
 | Power | 2 × 18650 with welded solder tabs (same type and batch), 1S protection board (e.g. DW01 + 8205A), sealed toggle or rocker switch rated ≥ 3 A DC (IP67), 2-pin polarised connector (JST-PH or XT30), **12 V** solar panel 5–10 W |
 | Probes | DS18B20, DFRobot SEN0680 (DO), Yosemitech Y511-A (turbidity), Atlas pH and EC probes with SMA extensions |
 | Enclosure | IP67 box, cable glands (UV-stable, black PA), membrane pressure vent, silica gel (plus one sealed spare for the installer), adhesive-lined heat shrink, self-amalgamating tape; optional: electronics potting compound |
@@ -62,7 +64,7 @@ Supply into `X1` (`+` and `−` as printed). Nothing else connected.
 - **`H1` on 3.3 V.** **`I2C_J` open.**
 - **10 kΩ between FTDI header pins 3 (RXD) and 4 (3.3 V)**, soldered directly on the header. Without it a floating receive pin can hang the bootloader, and only a power cycle clears that. Mandatory if an FTDI lead-out cable is fitted later.
 - **Antenna on.**
-- Upload `WaterSensorNode.ino` with this node’s LoRaWAN keys, `VERBOSE_LOG 0` and `ENABLE_LORA_CAL 1`.
+- Upload `WaterSensorNode.ino` with this node’s LoRaWAN keys, `VERBOSE_LOG 0`, `ENABLE_LORA_CAL 1` and `SLEEP_DEFAULT_S 1800`. **Check `VERBOSE_LOG` before every deployment upload:** a sketch left from bench work may still be at 1.
 
 ### 4 · Fit the modules
 
@@ -80,7 +82,7 @@ Lay each module on the board as it will sit: component side up, pins down. Its p
   - **the cell connected**: the sketch powers `A1` and `D6` (since November 2026; before that it powered `D6` only and found nothing on the carrier);
   - it tries every EZO baud rate, factory 9600 first, and sends `I2C,99` / `I2C,100` only after the circuit has named itself;
   - LED: **green** = UART, **blue** = I²C, **red flashes** = "command not understood" (usually a circuit set to another baud rate), **dark** = no supply: measure VCC to GND at its socket (`U6`/`U7` pin 4 to pin 1).
-- **No isolator at hand?** A position can be bridged; with `U4` empty or bridged the bus then needs 2 × 4.7 kΩ to `3V3P`. Pin map, pull-ups and which bridge may stay: [Sensor Carrier](sensor-carrier.md), *Running without an isolator*. In short: EC may stay bridged after its gate, pH is bench-only.
+- **No isolator at hand?** A position can be bridged; with `U4` empty or bridged the bus then needs 2 × 4.7 kΩ to `3V3P`. Pin map, pull-ups and which bridge may stay: [Sensor Carrier](sensor-carrier.md), *Running without an isolator*. In short: both are bench-only. A bridged EZO runs on the raw cell, and the EZO-EC read 0–10 µS/cm at 3.38 V (measured 4 Nov 2026; until then this step let EC stay bridged after a gate).
 - **RS485 module to `J8`:** two short wires from the module’s own `A`/`B` screw terminal to `J8` `A`/`B`.
 
 ### 5 · Wire carrier to WaziSense, then the probes
@@ -117,11 +119,11 @@ Five short cables join the boards. **Wire by name, not by position**: the blocks
 
 Runs: cell connected · probes in a bucket of water · FTDI for the log only
 
-1. Connect the cell. Watch one cycle in the serial monitor (38400 baud).
+1. Connect the cell. Watch one cycle in the serial monitor (38400 baud). A cell under 3.5 V hibernates from the first cycle on and prints `HIBERNATE - low cell` (the firmware checks the cell before the first cycle since 4 November 2026): charge it first.
 2. **Gateway, once per device:** fill in the node's address and key in `create_wazigate_device.js` and paste it into the WaziGate dashboard’s browser console. It creates the device with the XLPP codec, the named sensors and the actuators *pH calibration*, *EC calibration*, *Interval*. For a device that already exists, use `update_wazigate_device.js`.
 3. Wait for the next uplink. All seven values should appear on the named sensors.
 4. Test one LoRa calibration: pH probe in pH 7, push `7`; the result should read **1** on the uplink after (see [Probe Calibration](calibration.md)).
-5. Unplug the FTDI and measure sleep current across a 1 Ω shunt in the cell lead, not with the meter in series. Record it; this is the carrier’s first real figure.
+5. Unplug the FTDI and measure sleep current across a 1 Ω shunt in the cell lead, not with the meter in series — or, if the meter must go in series, short it with a clip lead during boot and send and take the lead off once the node sleeps; unshorted, it browns the node out (five bootloops in a row on 4 Nov 2026). Record it; this is the carrier’s first real figure. On a Rev C carrier expect about **0.5 mA per probe** on the bus on top of a ~0.03 mA base: in sleep the bus floats to 3.3 V into the unpowered probes (measured 4 Nov 2026; fixed in Rev D).
 
 > [!TIP]
 > **Gate**
@@ -146,7 +148,7 @@ Two cells in parallel double the autonomy without sun, from about 25 days to rou
 - **Parallel (1S2P), never in series.** The node expects one Li-ion cell, 3.0–4.2 V; two in series give 8.4 V.
 - **Same type, same batch, same voltage.** Bring both cells to within **0.05 V** of each other before joining them, or a large equalising current flows the moment they touch.
 - **Solder to the welded tabs only, never to the can.** Iron heat on the can damages the seal and the separator.
-- **Protection board** directly at the cells. Its undervoltage cut-off (~2.5 V) is the last line of defence: the node's hibernation stops the measurements but **switches nothing off**. The node keeps drawing about 1.5 mA asleep and would run the cells down to deep discharge over a long dull spell. The board also limits a short circuit. It draws only a few µA and may be potted; lead its wires out of the resin with strain relief.
+- **Protection board** directly at the cells. Its undervoltage cut-off (~2.5 V) is the last line of defence: the node's hibernation stops the measurements but **switches nothing off**. The node keeps drawing about 1.0–1.1 mA asleep on a Rev C carrier with both probes *(this step said about 1.5 mA, the jumper-wire build's figure, until 4 November 2026)* and would run the cells down to deep discharge over a long dull spell. **Prefer a board with a higher cut-off**, around 3.0 V instead of the usual 2.4–2.5 V: it keeps more reserve and still lets the charger bring the pack back. It is the node's hardware cut-off; a switch on the carrier was considered and rejected, because the charger feeds the cell back through `BAT_IN`, so such a switch would cut the charge path too, and a small hysteresis trips on the 12 V load dips. The board also limits a short circuit. It draws only a few µA and may be potted; lead its wires out of the resin with strain relief.
 - **The switch** turns the node on at installation and keeps it off in transit.
   - **Rated ≥ 3 A DC.** The radio and the 12 V rail draw a few hundred mA in peaks. A miniature slide switch (0.5 A class) has enough contact resistance to brown the node out on a weak cell.
   - **Sealed (IP67).** Open contacts corrode in a humid box within a few years.
@@ -207,7 +209,7 @@ The box, the glands and the vent keep the water out; potting adds protection aga
 
 - **Cells at about half charge, 3.7–3.8 V.** Li-ion ages least there and loses only a few percent over several months.
 - **Switch OFF**, taped in position and labelled: *OFF — switch on at installation*.
-  - **Why it must be off:** the node draws about 1.5 mA even asleep or hibernating. A shipment that takes longer than its autonomy ends in a deep-discharged pack, and no firmware setting prevents that.
+  - **Why it must be off:** the node draws about 1.0–1.1 mA even asleep or hibernating (Rev C carrier, both probes; this step said about 1.5 mA until 4 November 2026). A shipment that takes longer than its autonomy ends in a deep-discharged pack, and no firmware setting prevents that.
   - **Air freight:** lithium cells inside equipment have their own rules (UN3481), including protection against accidental activation. Check with the carrier.
 - **Pack with the node:**
   - one fresh silica gel pack in a sealed bag;
@@ -263,4 +265,4 @@ Then switch on:
 | every 2–4 years | the battery pack: replace it when it no longer carries the node through a dull week (step 8) |
 | yearly | DO fluorescent film cap; pH electrode if its slope is falling (EZOCal `Slope,?`) |
 
-From a full single cell the node runs about 25 days with no sun at all; with the two-cell pack of step 8 roughly 7 weeks (estimated, not yet measured). Below 3.5 V it stops measuring and reports only its battery every 2 hours; above 3.7 V it resumes by itself.
+From a full single cell the node runs about 25 days with no sun at all; with the two-cell pack of step 8 roughly 7 weeks (estimated, not yet measured). Both figures were computed for about 1.5 mA sleep; a Rev C carrier with both probes sleeps at about 1.0–1.1 mA, so they still hold roughly. *Rev D (laid out, not yet built; see [`pcb/revD/README.md`](../pcb/revD/README.md)): very roughly a third more autonomy is expected, because it removes most of the sleep current; not measured.* Below 3.5 V it stops measuring and reports only its battery every 2 hours; above 3.7 V it resumes by itself.

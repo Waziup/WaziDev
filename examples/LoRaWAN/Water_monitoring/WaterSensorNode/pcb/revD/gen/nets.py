@@ -238,6 +238,8 @@ PARTS = [
     ('X3A,X3B,X4A,X4B', 'TerminalBlock 1x02 P3.50', 'screw terminal 2P, 3.50 mm (KF350-3.5-2P)', 'THT',
      '+12V GND on the A block, RS485 A/B on the B block, one pair per probe. TWO 2-POLE BLOCKS GANGED, 7.00 mm apart: they dovetail together and their four pads land on the 3.50 mm grid the 4-pole part used, so not one track moved. JLCPCB stocks no 4-pole at this pitch - that is the whole reason. pitch 3.50 mm EXACTLY (not 3.81, not 5.08), THT, pin <=1.0 mm, body depth <=9.5 mm - measured on the finished board the tightest terminal neighbour is J2 to J3 at 1.50 mm courtyard to courtyard, X1 to C1 is 2.00 mm'),
     ('H1,H2,H3,H4', 'MountingHole_3.2mm_M3', 'M3', 'mech', ''),
+    ('H5,H6,H7', 'MountingHole_2.7mm_M2.5', 'M2.5', 'mech',
+     'the WaziSense v2 stacked on top, on 20 mm M2.5 standoffs: its holes are 3.0 mm, too tight for M3'),
     # The module positions are bare plated holes - nothing is fitted there
     # unless you fit it. The modules themselves carry male pins, so the
     # board side takes sockets.

@@ -124,6 +124,15 @@ C = [
     ('H2', 95, 8, 0, 'MountingHole:MountingHole_3.2mm_M3', 'M3'),
     ('H3', 5, 95, 0, 'MountingHole:MountingHole_3.2mm_M3', 'M3'),
     ('H4', 95, 95, 0, 'MountingHole:MountingHole_3.2mm_M3', 'M3'),
+
+    # Rev D: the WaziSense v2 stacks on top of the carrier on 20 mm standoffs,
+    # turned 180 degrees, its origin at KiCad (66.5, 45.25). Its three holes
+    # (d 3.0, read off its own Gerbers) land here. M2.5, because an M3 screw
+    # does not pass a 3.0 mm hole. Nothing within 3.2 mm of a centre on either
+    # copper layer (the standoff foot and the screw head): check.py holds that.
+    ('H5', 93.49, 65.606, 0, 'MountingHole:MountingHole_2.7mm_M2.5', 'M2.5 WaziSense'),
+    ('H6', 38.118, 75.004, 0, 'MountingHole:MountingHole_2.7mm_M2.5', 'M2.5 WaziSense'),
+    ('H7', 41.674, 38.555, 0, 'MountingHole:MountingHole_2.7mm_M2.5', 'M2.5 WaziSense'),
 ]
 
 def load_fp(libref):
@@ -159,9 +168,14 @@ REFPOS = {
     # Rev D. The boost block is too dense for designators beside each part,
     # so its small parts are named in a row of upright labels just above it,
     # in the same order as the parts below them.
-    'R16': (50.9, 82.6, 90), 'R15': (52.5, 82.6, 90), 'R14': (54.2, 82.6, 90),
-    'C17': (57.6, 82.6, 90), 'C16': (59.4, 82.6, 90), 'C13': (61.2, 82.6, 90),
+    # The WaziSense standoff H7 sits in that row, so the six western labels
+    # close up at 1.7 mm west of it; C12 stays east of it. Same order.
+    'R16': (50.6, 82.6, 90), 'R15': (52.3, 82.6, 90), 'R14': (54.0, 82.6, 90),
+    'C17': (55.7, 82.6, 90), 'C16': (57.4, 82.6, 90), 'C13': (59.1, 82.6, 90),
     'C12': (64.4, 82.6, 90),
+    # the WaziSense standoffs: H5 by the board edge, H6 below its hole, H7
+    # west of its hole
+    'H5': (118.3, 54.4, 90), 'H6': (58.1, 49.6), 'H7': (57.4, 79.3),
     'L1': (68.6, 91.6, 90),
     'C15': (49.0, 94.6, 90), 'C14': (54.4, 98.2),
     'D3': (64.2, 103.2, 90),

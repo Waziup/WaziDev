@@ -52,6 +52,7 @@ Use the guides in this order:
 | 4 | [Node Deployment](docs/deployment.md) | from an assembled board to a running station, with a check after every step |
 | 5 | [Probe Calibration](docs/calibration.md) | pH and EC calibration, remote and on the bench |
 | 6 | [Node Bring-Up](docs/bring-up.md) | stage-by-stage diagnostics |
+| 7 | [Test Matrix](docs/test-matrix.xlsx) (Excel) | every test run so far and every one still open, per hardware generation |
 | — | [Prototype Wiring](docs/prototype-wiring.md) | the jumper-wire prototype that preceded the carrier (reference) |
 | — | [EasyEDA Walkthrough](docs/easyeda-walkthrough.md) | the abandoned EasyEDA design route (history only; its pad orders are wrong) |
 

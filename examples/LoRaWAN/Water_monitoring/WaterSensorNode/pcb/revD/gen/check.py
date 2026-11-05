@@ -170,6 +170,29 @@ for name, sx1, sx2, sy1, sy2 in SLOTS:
         if sy1 - 1 < vy < sy2 + 1 and sx1 < vx < sx2:
             bad.append('%s BARRIER: via %s sits in the slot' % (name, vnet))
 
+# --- 6. bare board round the WaziSense standoffs ---------------------------
+#  Rev D: the WaziSense sits on three M2.5 standoffs (H5-H7). The standoff's
+#  hex foot (5 mm across flats, 2.9 mm to a corner) and the screw head on the
+#  back sit on solder mask; no track or via of any net within 3.2 mm of a
+#  centre, on either layer.
+KEEP = 3.2
+n_std = 0
+for m in re.finditer(r'\(footprint "MountingHole:MountingHole_2\.7mm_M2\.5"[\s\S]*?\(at ([-0-9.]+) ([-0-9.]+)', s):
+    hc = (float(m.group(1)), float(m.group(2)))
+    n_std += 1
+    for a, b, w, lay, net in segs:
+        d = seg_dist(hc, a, b) - w / 2.0
+        if d < KEEP:
+            bad.append('STANDOFF (%.2f,%.2f): %s on %s only %.2f from the centre, needs %.1f'
+                       % (hc[0], hc[1], net, lay, d, KEEP))
+    for (vx, vy), vs, vnet in vias:
+        d = math.hypot(vx - hc[0], vy - hc[1]) - vs / 2.0
+        if d < KEEP:
+            bad.append('STANDOFF (%.2f,%.2f): via %s only %.2f from the centre, needs %.1f'
+                       % (hc[0], hc[1], vnet, d, KEEP))
+if n_std != 3:
+    bad.append('STANDOFF: %d WaziSense standoff holes on the board, want 3' % n_std)
+
 print('%d segments, %d vias' % (len(segs), len(vias)))
 if bad:
     print('\n%d PROBLEMS:' % len(set(bad)))

@@ -22,4 +22,8 @@ __pycache__/
 # That would also drop the PCB generator script, so bring it back:
 !build.sh
 
+# Lock files while Excel or KiCad has a file open
+~$*
+*.lck
+
 .history/

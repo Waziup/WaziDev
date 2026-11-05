@@ -9,15 +9,15 @@ is wrong. Regenerate with `python gen/facts.py` after `build.sh` + `fab.sh`.
 | | |
 |---|---|
 | Outline | **100.0 x 100.0 mm** |
-| Footprints placed | **72** |
-| Pads total | **195** (of which 82 through-hole) |
-| Track segments | **315** |
+| Footprints placed | **75** |
+| Pads total | **198** (of which 85 through-hole) |
+| Track segments | **320** |
 | Vias | **55** |
 | Nets | **44** |
 | Copper zones | **8** |
 | Custom footprints | **4**: `BE_IVI_Isolator`, `EZO_Circuit`, `Pololu_U3V9F12`, `TerminalBlock_KF350_1x02` |
 
-Designators: `C1`, `C10`, `C11`, `C12`, `C13`, `C14`, `C15`, `C16`, `C17`, `C3`, `C4`, `C5`, `C6`, `C7`, `C8`, `C9`, `D2`, `D3`, `D4`, `F1`, `H1`, `H2`, `H3`, `H4`, `J2`, `J3`, `J4`, `J5A`, `J5B`, `J6`, `J7`, `J9`, `JP1`, `JP3`, `L1`, `Q1`, `Q2`, `Q3`, `Q4`, `Q5`, `Q6`, `R1`, `R11`, `R12`, `R13`, `R14`, `R15`, `R16`, `R17`, `R2`, `R3`, `R4`, `R5`, `R6`, `R7`, `R8`, `R9`, `RT1`, `U1`, `U2`, `U3`, `U4`, `U5`, `U6`, `U7`, `U8`, `X1`, `X2`, `X3A`, `X3B`, `X4A`, `X4B`
+Designators: `C1`, `C10`, `C11`, `C12`, `C13`, `C14`, `C15`, `C16`, `C17`, `C3`, `C4`, `C5`, `C6`, `C7`, `C8`, `C9`, `D2`, `D3`, `D4`, `F1`, `H1`, `H2`, `H3`, `H4`, `H5`, `H6`, `H7`, `J2`, `J3`, `J4`, `J5A`, `J5B`, `J6`, `J7`, `J9`, `JP1`, `JP3`, `L1`, `Q1`, `Q2`, `Q3`, `Q4`, `Q5`, `Q6`, `R1`, `R11`, `R12`, `R13`, `R14`, `R15`, `R16`, `R17`, `R2`, `R3`, `R4`, `R5`, `R6`, `R7`, `R8`, `R9`, `RT1`, `U1`, `U2`, `U3`, `U4`, `U5`, `U6`, `U7`, `U8`, `X1`, `X2`, `X3A`, `X3B`, `X4A`, `X4B`
 
 ## Assembly BOM (out/fab/KijaniCarrier-bom-jlcpcb.csv)
 

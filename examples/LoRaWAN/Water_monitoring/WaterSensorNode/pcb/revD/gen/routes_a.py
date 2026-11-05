@@ -16,10 +16,13 @@ ROUTES = [
 
     # --- +VBATT: diode -> bulk cap -> TVS -> both gate blocks ------------------
     # Q5.2 is the NORTH pad and the gate Q5.1 sits directly south of it, so the
-    # supply cannot drop straight down past its own gate. It steps east to x 56,
-    # runs south clear of R13, and joins the existing y 48 rail at D2.1 - from
-    # there the segment below already carries it west to the bulk cap.
-    ('+VBATT', 'F.Cu', W_PWR, [('Q5.2', 'Q5.2'), (56.0, 'Q5.2'), (56.0, 48.0),
+    # supply cannot drop straight down past its own gate. It steps east to
+    # x 54.3, runs south clear of R13, and joins the existing y 48 rail at D2.1 -
+    # from there the segment below already carries it west to the bulk cap.
+    # Rev D: x 54.3, not 56: the WaziSense standoff H6 (58.12, 45.00) needs
+    # 3.2 mm of bare board around it, and the U this run made with the J6 feed
+    # (x 56 -> y 48 -> x 61) had it inside.
+    ('+VBATT', 'F.Cu', W_PWR, [('Q5.2', 'Q5.2'), (54.3, 'Q5.2'), (54.3, 48.0),
                                ('D2.1', 48.0)]),
 
     # --- the ideal diode's gate: straight across to R13, whose far end sits

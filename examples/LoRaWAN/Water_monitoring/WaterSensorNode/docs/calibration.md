@@ -167,7 +167,7 @@ Leave the calibration actuators where they are. Their values are only a memory; 
 # select the pH circuit, check it
 #63
 i                -> ?i,pH,<firmware>
-T,24.5           the buffer's temperature
+Temp,T           the buffer's temperature: DS18B20 in the buffer (or T,24.5 by hand)
 R                repeat until it stops moving, 1-2 min in fresh buffer
 Cal,mid,7.00     in pH 7 - always first
 Cal,low,4.00     rinse, pH 4, R until steady, then this
@@ -187,7 +187,7 @@ K,?              what the circuit thinks the probe constant is
 K,1.0            set it to YOUR probe's K (0.1, 1.0 or 10), once per probe
 Cal,clear
 Cal,dry          probe in air, completely dry - always first
-T,24.5
+Temp,T           DS18B20 in the standard (or T,24.5 by hand)
 R                in the 84 uS/cm standard, until steady
 Cal,84           single point, the right choice for this lake
 Cal,?            -> ?CAL,1
@@ -195,6 +195,10 @@ Cal,?            -> ?CAL,1
 **Two-point instead**, for water that ranges widely: after `Cal,dry`, `Cal,low,84` in the 84 standard, then `Cal,high,1413` in the 1413 standard. `Cal,?` then answers `?CAL,2`.
 
 **Correction:** EZOCal’s help used to say `Cal,one,<value>` for a single point. That is not an Atlas command; the single point is `Cal,<value>`. If an earlier single point is in doubt, `Cal,?` shows whether it was stored.
+
+**The 12 V probe rail** stays off in EZOCal unless you type `12V,1` (`12V,0` switches it off again; the sketch handles both itself and sends nothing to a circuit). Calibrate with it off, each probe in its own cup. It exists for the shared-vessel test (Test Matrix, EC-6): the main firmware reads EC while the 12 V rail is on and the DO probe is powered, so that test needs the same state.
+
+**The water temperature:** `Temp` reads the node's DS18B20 (on `A2`, as in the firmware) and prints it; `Temp,T` reads it and sends `T,<value>` to the selected circuit. The sketch handles both itself. The probe must be in the liquid the circuit is measuring; in air it reports the room. Rinse it before it goes into a buffer or standard, so it does not carry one solution into the next. `T,?` shows what the circuit took. `T,24.5` by hand still works.
 
 ### 4 · Write it down
 

@@ -339,7 +339,7 @@ Two terminal blocks of your own: **X1** = battery domain (1 = +VBATT, 2 = GND), 
 | `3V3RTN` | those devices' **GND** | `D6(−)` | black | **This is the switched node, and the only place these grounds may land.** A second wire from here to any GND pin shorts out the MOSFET. |
 | `C_BULK` | 470 µF electrolytic **+** | `D6(+)` | — | **−** to a GND pin. Across the *rail*, never across the terminals — on the terminals it would add to the inrush instead of absorbing it. Fitting this stopped a cold-start brownout outright. |
 | `C_FAST` | 10 µF X7R + 100 nF ceramic | `D6(+)` → GND pin | — | Short leads. The electrolytic's ESR cannot supply the first microseconds of a load step; ceramic can. An extra electrolytic is *not* a substitute. |
-| `BOOT_PU` | 10 kΩ | `RXI` → `D6(+)` | — | **Fit this before deploying.** With no FTDI attached the bootloader's receive pin floats, picks up phantom start bits and waits for an upload forever. Symptom: the node dies after a reset, the RESET pin does nothing, and only removing power revives it. |
+| `BOOT_PU` | 10 kΩ | `RXI` → `D6(+)` | — | **Optional: a precaution for an FTDI lead-out cable.** With no FTDI attached the bootloader's receive pin floats, and phantom start bits could keep the bootloader waiting for an upload. The symptom would be a node that stays dead after a reset until power is removed. Not seen on a WaziSense so far (November 2026). |
 | `VSENSE` | — nothing to wire — | WaziSense `A0` | — | **on-board** 2 × 470 kΩ divider (`BATT%` jumper). Do not add your own. |
 | `ANT` | WaziSense antenna port | SMA bulkhead → λ/2 dipole | coax pigtail | seal the outside joint with self-amalgamating tape |
 

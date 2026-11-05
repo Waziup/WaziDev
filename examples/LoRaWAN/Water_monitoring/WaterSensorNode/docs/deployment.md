@@ -62,7 +62,7 @@ Supply into `X1` (`+` and `−` as printed). Nothing else connected.
 ### 3 · Prepare the WaziSense
 
 - **`H1` on 3.3 V.** **`I2C_J` open.**
-- **10 kΩ between FTDI header pins 3 (RXD) and 4 (3.3 V)**, soldered directly on the header. Without it a floating receive pin can hang the bootloader, and only a power cycle clears that. Mandatory if an FTDI lead-out cable is fitted later.
+- **Optional: 10 kΩ between FTDI header pins 3 (RXD) and 4 (3.3 V)**, soldered directly on the header. It is a precaution for an FTDI lead-out cable: it holds the bootloader's receive pin at its idle level, so noise on the open cable cannot reach it. A hang from a floating receive pin has not been seen on a WaziSense. Without a lead-out, leave it out.
 - **Antenna on.**
 - Upload `WaterSensorNode.ino` with this node’s LoRaWAN keys, `VERBOSE_LOG 0`, `ENABLE_LORA_CAL 1` and `SLEEP_DEFAULT_S 1800`. **Check `VERBOSE_LOG` before every deployment upload:** a sketch left from bench work may still be at 1.
 

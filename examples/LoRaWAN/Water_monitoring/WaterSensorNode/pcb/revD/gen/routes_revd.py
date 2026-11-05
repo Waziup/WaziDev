@@ -19,7 +19,9 @@
    BOOST_IN comes from JP3 pad 1 by the Pololu socket. It cannot cross the
    x 46.5-51.5 lanes (+VBATT, +12V, ISO_VIN) on either layer above y 82, so it
    drops to the back at JP3, runs south at x 43 and crosses at y 84, where the
-   back layer is clear between ISO_VIN's end and the 3V3REG run at y 90.
+   back layer is clear between ISO_VIN's end and the 3V3REG run at y 90. On
+   the front it goes north round the WaziSense standoff H7 (61.67, 81.45):
+   up to y 77.4, across, and down into C12.
 """
 
 W_PWR, W_SIG = 0.5, 0.25
@@ -63,7 +65,7 @@ ROUTES = [
     # ---- input: JP3 pad 1 -> back layer -> across at y 84 -> C12 ---------
     ('BOOST_IN', 'F.Cu', 0.6, [('JP3.1', 'JP3.1'), (43.0, 68.6)]),
     ('BOOST_IN', 'B.Cu', 0.6, [(43.0, 68.6), (43.0, 84.0), (56.5, 84.0)]),
-    ('BOOST_IN', 'F.Cu', 0.6, [(56.5, 84.0), ('C12.2', 84.0), ('C12.2', 'C12.2')]),
+    ('BOOST_IN', 'F.Cu', 0.6, [(56.5, 84.0), (56.5, 77.4), ('C12.2', 77.4), ('C12.2', 'C12.2')]),
     # C12 straight down into L1's input pad
     ('BOOST_IN', 'F.Cu', 0.6, [('C12.2', 'C12.2'), (65.4, 'C12.2'), (65.4, 'L1.2')]),
     # the IC's own supply: a thin branch through C13, the IN bypass

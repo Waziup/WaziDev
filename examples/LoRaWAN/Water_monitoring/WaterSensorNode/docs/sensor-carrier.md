@@ -51,7 +51,7 @@ The hand-wired node carries roughly forty conductors between the WaziSense, five
 | MAX3485 module on leads | Same module, on a socket | `kept` |
 | 2 × Atlas isolator, 2 × EZO circuit on leads | Sockets, on an isolated island with a routed slot | `changed` |
 | 120 Ω + 2 × 680 Ω bias on leads | Designed in, **pull-down returned to the switched node** | `changed` |
-| 10 kΩ `RXI` pull-up — not yet fitted | Designed in | `new` |
+| 10 kΩ `RXI` pull-up — not fitted | Not on the carrier. Optional, one resistor across the WaziSense FTDI header (trap 4) | `changed` |
 | Probe leads into screw blocks shared between probes | Two ganged 2-way blocks per Modbus probe, separate | `changed` |
 
 ## Section 02The four traps, designed out
@@ -119,14 +119,14 @@ The board replaces both modules with a discrete high-side switch: a P-channel MO
 
   ### Trap 4 — the floating `RXI` that hangs the bootloader
 
-With no FTDI attached, the bootloader's receive pin floats, picks up phantom start bits and waits for an upload that never comes. Neither `RESET` nor a watchdog clears it; only removing power does.
+With no FTDI attached, the bootloader's receive pin floats. Phantom start bits on it could keep the bootloader waiting for an upload that never comes; neither `RESET` nor a watchdog would clear that, only removing power. **It has not been seen on a WaziSense (November 2026).** The fix below is a precaution, worth fitting only with an FTDI lead-out cable.
 
 > [!TIP]
 > **This one turns out not to need the carrier at all**
 >
 > The FTDI header is `DTR · TXD · RXD · 3.3V · GND · GND`, so **`RXD` and `3.3V` are pins 3 and 4 — adjacent, 2.54 mm apart.** The entire fix is one 10 kΩ resistor soldered across those two pins of the header. It does not fight an attached FTDI, because a pull-up cannot fight a push-pull driver.
 >
-> Do that now, on the hand-wired node. It is a two-minute job and it removes a failure mode that needs a power cycle in the field to clear.
+> Fit it together with an FTDI lead-out cable, where a long open wire hangs on the pin. Without a lead-out it is optional.
 
 ### Trap 5 — `H1` is in the wrong position for a solar deployment
 

@@ -18,6 +18,7 @@ assembler fits them and only the Atlas circuits and isolators are left to plug i
 | R7/R8 680 Ω | **470 Ω** | the module's own fail-safe bias is gone, see below |
 | — | **SM712** TVS (`D3`) on A/B at the probe terminals | the long cable to the lake |
 | transceiver and bias between `3V3REG` and `SWGND` | **between `3V3RS` and `GND`**: `Q6` (AO3401A) switches `3V3RS` from `3V3REG` while `SWGND` is low, `R17` (100 k) holds it off otherwise | in sleep the bus floated up to 3.3 V into the unpowered probes: **0.5 mA per probe**, measured on Rev C (see *Sleep current*) |
+| WaziSense beside the carrier | **WaziSense stacked on top**, on three M2.5 standoffs at `H5`–`H7` | both boards take one footprint in the enclosure (see *WaziSense on top*) |
 
 **One firmware change, safe on both carriers:** `parkPinsForSleep()` leaves
 D3/D4 as plain inputs instead of with pull-ups (Rev D's unpowered transceiver
@@ -135,6 +136,49 @@ and if they share the water with a probe whose housing or reference is on
   where the back layer is clear of the `+VBATT`, `+12V` and `ISO_VIN` lanes.
 - `JP3` sits just east of the Pololu module's outline, not under it.
 
+## WaziSense on top
+
+The WaziSense v2 sits above the carrier on three **20 mm M2.5 standoffs**,
+component side up and turned 180°, its origin at KiCad (66.5, 45.25). Its
+outline covers x 48.2–118.6, y 31.0–83.9: the isolators, `C4`/`C8`, the
+transceiver and the legend lie under it; the J-row, the probe terminals, the
+EZO sockets, `X1` and the boost block stay outside. Its edge stops about 4 mm
+short of the screws of the carrier's J-row.
+
+| Hole | KiCad (mm) | What had to move |
+| --- | --- | --- |
+| `H5` | (113.49, 54.39) | nothing; the last legend lines are shorter now |
+| `H6` | (58.12, 45.00) | `+VBATT` from `Q5` drops at x 54.3 instead of 56; the feed to `J6` leaves it at y 37 instead of the y 48 rail; `D5` (back) loops south of the hole at y 48.8 |
+| `H7` | (61.67, 81.45) | `BOOST_IN` surfaces at (56.5, 84) and goes north round the hole at y 77.4 into `C12`; the boost block's row of labels closed up west of it, same order |
+
+- **M2.5, 2.7 mm holes.** The WaziSense's own holes are 3.0 mm (read off its
+  Gerbers), too tight for M3.
+- **Bare board round each hole.** No track or via of any net within 3.2 mm of
+  a centre, on either layer: the standoff's hex foot (5 mm across flats,
+  2.9 mm to a corner) on the front, the screw head on the back. `check.py`
+  checks it (section 6) and also fails if there are not exactly three.
+- **Height.** The tallest parts under the WaziSense are `C4`/`C8` (470 µF,
+  10 × 13 mm) and the isolators in their sockets. 20 mm standoffs leave about
+  5 mm over the capacitors once the WaziSense's own pin ends (about 2 mm) are
+  counted. Measure an isolator in its socket before buying the standoffs.
+- **The J-row keeps its order.** Turning the WaziSense mirrors its terminal
+  order against the carrier's, so the wires between the blocks cross. A
+  reorder was tried and dropped: `J2` (SW_1) would land on `H4`, and `SWGND`,
+  `3V3P`, `A1` and `OW_DATA` would have to cross the whole board to the
+  circuits on the west side they serve. **Wire the carrier's terminals first,
+  then mount the WaziSense.** Within each block the pins keep their order, so
+  every wire of a block has the same length:
+
+| Carrier | WaziSense | Across | Straight line with the 20 mm rise |
+| --- | --- | --- | --- |
+| `J2` | SW_1 | 77.5 mm | 80 mm |
+| `J3` | ANALOG | 48.9 mm | 53 mm |
+| `J4` | DIGITAL | 23.7 mm | 31 mm |
+| `J5A`/`J5B` | I2C | 15.3 mm | 25 mm |
+| `J6` | BAT_IN, on the WaziSense's far edge | 52–54 mm | 56–58 mm |
+
+Cut each wire with enough slack to lift the WaziSense off for service.
+
 ## A generator bug Rev D fixed
 
 `mkpcb.py` wrote every pad with its library angle. A board file stores pad
@@ -153,13 +197,13 @@ called neighbouring SOIC pads 0.6 mm apart a collision.
 
 | Check | Result |
 | --- | --- |
-| `check.py` (endpoints, pad/track/via clearance, barriers) | clean |
+| `check.py` (endpoints, pad/track/via clearance, barriers, bare board round the three WaziSense standoffs) | clean |
 | `pour.py` | every GND pad reachable through the pour |
 | KiCad DRC, errors | **0 violations, 0 unconnected** |
 | KiCad DRC, warnings | the same 21 silkscreen touches between ganged terminal pairs as Rev C (intended); nothing else |
 | `silkcheck.py`, `cplcheck.py`, `vendorcheck.py`, `bomsync.py`, `fabcheck.py`, `zipcheck.py` | pass |
 | `netcheck.py` (new: firmware pins, both chips pin by pin, SWGND, the switched bus supply, JP3, probe supply) | 94 requirements hold |
-| `out/FACTS.md` | 72 footprints, 68 placed parts, 30 BOM lines, 7 Extended SMT types |
+| `out/FACTS.md` | 75 footprints (72 before the WaziSense standoff holes `H5`–`H7`), 68 placed parts, 30 BOM lines, 7 Extended SMT types |
 
 Parts read off JLCPCB's listing on 4 Nov 2026, all marked "Economic and
 Standard": THVD1406DR `C5215918` (5,827 in stock), TPS61085DGKR `C113659`
@@ -226,6 +270,9 @@ parking. `netcheck.py` now also holds the rule itself: only `Q6` feeds
    `Q6` with its single pin (drain) towards `U3` (SOT-23 rule, CPL 90).
 2. The 1:1 print (`out/KijaniCarrier-top-1zu1.pdf`) with the Pololu and a
    SOIC-8 / SMA part on it.
+3. On the same print: lay the WaziSense on it, turned 180°, with its terminal
+   row towards the J-row. Its three holes must sit over `H5`–`H7`; they were
+   drawn from its Gerbers, not measured on a board.
 
 ## On the first board
 

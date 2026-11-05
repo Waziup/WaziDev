@@ -21,6 +21,18 @@
  *    Cal,?         how many calibration points are stored
  *    T,25.0        tell the circuit the water temperature (pH and EC both
  *                  need this; an uncompensated reading is off by a lot)
+ *    12V,1 / 12V,0 switch the 12 V probe rail (D5) on / off (12,1 / 12,0 work
+ *                  too). Handled here, never sent to a circuit: the reply
+ *                  says "12 V rail ON"; a line "0x64 <- ..." means it went to
+ *                  the EZO instead. Off at start. The main firmware
+ *                  reads pH and EC with this rail ON and the DO probe
+ *                  powered, so a test of what the other probes do to the EC
+ *                  reading needs it on (Test Matrix EC-6).
+ *
+ *    Temp          water temperature from the DS18B20 (A2, 4.7 k to D6+)
+ *    Temp,T        the same, then send T,<that value> to the selected circuit.
+ *                  Both handled here; check what the circuit took with T,?
+ *                  The probe must be IN the water: in air it reads the room.
  *
  *  pH CALIBRATION - MIDPOINT FIRST, AND IT CLEARS THE OTHERS
  *    Cal,mid,7.00      in pH 7 buffer   <- always first, it wipes the rest
@@ -62,10 +74,17 @@
  */
 
 #include <Wire.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 const int RAIL33_EN = 6;          // "Sensor Power 1" -> switched 3.3 V
 const int ISO_EN    = A1;         // #2810 (B) -> both isolators, off the cell
+const int RAIL12_EN = 5;          // 12 V probe rail (carrier); D7 on the bare prototype
 const int ledPin    = 8;
+const int ONE_WIRE_PIN = A2;      // DS18B20, 4.7 kOhm pull-up to D6(+)
+
+OneWire oneWire(ONE_WIRE_PIN);
+DallasTemperature ds18b20(&oneWire);
 
 const uint16_t ISO_SETTLE_MS  = 200;    // its DC-DC, before the bus comes up
 const uint16_t RAIL_SETTLE_MS = 1500;   // EZO boot
@@ -134,6 +153,62 @@ bool ezoSend(uint8_t addr, const char *c) {
   return (code == 1);
 }
 
+// Appends v with two decimals ("24.50", "-1.00") and returns the new end.
+// The main firmware's own formatter, so EZOCal sends T exactly as it does.
+char *appendFixed2(char *p, float v) {
+  if (v < 0) { *p++ = '-'; v = -v; }
+  uint32_t n = (uint32_t)(v * 100.0f + 0.5f);
+  char tmp[11];
+  uint8_t i = 0;
+  do { tmp[i++] = '0' + n % 10; n /= 10; } while (n || i < 3);
+  while (i) {
+    *p++ = tmp[--i];
+    if (i == 2) *p++ = '.';
+  }
+  *p = 0;
+  return p;
+}
+
+// The DS18B20 as the main firmware reads it: re-enumerate (it may have been
+// plugged in since the start), one 12-bit conversion (~750 ms), and the same
+// sanity band. -127 = nothing answered, +85 = its power-on value (conversion
+// not finished or the supply marginal); neither is a water temperature.
+float readWaterTemp() {
+  ds18b20.begin();
+  ds18b20.requestTemperatures();
+  float t = ds18b20.getTempCByIndex(0);
+  if (t > -20.0 && t < 60.0) return t;
+  Serial.print(F("-> DS18B20 FAIL ("));
+  Serial.print(t, 2);
+  if (t == DEVICE_DISCONNECTED_C)
+    Serial.println(F("): nothing on A2 - probe, wiring, 4.7k pull-up to D6+?"));
+  else if (t == 85.0)
+    Serial.println(F("): power-on value - conversion or supply"));
+  else
+    Serial.println(F("): out of range"));
+  return NAN;
+}
+
+// One command to the selected circuit, with the log line and the bus check.
+void sendToTarget(const char *c) {
+  Serial.print(F("0x"));
+  Serial.print(target, HEX);
+  Serial.print(F(" <- "));
+  Serial.println(c);
+  Serial.flush();
+
+  if (!busIdle()) {
+    Serial.println(F("  I2C line stuck LOW - not sending. Run I2CScan."));
+    return;
+  }
+
+  digitalWrite(ledPin, HIGH);
+  if (!ezoSend(target, c)) {
+    Serial.println(F("  no reply - wrong address, or the circuit is not on"));
+  }
+  digitalWrite(ledPin, LOW);
+}
+
 void dispatch() {
   cmd[cmdLen] = 0;
 
@@ -158,24 +233,54 @@ void dispatch() {
     return;
   }
 
-  Serial.print(F("0x"));
-  Serial.print(target, HEX);
-  Serial.print(F(" <- "));
-  Serial.println(cmd);
-  Serial.flush();
-
-  if (!busIdle()) {
-    Serial.println(F("  I2C line stuck LOW - not sending. Run I2CScan."));
+  // local: the 12 V probe rail. No EZO command starts with a digit, so
+  // ANYTHING beginning with "12" stays here: "12V,1", "12v,1" and the short
+  // "12,1". Until 5 Nov 2026 only "12V," was caught, and a "12,1" typed
+  // without the V went to the EZO circuit, which answered [OK] - while the
+  // rail stayed off.
+  if (cmd[0] == '1' && cmd[1] == '2') {
+    const char *a = cmd + 2;
+    if (*a == 'V' || *a == 'v') a++;
+    char sw = (a[0] == ',' && !a[2]) ? a[1] : 0;
+    if (sw == '1') {
+      digitalWrite(RAIL12_EN, HIGH);
+      Serial.println(F("-> 12 V rail ON (D5): DO/turbidity probes powered."));
+      Serial.println(F("   Check 12 V at the probe terminal; wait ~20 s"));
+      Serial.println(F("   before a baseline R."));
+    } else if (sw == '0') {
+      digitalWrite(RAIL12_EN, LOW);
+      Serial.println(F("-> 12 V rail OFF (D5)"));
+    } else {
+      Serial.println(F("-> use 12V,1 or 12V,0"));
+    }
     cmdLen = 0;
     return;
   }
 
-  digitalWrite(ledPin, HIGH);
-  if (!ezoSend(target, cmd)) {
-    Serial.println(F("  no reply - wrong address, or the circuit is not on"));
+  // local: the water temperature. No EZO command starts with "Temp" (theirs
+  // is "T,"), so this never shadows one.
+  if (!strncasecmp(cmd, "temp", 4)) {
+    bool toEzo = !strcasecmp(cmd + 4, ",t");
+    if (cmd[4] && !toEzo) {
+      Serial.println(F("-> use Temp or Temp,T"));
+    } else {
+      float t = readWaterTemp();
+      if (!isnan(t)) {
+        Serial.print(F("-> water "));
+        Serial.print(t, 2);
+        Serial.println(F(" degC (DS18B20)"));
+        if (toEzo) {
+          char c[16] = "T,";
+          appendFixed2(c + 2, t);
+          sendToTarget(c);
+        }
+      }
+    }
+    cmdLen = 0;
+    return;
   }
-  digitalWrite(ledPin, LOW);
 
+  sendToTarget(cmd);
   cmdLen = 0;
 }
 
@@ -183,6 +288,9 @@ void setup() {
   Serial.begin(38400);
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, HIGH);
+
+  pinMode(RAIL12_EN, OUTPUT);
+  digitalWrite(RAIL12_EN, LOW);         // 12 V only on request: 12V,1
 
   // THE ISOLATORS COME UP FIRST - same invariant as the main sketch.
   // An unpowered ADM3260 holds SDA and SCL down on both sides, so without
@@ -207,6 +315,9 @@ void setup() {
   Serial.println(F("   i           device type - start here"));
   Serial.println(F("   Cal,?       how many points are stored"));
   Serial.println(F("   R           one reading"));
+  Serial.println(F("   12V,1/12V,0 12 V probe rail on/off (off now)"));
+  Serial.println(F("   Temp        water temperature (DS18B20)"));
+  Serial.println(F("   Temp,T      ... and send it as T to the circuit"));
   Serial.println();
   Serial.println(F(" pH:  Cal,mid,7.00  then  Cal,low,4.00  then"));
   Serial.println(F("      Cal,high,10.00   (mid FIRST - it clears the rest)"));
@@ -220,6 +331,8 @@ void setup() {
     Serial.println(F(" its data lines need their own pull-ups to the"));
     Serial.println(F(" isolated 3.9 V, referenced to isolated GND."));
   }
+
+  ds18b20.begin();                      // D6 is up: the DS18B20 has power
 
   Wire.begin();
 #if defined(WIRE_HAS_TIMEOUT)

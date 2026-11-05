@@ -107,20 +107,23 @@ t('PGND NEVER TO GND', 95.0, 112.0, 90, H_NOTE)
 #  JLCPCB render showed 'LEAVE OPEN' printed through 'U5'. Two lines that
 #  only repeated what already stands beside X1 and J6 came out, and so did
 #  the Rev C note: the title carries the letter, the BOM carries the why.
+#  Rev D: the WaziSense standoff H5 (113.5, 54.4) sits where the last three
+#  lines used to end, so they are shorter now, and one line says where the
+#  WaziSense goes.
 LEGEND = [
     'KIJANISPACE CARRIER Rev D',
     '',
     'A1=ISOLATORS D5=12V D6=3V3',
-    '',
     'D6- IS NOT GND - KEEP APART',
     '',
     'JP3 1-2 = ON-BOARD 12V BOOST.',
     'POLOLU U1: CUT 1-2, BRIDGE 2-3.',
     '',
-    'LEAVE OPEN, DO NOT BRIDGE:',
-    'R11 R12 U2 (JP1 REPLACES U2)',
+    'LEAVE OPEN: R11 R12 U2',
+    '(JP1 REPLACES U2)',
+    'PIN1 = SQUARE PAD',
     '',
-    'MODULES: PIN1 = SQUARE PAD',
+    'WAZISENSE ON H5 H6 H7',
 ]
 y = 39.6
 for line in LEGEND:
